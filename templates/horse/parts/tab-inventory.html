@@ -6,7 +6,7 @@
 			<div class="horse-load-grid">
 				<div class="load-stat">
 					<label>{{localize "DOLMEN.Horse.CurrentLoad"}}</label>
-					<span class="load-value {{#if @root.overloaded}}overloaded{{/if}}">{{currentLoad}} / {{system.load}}</span>
+					<span class="load-value {{#if @root.overloaded}}overloaded{{/if}}">{{currentLoad}} / {{@root.loadCapacity}}</span>
 				</div>
 			</div>
 		</section>

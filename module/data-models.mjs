@@ -808,22 +808,32 @@ export class HorseDataModel extends CreatureDataModel {
 	 * Called from the sheet's _prepareContext to ensure all actor data is ready.
 	 */
 	computeEncumbrance() {
-		const saddleWeights = { none: 0, riding: 300, ridingBags: 400, pack: 150 }
-		let totalWeight = saddleWeights[this.saddle] || 0
-		if (this.barding) totalWeight += 600
+		const method = game.settings?.get('dolmenwood', 'encumbranceMethod') || 'weight'
+		const isSlots = method === 'slots'
+		const divisor = isSlots ? 100 : 1
 
-		// Rider weight
-		if (this.riderType === 'small') {
-			totalWeight += 1200
-		} else if (this.riderType === 'medium') {
-			totalWeight += 1700
-		} else if (this.riderType === 'actor' && this.riderActorId) {
-			const rider = game.actors?.get(this.riderActorId)
-			if (rider) {
-				totalWeight += rider.system.size === 'small' ? 1200 : 1700
-				// Use rider's already-computed encumbrance total (items + coins)
-				totalWeight += this._riderEncumbrance || 0
+		const saddleWeights = isSlots
+			? { none: 0, riding: 2, ridingBags: 2, pack: 1 }
+			: { none: 0, riding: 300, ridingBags: 400, pack: 150 }
+		let totalWeight = saddleWeights[this.saddle] || 0
+		if (this.barding) totalWeight += isSlots ? 2 : 600
+
+		// Rider weight (body weight ignored in slot mode)
+		if (!isSlots) {
+			if (this.riderType === 'small') {
+				totalWeight += 1200
+			} else if (this.riderType === 'medium') {
+				totalWeight += 1700
+			} else if (this.riderType === 'actor' && this.riderActorId) {
+				const rider = game.actors?.get(this.riderActorId)
+				if (rider) {
+					totalWeight += rider.system.size === 'small' ? 1200 : 1700
+				}
 			}
+		}
+		// Rider equipment weight (always counted)
+		if (this.riderType === 'actor' && this.riderActorId) {
+			totalWeight += this._riderEncumbrance || 0
 		}
 
 		// Equipment and coins on horse (only when saddle supports storage)
@@ -832,12 +842,13 @@ export class HorseDataModel extends CreatureDataModel {
 			if (this.parent?.items) {
 				for (const item of this.parent.items) {
 					const qty = item.system.quantity || 1
-					const w = item.system.weightCoins || 0
+					const w = isSlots ? (item.system.weightSlots || 0) : (item.system.weightCoins || 0)
 					totalWeight += w * qty
 				}
 			}
-			totalWeight += (this.coins.copper || 0) + (this.coins.silver || 0)
+			const coinsTotal = (this.coins.copper || 0) + (this.coins.silver || 0)
 				+ (this.coins.gold || 0) + (this.coins.pellucidium || 0)
+			totalWeight += coinsTotal / divisor
 		}
 
 		this.totalWeight = totalWeight
@@ -851,13 +862,14 @@ export class HorseDataModel extends CreatureDataModel {
 			}
 		}
 
-		// Adjust speed based on load
-		if (this.load > 0 && totalWeight > this.load * 2) {
+		// Adjust speed based on load (compare in same unit)
+		const loadCapacity = this.load / divisor
+		if (loadCapacity > 0 && totalWeight > loadCapacity * 2) {
 			this.speed = 0
 			for (const key of Object.keys(this.movement || {})) {
 				this.movement[key] = 0
 			}
-		} else if (this.load > 0 && totalWeight > this.load) {
+		} else if (loadCapacity > 0 && totalWeight > loadCapacity) {
 			this.speed = Math.floor(this.speed / 2)
 			for (const key of Object.keys(this.movement || {})) {
 				if (this.movement[key] > 0) {
@@ -869,55 +881,75 @@ export class HorseDataModel extends CreatureDataModel {
 }
 
 /**
- * Data model for Trait actors.
- * Represents kindred, class, or kindred-class abilities that can be dragged to character sheets.
+ * Data model for Vehicle actors.
+ * Simple transport with cost, HP, AC, speed, cargo capacity, and crew/animals.
  */
-export class TraitDataModel extends foundry.abstract.TypeDataModel {
+export class VehicleDataModel extends foundry.abstract.TypeDataModel {
 	static defineSchema() {
 		return {
-			// Trait category: active, passive, info, or restrictions
-			category: new StringField({
+			// Vehicle type
+			vehicleType: new StringField({
 				required: true,
-				blank: false,
-				initial: "active",
-				choices: ["active", "passive", "info", "restrictions"]
+				initial: 'land',
+				choices: CHOICE_KEYS.vehicleTypes
 			}),
 
-			// Source type: kindred, class, or kindredClass
-			sourceType: new StringField({
+			// Cost in coins
+			cost: new NumberField({ required: true, integer: true, min: 0, initial: 0 }),
+			costDenomination: new StringField({
 				required: true,
-				blank: false,
-				initial: "kindred",
-				choices: ["kindred", "class", "kindredClass"]
+				initial: 'gp',
+				choices: CHOICE_KEYS.costDenominations
 			}),
 
-			// Source identifier (e.g., "grimalkin", "fighter", "elf")
-			sourceId: new StringField({
-				required: true,
-				blank: false,
-				initial: ""
+			// Hit Points
+			hp: new SchemaField({
+				value: new NumberField({ required: true, integer: true, min: 0, initial: 10 }),
+				max: new NumberField({ required: true, integer: true, min: 1, initial: 10 })
 			}),
 
-			// Whether this trait can be rolled (has dice mechanics)
-			rollable: new BooleanField({ required: true, initial: false }),
+			// HP Formula
+			hpDice: new StringField({ required: false, blank: true, initial: '' }),
 
-			// Roll formula (e.g., "2d6", "3d4")
-			rollFormula: new StringField({ required: true, blank: true, initial: "" }),
+			// Armour Class
+			ac: new NumberField({ required: true, integer: true, min: 0, initial: 10 }),
 
-			// Static value to display (e.g., "+2", "+1")
-			value: new StringField({ required: true, blank: true, initial: "" }),
-			
-			// Minimum level required to use this trait (0 = no requirement)
-			minLevel: new NumberField({ required: true, integer: true, min: 0, initial: 0 }),
+			// Speed in feet per round
+			speed: new NumberField({ required: true, integer: true, min: 0, initial: 40 }),
 
-			// Whether this trait has level-scaling values
-			levelScaling: new BooleanField({ required: true, initial: false }),
+			// Cargo capacity (in coins weight)
+			cargo: new NumberField({ required: true, integer: true, min: 0, initial: 5000 }),
 
-			// Level scaling table (JSON string for complex scaling)
-			scalingTable: new StringField({ required: true, blank: true, initial: "" }),
+			// Passengers (each = 5000 coins / 50 slots)
+			passengers: new NumberField({ required: true, integer: true, min: 0, initial: 0 }),
 
-			// Full description of the trait
-			description: new HTMLField({ required: true, blank: true })
+			// Crew percentage (water/air vehicles only) — reduces speed
+			crewPercent: new StringField({
+				required: true,
+				initial: '100',
+				choices: CHOICE_KEYS.crewPercents
+			}),
+
+			// Animal count (land vehicles only) — doubles cargo capacity
+			animalCount: new StringField({
+				required: true,
+				initial: 'normal',
+				choices: CHOICE_KEYS.animalCounts
+			}),
+
+			// Crew / Animals required
+			crewAnimals: new StringField({ required: false, blank: true, initial: '' }),
+
+			// Description
+			description: new HTMLField({ required: false, blank: true, initial: '' }),
+
+			// Stowed coins
+			coins: new SchemaField({
+				copper: new NumberField({ required: true, integer: true, min: 0, initial: 0 }),
+				silver: new NumberField({ required: true, integer: true, min: 0, initial: 0 }),
+				gold: new NumberField({ required: true, integer: true, min: 0, initial: 0 }),
+				pellucidium: new NumberField({ required: true, integer: true, min: 0, initial: 0 })
+			})
 		}
 	}
 }

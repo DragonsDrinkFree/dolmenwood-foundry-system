@@ -28,6 +28,7 @@ const layers = [
 			'settings.css',
 			'creature.css',
 			'horse.css',
+			'vehicle.css',
 			'calendar.css',
 			'combat-tracker.css',
 			'dungeon-tracker.css',

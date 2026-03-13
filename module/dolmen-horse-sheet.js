@@ -127,7 +127,12 @@ class DolmenHorseSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 			const rider = game.actors.get(actor.system.riderActorId)
 			if (rider?.type === 'Adventurer') {
 				const riderEnc = computeEncumbrance(rider)
-				actor.system._riderEncumbrance = riderEnc.current || 0
+				// Slot mode returns {equipped, stowed} objects; weight mode returns flat {current}
+				if (riderEnc.equipped) {
+					actor.system._riderEncumbrance = (riderEnc.equipped.current || 0) + (riderEnc.stowed.current || 0)
+				} else {
+					actor.system._riderEncumbrance = riderEnc.current || 0
+				}
 			}
 		}
 
@@ -180,19 +185,31 @@ class DolmenHorseSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 			}))
 		)
 
+		// Encumbrance method
+		const encumbranceMethod = game.settings.get('dolmenwood', 'encumbranceMethod')
+		context.encumbranceMethod = encumbranceMethod
+		const isSlots = encumbranceMethod === 'slots'
+		const divisor = isSlots ? 100 : 1
+
 		// Rider display info for non-actor types
 		const riderWeights = { none: 0, small: 1200, medium: 1700 }
 		const riderType = actor.system.riderType
 		if (riderType !== 'actor') {
 			context.riderLabel = game.i18n.localize(`DOLMEN.Horse.RiderTypes.${riderType}`)
-			context.riderWeight = riderWeights[riderType] || 0
+			context.riderWeight = isSlots ? 0 : (riderWeights[riderType] || 0)
 		}
 
 		// Prepare inventory data
 		context.hasStorage = this._hasStorage()
+		context.loadCapacity = actor.system.load / divisor
+		context.loadDisplay = actor.system.load / divisor
+		context.loadDivisor = divisor
+		context.loadUnit = isSlots
+			? game.i18n.localize('DOLMEN.Encumbrance.UnitSlots')
+			: game.i18n.localize('DOLMEN.Encumbrance.UnitCoins')
 		if (actor.system.saddle === 'ridingBags') {
 			context.saddleStorageName = game.i18n.localize('DOLMEN.Horse.SaddleBags')
-			context.saddleStorageMax = 500
+			context.saddleStorageMax = 500 / divisor
 		} else if (actor.system.saddle === 'pack') {
 			context.saddleStorageName = game.i18n.localize('DOLMEN.Horse.PackSaddle')
 			context.saddleStorageMax = 0
@@ -206,6 +223,10 @@ class DolmenHorseSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 	}
 
 	_prepareInventoryContext(context, actor) {
+		const isSlots = context.encumbranceMethod === 'slots'
+		const weightKey = isSlots ? 'weightSlots' : 'weightCoins'
+		const divisor = isSlots ? 100 : 1
+
 		const excludedTypes = ['Kindred', 'Class', 'Spell', 'HolySpell', 'Glamour', 'Rune']
 		const items = actor.items.contents.filter(i => !excludedTypes.includes(i.type))
 		const allStowedItems = items.filter(i => i.type !== 'Container').map(i => prepareItemData(i))
@@ -215,7 +236,7 @@ class DolmenHorseSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 		context.containers = containerItems.map(c => {
 			const prepared = prepareItemData(c)
 			const contents = allStowedItems.filter(i => i.system.containerId === c.id)
-			const coinsUsed = contents.reduce((sum, i) => sum + (i.system.weightCoins || 0) * (i.system.quantity || 1), 0)
+			const coinsUsed = contents.reduce((sum, i) => sum + (i.system[weightKey] || 0) * (i.system.quantity || 1), 0)
 			return {
 				...prepared,
 				contents: groupItemsByType(contents),
@@ -232,9 +253,9 @@ class DolmenHorseSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
 		context.stowedByType = groupItemsByType(looseStowedItems)
 		context.hasLooseStowedItems = looseStowedItems.length > 0
-		const itemWeight = looseStowedItems.reduce((sum, i) => sum + (i.system.weightCoins || 0) * (i.system.quantity || 1), 0)
-		const coinsWeight = (actor.system.coins.copper || 0) + (actor.system.coins.silver || 0)
-			+ (actor.system.coins.gold || 0) + (actor.system.coins.pellucidium || 0)
+		const itemWeight = looseStowedItems.reduce((sum, i) => sum + (i.system[weightKey] || 0) * (i.system.quantity || 1), 0)
+		const coinsWeight = ((actor.system.coins.copper || 0) + (actor.system.coins.silver || 0)
+			+ (actor.system.coins.gold || 0) + (actor.system.coins.pellucidium || 0)) / divisor
 		context.unsortedWeight = itemWeight + coinsWeight
 		context.hasStowedItems = context.hasLooseStowedItems || context.hasContainers
 
@@ -341,6 +362,22 @@ class DolmenHorseSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 				event.preventDefault()
 				const index = parseInt(el.dataset.attackIndex)
 				this._openAttackDialog(index)
+			})
+		})
+
+		// Load display ↔ hidden coins conversion
+		this.element.querySelectorAll('.load-display').forEach(input => {
+			input.addEventListener('change', (event) => {
+				event.preventDefault()
+				event.stopPropagation()
+				const divisor = parseInt(input.dataset.divisor) || 1
+				const target = input.dataset.target
+				const coinsValue = Math.round(parseFloat(input.value) * divisor)
+				const hidden = this.element.querySelector(`input[name="${target}"]`)
+				if (hidden) {
+					hidden.value = coinsValue
+					hidden.dispatchEvent(new Event('change', { bubbles: true }))
+				}
 			})
 		})
 

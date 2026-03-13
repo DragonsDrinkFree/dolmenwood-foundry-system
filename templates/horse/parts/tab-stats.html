@@ -15,12 +15,6 @@
 					</select>
 				</div>
 				<div class="header-field">
-					<label>{{localize "DOLMEN.Horse.Saddle"}}</label>
-					<select name="system.saddle">
-						{{selectOptions @root.saddleChoices selected=system.saddle}}
-					</select>
-				</div>
-				<div class="header-field">
 					<label>{{localize "DOLMEN.Horse.Cost"}}</label>
 					<div class="horse-cost-field">
 						<input type="number" name="system.cost" value="{{system.cost}}" min="0">
@@ -30,8 +24,10 @@
 					</div>
 				</div>
 				<div class="header-field">
-					<label>{{localize "DOLMEN.Horse.Load"}}</label>
-					<input type="number" name="system.load" value="{{system.load}}" min="0">
+					<label>{{localize "DOLMEN.Horse.Saddle"}}</label>
+					<select name="system.saddle">
+						{{selectOptions @root.saddleChoices selected=system.saddle}}
+					</select>
 				</div>
 				<div class="header-field">
 					<label>{{localize "DOLMEN.Horse.Armor"}}</label>
@@ -44,6 +40,11 @@
 					<select name="system.riderType">
 						{{selectOptions @root.riderTypeChoices selected=system.riderType}}
 					</select>
+				</div>
+				<div class="header-field">
+					<label>{{localize "DOLMEN.Horse.Load"}} ({{@root.loadUnit}})</label>
+					<input type="hidden" name="system.load" value="{{system.load}}">
+					<input type="number" class="load-display" value="{{@root.loadDisplay}}" data-divisor="{{@root.loadDivisor}}" data-target="system.load" min="0">
 				</div>
 			</div>
 		</section>

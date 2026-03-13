@@ -13,7 +13,7 @@ class DolmenActor extends Actor {
 				'prototypeToken.bar1.attribute': 'hp',
 				'prototypeToken.displayBars': CONST.TOKEN_DISPLAY_MODES.OWNER_HOVER
 			})
-		} else if (data.type === 'Creature' || data.type === 'Horse') {
+		} else if (data.type === 'Creature' || data.type === 'Horse' || data.type === 'Vehicle') {
 			this.updateSource({
 				'prototypeToken.bar1.attribute': 'hp',
 				'prototypeToken.displayBars': CONST.TOKEN_DISPLAY_MODES.OWNER_HOVER

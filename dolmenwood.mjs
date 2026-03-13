@@ -4,12 +4,13 @@ import DOLMENWOOD from './module/config.js'
 import DolmenSheet from './module/dolmen-sheet.js'
 import DolmenCreatureSheet from './module/dolmen-creature-sheet.js'
 import DolmenHorseSheet from './module/dolmen-horse-sheet.js'
+import DolmenVehicleSheet from './module/dolmen-vehicle-sheet.js'
 import DolmenItemSheet from './module/dolmen-item-sheet.js'
 import DolmenKindredSheet from './module/dolmen-kindred-sheet.js'
 import DolmenClassSheet from './module/dolmen-class-sheet.js'
 import DolmenActor from './module/dolmen-actor.js'
 import DolmenItem from './module/dolmen-item.js'
-import { AdventurerDataModel, CreatureDataModel, HorseDataModel, TraitDataModel, GearDataModel, ContainerDataModel, TreasureDataModel, WeaponDataModel, SpellDataModel, HolySpellDataModel, ArmorDataModel, ForagedDataModel, GlamourDataModel, RuneDataModel, KindredDataModel, ClassDataModel } from './module/data-models.mjs'
+import { AdventurerDataModel, CreatureDataModel, HorseDataModel, VehicleDataModel, GearDataModel, ContainerDataModel, TreasureDataModel, WeaponDataModel, SpellDataModel, HolySpellDataModel, ArmorDataModel, ForagedDataModel, GlamourDataModel, RuneDataModel, KindredDataModel, ClassDataModel } from './module/data-models.mjs'
 import { setupDamageContextMenu } from './module/chat-damage.js'
 import { createSaveLinkEnricher, openInlineSaveModifierPanel } from './module/chat-save.js'
 import WelcomeDialog from './module/welcome-dialog.js'
@@ -202,9 +203,14 @@ Hooks.once('init', async function () {
 	})
 
 	// Register Handlebars partials
-	const partialPath = 'systems/dolmenwood/templates/horse/parts/item-group.html'
-	const partialContent = await fetch(partialPath).then(r => r.text())
-	Handlebars.registerPartial(partialPath, partialContent)
+	const partials = [
+		'systems/dolmenwood/templates/horse/parts/item-group.html',
+		'systems/dolmenwood/templates/vehicle/parts/item-group.html'
+	]
+	for (const partialPath of partials) {
+		const partialContent = await fetch(partialPath).then(r => r.text())
+		Handlebars.registerPartial(partialPath, partialContent)
+	}
 
 	CONFIG.Actor.documentClass = DolmenActor
 	CONFIG.Item.documentClass = DolmenItem
@@ -214,7 +220,7 @@ Hooks.once('init', async function () {
 		Adventurer: AdventurerDataModel,
 		Creature: CreatureDataModel,
 		Horse: HorseDataModel,
-		Trait: TraitDataModel
+		Vehicle: VehicleDataModel
 	}
 	CONFIG.Item.dataModels = {
 		Item: GearDataModel,
@@ -415,6 +421,12 @@ Hooks.once('init', async function () {
 	Actors.registerSheet('dolmen', DolmenHorseSheet, {
 		types: ['Horse'],
 		label: 'DOLMEN.HorseSheetTitle',
+		makeDefault: true
+	})
+
+	Actors.registerSheet('dolmen', DolmenVehicleSheet, {
+		types: ['Vehicle'],
+		label: 'DOLMEN.VehicleSheetTitle',
 		makeDefault: true
 	})
 

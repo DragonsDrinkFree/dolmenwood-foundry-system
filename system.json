@@ -128,12 +128,12 @@
           "description"
         ]
       },
-      "Trait": {
+      "Horse": {
         "htmlFields": [
           "description"
         ]
       },
-      "Horse": {
+      "Vehicle": {
         "htmlFields": [
           "description"
         ]
