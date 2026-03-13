@@ -848,7 +848,7 @@ export class HorseDataModel extends CreatureDataModel {
 			}
 			const coinsTotal = (this.coins.copper || 0) + (this.coins.silver || 0)
 				+ (this.coins.gold || 0) + (this.coins.pellucidium || 0)
-			totalWeight += coinsTotal / divisor
+			totalWeight += isSlots ? Math.ceil(coinsTotal / 100) : coinsTotal
 		}
 
 		this.totalWeight = totalWeight

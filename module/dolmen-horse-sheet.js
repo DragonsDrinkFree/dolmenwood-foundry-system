@@ -225,7 +225,6 @@ class DolmenHorseSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 	_prepareInventoryContext(context, actor) {
 		const isSlots = context.encumbranceMethod === 'slots'
 		const weightKey = isSlots ? 'weightSlots' : 'weightCoins'
-		const divisor = isSlots ? 100 : 1
 
 		const excludedTypes = ['Kindred', 'Class', 'Spell', 'HolySpell', 'Glamour', 'Rune']
 		const items = actor.items.contents.filter(i => !excludedTypes.includes(i.type))
@@ -254,8 +253,9 @@ class DolmenHorseSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 		context.stowedByType = groupItemsByType(looseStowedItems)
 		context.hasLooseStowedItems = looseStowedItems.length > 0
 		const itemWeight = looseStowedItems.reduce((sum, i) => sum + (i.system[weightKey] || 0) * (i.system.quantity || 1), 0)
-		const coinsWeight = ((actor.system.coins.copper || 0) + (actor.system.coins.silver || 0)
-			+ (actor.system.coins.gold || 0) + (actor.system.coins.pellucidium || 0)) / divisor
+		const totalCoins = (actor.system.coins.copper || 0) + (actor.system.coins.silver || 0)
+			+ (actor.system.coins.gold || 0) + (actor.system.coins.pellucidium || 0)
+		const coinsWeight = isSlots ? Math.ceil(totalCoins / 100) : totalCoins
 		context.unsortedWeight = itemWeight + coinsWeight
 		context.hasStowedItems = context.hasLooseStowedItems || context.hasContainers
 
