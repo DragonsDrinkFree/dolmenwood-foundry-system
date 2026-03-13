@@ -6,6 +6,7 @@
 		"Actor": {
 			"Adventurer": "Adventurer",
 			"Creature": "Creature",
+			"Horse": "Horse",
 			"Trait": "Trait"
 		},
 		"Item": {
@@ -28,6 +29,7 @@
 		"WelcomeMessage": "Welcome to the Dolmenwood RPG system!",
 		"SheetTitle": "Dolmenwood Sheet",
 		"CreatureSheetTitle": "Dolmenwood Creature Sheet",
+		"HorseSheetTitle": "Dolmenwood Horse Sheet",
 		"Tabs": {
 			"Stats": "Stats",
 			"Description": "Description",
@@ -398,6 +400,41 @@
 			"FormatLabel": "Format",
 			"FormatDolmenwood": "Dolmenwood",
 			"FormatOSE": "OSE"
+		},
+		"Horse": {
+			"Type": "Type",
+			"Types": {
+				"riding": "Riding",
+				"war": "War",
+				"draft": "Draft"
+			},
+			"Saddle": "Saddle",
+			"Saddles": {
+				"none": "None",
+				"riding": "Riding",
+				"ridingBags": "Riding + Bags",
+				"pack": "Pack"
+			},
+			"Cost": "Cost",
+			"Load": "Load Capacity",
+			"LoadTitle": "Load",
+			"CurrentLoad": "Current Load",
+			"Armor": "Armor",
+			"ArmorNone": "None",
+			"ArmorBarding": "Barding (+2 AC)",
+			"Rider": "Rider",
+			"RiderType": "Rider Type",
+			"RiderTypes": {
+				"none": "None",
+				"small": "Small",
+				"medium": "Medium",
+				"actor": "Actor"
+			},
+			"RiderActor": "Actor",
+			"OpenRider": "Open Rider Sheet",
+			"SaddleBags": "Saddle Bags",
+			"PackSaddle": "Pack Saddle",
+			"MoveToRider": "Move to Rider"
 		},
 		"Alignments": {
 			"lawful": "Lawful",

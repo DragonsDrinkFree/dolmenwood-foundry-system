@@ -1,0 +1,158 @@
+/* Horse Sheet Styles */
+
+.dolmen.sheet.horse .horse-cost-field {
+	display: flex;
+	gap: 4px;
+	align-items: center;
+}
+
+.dolmen.sheet.horse .horse-cost-field input[type="number"] {
+	flex: 1;
+}
+
+.dolmen.sheet.horse .horse-cost-field .cost-denom {
+	width: 60px;
+}
+
+/* Rider Section */
+.dolmen.sheet.horse .rider-info {
+	text-align: center;
+	padding: 4px 0;
+	font-size: 0.85em;
+	height: 100%;
+	align-content: center;
+}
+
+.dolmen.sheet.horse .rider-row {
+	display: flex;
+	gap: 8px;
+	align-items: center;
+	height: 100%;
+}
+
+.dolmen.sheet.horse .rider-row select {
+	flex: 1;
+}
+
+.dolmen.sheet.horse .rider-open-btn {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	cursor: pointer;
+	padding: 2px 6px;
+	border-radius: 4px;
+	transition: background-color 0.15s;
+	white-space: nowrap;
+}
+
+.dolmen.sheet.horse .rider-open-btn:hover {
+	background-color: var(--dolmen-hover-bg, rgba(0, 0, 0, 0.05));
+}
+
+.dolmen.sheet.horse .rider-portrait {
+	width: 28px;
+	height: 28px;
+	border-radius: 4px;
+	object-fit: cover;
+}
+
+.dolmen.sheet.horse .rider-name {
+	font-size: 0.85em;
+}
+
+/* Horse right column */
+.dolmen.sheet.horse .horse-right-column {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}
+
+.dolmen.sheet.horse .horse-right-column .creature-attacks {
+	flex: 1;
+}
+
+/* Inventory header: load + rider side by side */
+.dolmen.sheet.horse .horse-inventory-header {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 8px;
+}
+
+/* Horse Load Section */
+.dolmen.sheet.horse .horse-load {
+	margin-bottom: 0;
+}
+
+.dolmen.sheet.horse .horse-load-grid {
+	display: flex;
+	gap: 16px;
+	height: 100%;
+	margin: auto;
+}
+
+.dolmen.sheet.horse .load-stat {
+	display: flex;
+	gap: 8px;
+	align-items: center;
+}
+
+.dolmen.sheet.horse .load-stat label {
+	font-size: 0.85em;
+	font-weight: bold;
+}
+
+.dolmen.sheet.horse .load-value {
+	font-size: 1em;
+	font-weight: bold;
+}
+
+.dolmen.sheet.horse .load-value.overloaded,
+.dolmen.sheet.horse .container-capacity.overloaded {
+	color: var(--dolmen-danger, #c41e1e);
+}
+
+/* Inventory body: stowed items + coins side by side */
+.dolmen.sheet.horse .horse-inventory-body {
+	display: flex;
+	gap: 8px;
+	flex: 1;
+	min-height: 0;
+}
+
+.dolmen.sheet.horse .stowed-items {
+	flex: 1;
+}
+
+/* Horse Coins Column */
+.dolmen.sheet.horse .horse-coins {
+	flex: 0 0 auto;
+}
+
+.dolmen.sheet.horse .horse-coins-grid {
+	display: flex;
+	flex-direction: column;
+	gap: 0.75em;
+	padding: 4px 0;
+}
+
+.dolmen.sheet.horse .horse-coins-grid .coin {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+}
+
+.dolmen.sheet.horse .horse-coins-grid .coin label {
+	font-size: 0.8em;
+	text-align: center;
+}
+
+.dolmen.sheet.horse .horse-coins-grid .coin-input {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+}
+
+.dolmen.sheet.horse .horse-coins-grid .coin-input input[type="number"] {
+	flex: 1;
+	width: 50px;
+}

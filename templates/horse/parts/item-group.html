@@ -1,0 +1,189 @@
+{{#if this.isWeapon}}
+<div class="item-list-header weapon-header">
+	<i class="fas fa-swords"></i>
+	<span class="type-label">{{this.label}}</span>
+	<span class="item-qualities">{{localize "DOLMEN.Item.Qualities"}}</span>
+	<i class="fas fa-heart-crack"></i>
+	<i class="fas fa-bolt"></i>
+	<i class="fas fa-weight-hanging"></i>
+	<span class="item-quantity">{{localize "DOLMEN.Item.Quantity"}}</span>
+	<span class="item-controls"></span>
+</div>
+{{#each this.items}}
+<div class="item-row draggable weapon" data-item-id="{{this.id}}" data-action="openItem">
+	<img src="{{this.img}}" class="item-image">
+	<span class="item-name">{{this.name}}{{#if this.system.toHitBonus}}<span class="weapon-bonus">(+{{this.system.toHitBonus}})</span>{{/if}}</span>
+	<span class="item-qualities">{{{this.qualitiesDisplay}}}</span>
+	<span class="item-damage">{{this.system.damage}}</span>
+	<span class="item-charges">{{#if this.hasCharges}}<i class="{{this.chargesIconStyle}} fa-square-{{this.chargesRemaining}} item-charges-icon" data-item-id="{{this.id}}" title="{{this.chargesRemaining}}/{{this.chargesMax}}"></i>{{else}}-{{/if}}</span>
+	<span class="item-weight">{{mul this.system.weightCoins this.system.quantity}}</span>
+	<span class="item-quantity">
+		<span class="qty-value">{{this.system.quantity}}</span>
+		<span class="qty-arrows">
+			<a class="qty-control" data-action="increaseQty" data-item-id="{{this.id}}"><i class="fas fa-caret-up"></i></a>
+			<a class="qty-control" data-action="decreaseQty" data-item-id="{{this.id}}"><i class="fas fa-caret-down"></i></a>
+		</span>
+	</span>
+	<span class="item-controls">
+		{{#if @root.riderActor}}
+		<a class="item-control" data-action="moveToRider" data-item-id="{{this.id}}" title="{{localize 'DOLMEN.Horse.MoveToRider'}}">
+			<i class="fas fa-person-carry-box"></i>
+		</a>
+		{{/if}}
+		<a class="item-control" data-action="deleteItem" data-item-id="{{this.id}}" title="{{localize 'DOLMEN.Inventory.Delete'}}">
+			<i class="fas fa-square-x"></i>
+		</a>
+	</span>
+</div>
+{{/each}}
+{{/if}}
+{{#if this.isArmor}}
+<div class="item-list-header armor-header">
+	<i class="fas fa-helmet-battle"></i>
+	<span class="type-label">{{this.label}}</span>
+	<span class="item-bulk">{{localize "DOLMEN.Item.Bulk.label"}}</span>
+	<span class="item-ac">{{localize "DOLMEN.Item.AC"}}</span>
+	<i class="fas fa-bolt"></i>
+	<i class="fas fa-weight-hanging"></i>
+	<span class="item-quantity">{{localize "DOLMEN.Item.Quantity"}}</span>
+	<span class="item-controls"></span>
+</div>
+{{#each this.items}}
+<div class="item-row draggable armor" data-item-id="{{this.id}}" data-action="openItem">
+	<img src="{{this.img}}" class="item-image">
+	<span class="item-name">{{this.name}}</span>
+	<span class="item-bulk">{{this.bulkDisplay}}</span>
+	<span class="item-ac">{{this.system.ac}}</span>
+	<span class="item-charges">{{#if this.hasCharges}}<i class="{{this.chargesIconStyle}} fa-square-{{this.chargesRemaining}} item-charges-icon" data-item-id="{{this.id}}" title="{{this.chargesRemaining}}/{{this.chargesMax}}"></i>{{else}}-{{/if}}</span>
+	<span class="item-weight">{{mul this.system.weightCoins this.system.quantity}}</span>
+	<span class="item-quantity">
+		<span class="qty-value">{{this.system.quantity}}</span>
+		<span class="qty-arrows">
+			<a class="qty-control" data-action="increaseQty" data-item-id="{{this.id}}"><i class="fas fa-caret-up"></i></a>
+			<a class="qty-control" data-action="decreaseQty" data-item-id="{{this.id}}"><i class="fas fa-caret-down"></i></a>
+		</span>
+	</span>
+	<span class="item-controls">
+		{{#if @root.riderActor}}
+		<a class="item-control" data-action="moveToRider" data-item-id="{{this.id}}" title="{{localize 'DOLMEN.Horse.MoveToRider'}}">
+			<i class="fas fa-person-carry-box"></i>
+		</a>
+		{{/if}}
+		<a class="item-control" data-action="deleteItem" data-item-id="{{this.id}}" title="{{localize 'DOLMEN.Inventory.Delete'}}">
+			<i class="fas fa-square-x"></i>
+		</a>
+	</span>
+</div>
+{{/each}}
+{{/if}}
+{{#if this.isItem}}
+<div class="item-list-header item-header">
+	<i class="fas fa-shovel"></i>
+	<span class="type-label">{{this.label}}</span>
+	<i class="fas fa-weight-hanging"></i>
+	<span class="item-quantity">{{localize "DOLMEN.Item.Quantity"}}</span>
+	<span class="item-controls"></span>
+</div>
+{{#each this.items}}
+<div class="item-row draggable item" data-item-id="{{this.id}}" data-action="openItem">
+	<img src="{{this.img}}" class="item-image">
+	<span class="item-name">{{this.name}}</span>
+	<span class="item-weight">{{mul this.system.weightCoins this.system.quantity}}</span>
+	<span class="item-quantity">
+		<span class="qty-value">{{this.system.quantity}}</span>
+		<span class="qty-arrows">
+			<a class="qty-control" data-action="increaseQty" data-item-id="{{this.id}}"><i class="fas fa-caret-up"></i></a>
+			<a class="qty-control" data-action="decreaseQty" data-item-id="{{this.id}}"><i class="fas fa-caret-down"></i></a>
+		</span>
+	</span>
+	<span class="item-controls">
+		{{#if @root.riderActor}}
+		<a class="item-control" data-action="moveToRider" data-item-id="{{this.id}}" title="{{localize 'DOLMEN.Horse.MoveToRider'}}">
+			<i class="fas fa-person-carry-box"></i>
+		</a>
+		{{/if}}
+		<a class="item-control" data-action="deleteItem" data-item-id="{{this.id}}" title="{{localize 'DOLMEN.Inventory.Delete'}}">
+			<i class="fas fa-square-x"></i>
+		</a>
+	</span>
+</div>
+{{/each}}
+{{/if}}
+{{#if this.isTreasure}}
+<div class="item-list-header treasure-header">
+	<i class="fas fa-gem"></i>
+	<span class="type-label">{{this.label}}</span>
+	<i class="fa-duotone fa-light fa-coin coin-icon coin-gold"></i>
+	<i class="fas fa-sparkles"></i>
+	<i class="fas fa-bolt"></i>
+	<i class="fas fa-weight-hanging"></i>
+	<span class="item-quantity">{{localize "DOLMEN.Item.Quantity"}}</span>
+	<span class="item-controls"></span>
+</div>
+{{#each this.items}}
+<div class="item-row draggable treasure" data-item-id="{{this.id}}" data-action="openItem">
+	<img src="{{this.img}}" class="item-image">
+	<span class="item-name">{{this.name}}</span>
+	<span class="item-damage">{{this.valueInGold}}</span>
+	{{#if this.hasEffects}}<span class="item-notes"><i class="fas fa-memo tooltip"><span class="tooltiptext">{{this.tooltipEffects}}</span></i></span>
+	{{else}}<span class="item-notes">-</span>
+	{{/if}}
+	<span class="item-charges">{{#if this.hasCharges}}<i class="{{this.chargesIconStyle}} fa-square-{{this.chargesRemaining}} item-charges-icon" data-item-id="{{this.id}}" title="{{this.chargesRemaining}}/{{this.chargesMax}}"></i>{{else}}-{{/if}}</span>
+	<span class="item-weight">{{mul this.system.weightCoins this.system.quantity}}</span>
+	<span class="item-quantity">
+		<span class="qty-value">{{this.system.quantity}}</span>
+		<span class="qty-arrows">
+			<a class="qty-control" data-action="increaseQty" data-item-id="{{this.id}}"><i class="fas fa-caret-up"></i></a>
+			<a class="qty-control" data-action="decreaseQty" data-item-id="{{this.id}}"><i class="fas fa-caret-down"></i></a>
+		</span>
+	</span>
+	<span class="item-controls">
+		{{#if @root.riderActor}}
+		<a class="item-control" data-action="moveToRider" data-item-id="{{this.id}}" title="{{localize 'DOLMEN.Horse.MoveToRider'}}">
+			<i class="fas fa-person-carry-box"></i>
+		</a>
+		{{/if}}
+		<a class="item-control" data-action="deleteItem" data-item-id="{{this.id}}" title="{{localize 'DOLMEN.Inventory.Delete'}}">
+			<i class="fas fa-square-x"></i>
+		</a>
+	</span>
+</div>
+{{/each}}
+{{/if}}
+{{#if this.isForaged}}
+<div class="item-list-header foraged-header">
+	<i class="fas fa-mushroom"></i>
+	<span class="type-label">{{this.label}}</span>
+	<i class="fas fa-sparkles"></i>
+	<i class="fas fa-weight-hanging"></i>
+	<span class="item-quantity">{{localize "DOLMEN.Item.Quantity"}}</span>
+	<span class="item-controls"></span>
+</div>
+{{#each this.items}}
+<div class="item-row draggable foraged" data-item-id="{{this.id}}" data-action="openItem">
+	<img src="{{this.img}}" class="item-image">
+	<span class="item-name">{{this.name}}</span>
+	{{#if this.hasEffects}}<span class="item-notes"><i class="fas fa-memo tooltip"><span class="tooltiptext">{{this.tooltipEffects}}</span></i></span>
+	{{else}}<span class="item-notes">-</span>
+	{{/if}}
+	<span class="item-weight">{{mul this.system.weightCoins this.system.quantity}}</span>
+	<span class="item-quantity">
+		<span class="qty-value">{{this.system.quantity}}</span>
+		<span class="qty-arrows">
+			<a class="qty-control" data-action="increaseQty" data-item-id="{{this.id}}"><i class="fas fa-caret-up"></i></a>
+			<a class="qty-control" data-action="decreaseQty" data-item-id="{{this.id}}"><i class="fas fa-caret-down"></i></a>
+		</span>
+	</span>
+	<span class="item-controls">
+		{{#if @root.riderActor}}
+		<a class="item-control" data-action="moveToRider" data-item-id="{{this.id}}" title="{{localize 'DOLMEN.Horse.MoveToRider'}}">
+			<i class="fas fa-person-carry-box"></i>
+		</a>
+		{{/if}}
+		<a class="item-control" data-action="deleteItem" data-item-id="{{this.id}}" title="{{localize 'DOLMEN.Inventory.Delete'}}">
+			<i class="fas fa-square-x"></i>
+		</a>
+	</span>
+</div>
+{{/each}}
+{{/if}}

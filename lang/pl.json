@@ -20,6 +20,41 @@
 			"RandomizeCreatureHP": "Losowe HP potworów",
 			"RandomizeCreatureHPHint": "Przy umieszczaniu niepowiązanego tokena potwora na mapie, rzuć kośćmi HP potwora, aby wylosować jego punkty życia."
 		},
+		"Horse": {
+			"Type": "Typ",
+			"Types": {
+				"riding": "Wierzchowy",
+				"war": "Bojowy",
+				"draft": "Juczny"
+			},
+			"Saddle": "Siodło",
+			"Saddles": {
+				"none": "Brak",
+				"riding": "Wierzchowe",
+				"ridingBags": "Wierzchowe + Juki",
+				"pack": "Juczne"
+			},
+			"Cost": "Koszt",
+			"Load": "Udźwig",
+			"LoadTitle": "Ładunek",
+			"CurrentLoad": "Aktualny ładunek",
+			"Armor": "Zbroja",
+			"ArmorNone": "Brak",
+			"ArmorBarding": "Kirys koński (+2 KP)",
+			"Rider": "Jeździec",
+			"RiderType": "Typ jeźdźca",
+			"RiderTypes": {
+				"none": "Brak",
+				"small": "Mały",
+				"medium": "Średni",
+				"actor": "Aktor"
+			},
+			"RiderActor": "Aktor",
+			"OpenRider": "Otwórz kartę jeźdźca",
+			"SaddleBags": "Juki",
+			"PackSaddle": "Siodło juczne",
+			"MoveToRider": "Przenieś do jeźdźca"
+		},
 		"Months": {
 			"grimvold": "Ciemnobor",
 			"lymewald": "Wapniec",

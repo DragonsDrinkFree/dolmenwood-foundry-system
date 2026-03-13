@@ -1,6 +1,6 @@
 import { CHOICE_KEYS } from './utils/choices.js'
 
-/* global foundry */
+/* global foundry, game */
 const { ArrayField, BooleanField, HTMLField, NumberField, SchemaField, StringField } = foundry.data.fields
 
 /* -------------------------------------------- */
@@ -731,6 +731,139 @@ export class CreatureDataModel extends ActorDataModel {
 			// Retainer loyalty score (2-12, default 7)
 			loyalty: new NumberField({ required: false, integer: true, min: 1, max: 12 }),
 
+		}
+	}
+}
+
+/**
+ * Data model for Horse actors.
+ * Extends Creature with horse-specific fields (type, saddle, rider, barding).
+ */
+export class HorseDataModel extends CreatureDataModel {
+	static defineSchema() {
+		return {
+			...super.defineSchema(),
+
+			// Cost in coins
+			cost: new NumberField({ required: true, integer: true, min: 0, initial: 0 }),
+			costDenomination: new StringField({
+				required: true,
+				initial: 'gp',
+				choices: CHOICE_KEYS.costDenominations
+			}),
+
+			// Maximum load capacity (in coins weight)
+			load: new NumberField({ required: true, integer: true, min: 0, initial: 3000 }),
+
+			// Horse type
+			horseType: new StringField({
+				required: true,
+				blank: false,
+				initial: 'riding',
+				choices: CHOICE_KEYS.horseTypes
+			}),
+
+			// Saddle type (determines inventory availability)
+			saddle: new StringField({
+				required: true,
+				blank: false,
+				initial: 'none',
+				choices: CHOICE_KEYS.saddleTypes
+			}),
+
+			// Rider type
+			riderType: new StringField({
+				required: true,
+				blank: false,
+				initial: 'none',
+				choices: CHOICE_KEYS.riderTypes
+			}),
+
+			// Linked rider actor ID
+			riderActorId: new StringField({ required: false, blank: true, initial: '' }),
+
+			// Barding (+2 AC)
+			barding: new BooleanField({ required: true, initial: false }),
+
+			// Stowed coins
+			coins: new SchemaField({
+				copper: new NumberField({ required: true, integer: true, min: 0, initial: 0 }),
+				silver: new NumberField({ required: true, integer: true, min: 0, initial: 0 }),
+				gold: new NumberField({ required: true, integer: true, min: 0, initial: 0 }),
+				pellucidium: new NumberField({ required: true, integer: true, min: 0, initial: 0 })
+			})
+		}
+	}
+
+	/** @override */
+	prepareDerivedData() {
+		// Apply barding AC bonus
+		if (this.barding) {
+			this.ac = (this.ac || 10) + 2
+		}
+	}
+
+	/**
+	 * Compute total carried weight and adjust speeds based on load.
+	 * Called from the sheet's _prepareContext to ensure all actor data is ready.
+	 */
+	computeEncumbrance() {
+		const saddleWeights = { none: 0, riding: 300, ridingBags: 400, pack: 150 }
+		let totalWeight = saddleWeights[this.saddle] || 0
+		if (this.barding) totalWeight += 600
+
+		// Rider weight
+		if (this.riderType === 'small') {
+			totalWeight += 1200
+		} else if (this.riderType === 'medium') {
+			totalWeight += 1700
+		} else if (this.riderType === 'actor' && this.riderActorId) {
+			const rider = game.actors?.get(this.riderActorId)
+			if (rider) {
+				totalWeight += rider.system.size === 'small' ? 1200 : 1700
+				// Use rider's already-computed encumbrance total (items + coins)
+				totalWeight += this._riderEncumbrance || 0
+			}
+		}
+
+		// Equipment and coins on horse (only when saddle supports storage)
+		const hasStorage = this.saddle === 'ridingBags' || this.saddle === 'pack'
+		if (hasStorage) {
+			if (this.parent?.items) {
+				for (const item of this.parent.items) {
+					const qty = item.system.quantity || 1
+					const w = item.system.weightCoins || 0
+					totalWeight += w * qty
+				}
+			}
+			totalWeight += (this.coins.copper || 0) + (this.coins.silver || 0)
+				+ (this.coins.gold || 0) + (this.coins.pellucidium || 0)
+		}
+
+		this.totalWeight = totalWeight
+
+		// Reset speeds to source (base) values before applying encumbrance
+		const source = this.parent?._source?.system
+		if (source) {
+			this.speed = source.speed
+			for (const key of Object.keys(this.movement || {})) {
+				this.movement[key] = source.movement?.[key] || 0
+			}
+		}
+
+		// Adjust speed based on load
+		if (this.load > 0 && totalWeight > this.load * 2) {
+			this.speed = 0
+			for (const key of Object.keys(this.movement || {})) {
+				this.movement[key] = 0
+			}
+		} else if (this.load > 0 && totalWeight > this.load) {
+			this.speed = Math.floor(this.speed / 2)
+			for (const key of Object.keys(this.movement || {})) {
+				if (this.movement[key] > 0) {
+					this.movement[key] = Math.floor(this.movement[key] / 2)
+				}
+			}
 		}
 	}
 }

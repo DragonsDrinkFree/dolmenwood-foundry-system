@@ -3,12 +3,13 @@
 import DOLMENWOOD from './module/config.js'
 import DolmenSheet from './module/dolmen-sheet.js'
 import DolmenCreatureSheet from './module/dolmen-creature-sheet.js'
+import DolmenHorseSheet from './module/dolmen-horse-sheet.js'
 import DolmenItemSheet from './module/dolmen-item-sheet.js'
 import DolmenKindredSheet from './module/dolmen-kindred-sheet.js'
 import DolmenClassSheet from './module/dolmen-class-sheet.js'
 import DolmenActor from './module/dolmen-actor.js'
 import DolmenItem from './module/dolmen-item.js'
-import { AdventurerDataModel, CreatureDataModel, TraitDataModel, GearDataModel, ContainerDataModel, TreasureDataModel, WeaponDataModel, SpellDataModel, HolySpellDataModel, ArmorDataModel, ForagedDataModel, GlamourDataModel, RuneDataModel, KindredDataModel, ClassDataModel } from './module/data-models.mjs'
+import { AdventurerDataModel, CreatureDataModel, HorseDataModel, TraitDataModel, GearDataModel, ContainerDataModel, TreasureDataModel, WeaponDataModel, SpellDataModel, HolySpellDataModel, ArmorDataModel, ForagedDataModel, GlamourDataModel, RuneDataModel, KindredDataModel, ClassDataModel } from './module/data-models.mjs'
 import { setupDamageContextMenu } from './module/chat-damage.js'
 import { createSaveLinkEnricher, openInlineSaveModifierPanel } from './module/chat-save.js'
 import WelcomeDialog from './module/welcome-dialog.js'
@@ -200,6 +201,11 @@ Hooks.once('init', async function () {
 		return array.join(separator || ', ')
 	})
 
+	// Register Handlebars partials
+	const partialPath = 'systems/dolmenwood/templates/horse/parts/item-group.html'
+	const partialContent = await fetch(partialPath).then(r => r.text())
+	Handlebars.registerPartial(partialPath, partialContent)
+
 	CONFIG.Actor.documentClass = DolmenActor
 	CONFIG.Item.documentClass = DolmenItem
 
@@ -207,6 +213,7 @@ Hooks.once('init', async function () {
 	CONFIG.Actor.dataModels = {
 		Adventurer: AdventurerDataModel,
 		Creature: CreatureDataModel,
+		Horse: HorseDataModel,
 		Trait: TraitDataModel
 	}
 	CONFIG.Item.dataModels = {
@@ -405,6 +412,12 @@ Hooks.once('init', async function () {
 		makeDefault: true
 	})
 
+	Actors.registerSheet('dolmen', DolmenHorseSheet, {
+		types: ['Horse'],
+		label: 'DOLMEN.HorseSheetTitle',
+		makeDefault: true
+	})
+
 	Items.registerSheet('dolmen', DolmenItemSheet, {
 		types: ['Item', 'Treasure', 'Weapon', 'Armor', 'Foraged', 'Container', 'Spell', 'HolySpell', 'Glamour', 'Rune'],
 		label: 'DOLMEN.ItemSheetTitle',
@@ -460,7 +473,7 @@ Hooks.on('createToken', async (tokenDoc) => {
 	if (!game.settings.get('dolmenwood', 'randomizeCreatureHP')) return
 
 	const actor = tokenDoc.actor
-	if (!actor || actor.type !== 'Creature') return
+	if (!actor || !['Creature', 'Horse'].includes(actor.type)) return
 	if (tokenDoc.actorLink) return
 
 	const hpDice = actor.system.hpDice
@@ -733,5 +746,33 @@ Hooks.on('updateItem', (item) => {
 	Object.values(ui.windows).forEach(app => {
 		if (app.collection?.documentName === 'Item') app.render()
 	})
+})
+
+// Helper: re-prepare data and re-render open sheets for horses linked to a given rider actor
+function refreshHorsesForRider(riderId) {
+	for (const horse of game.actors.filter(a => a.type === 'Horse' && a.system.riderActorId === riderId)) {
+		horse.prepareData()
+		horse.sheet?.render()
+	}
+}
+
+// When rider actor is updated (e.g. size change), refresh linked horse sheets
+Hooks.on('updateActor', (actor) => {
+	if (actor.type !== 'Adventurer') return
+	refreshHorsesForRider(actor.id)
+})
+
+// When rider actor's items change, refresh linked horse sheets
+Hooks.on('createItem', (item) => {
+	if (!item.isEmbedded || item.parent?.type !== 'Adventurer') return
+	refreshHorsesForRider(item.parent.id)
+})
+Hooks.on('updateItem', (item) => {
+	if (!item.isEmbedded || item.parent?.type !== 'Adventurer') return
+	refreshHorsesForRider(item.parent.id)
+})
+Hooks.on('deleteItem', (item) => {
+	if (!item.isEmbedded || item.parent?.type !== 'Adventurer') return
+	refreshHorsesForRider(item.parent.id)
 })
 

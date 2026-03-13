@@ -132,6 +132,11 @@
         "htmlFields": [
           "description"
         ]
+      },
+      "Horse": {
+        "htmlFields": [
+          "description"
+        ]
       }
     },
     "Item": {

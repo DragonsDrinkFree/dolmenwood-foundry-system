@@ -257,5 +257,8 @@ export const CHOICE_KEYS = {
 		"holyWater", "javelin", "lance", "longbow", "longsword", "mace",
 		"oil", "polearm", "shortbow", "shortsword", "sling", "spear",
 		"staff", "torch", "twoHandedSword", "warHammer"
-	]
+	],
+	horseTypes: ['riding', 'war', 'draft'],
+	saddleTypes: ['none', 'riding', 'ridingBags', 'pack'],
+	riderTypes: ['none', 'small', 'medium', 'actor']
 }
