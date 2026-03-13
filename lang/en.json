@@ -655,7 +655,8 @@
 				"OncePerWeek": "1/week",
 				"OncePerLevel": "1/level",
 				"OncePerYear": "1/year",
-				"OnceEver": "once ever"
+				"OnceEver": "once ever",
+				"RuneRefreshNote": "{name} rune refreshes ({actor})"
 			},
 			"Holy": {
 				"Title": "Holy Magic",

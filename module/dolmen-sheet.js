@@ -1,5 +1,7 @@
 /* global foundry, game, Dialog, CONFIG, ui, Item, ChatMessage, CONST */
 import { buildChoices, buildChoicesWithBlank, formatWeaponProficiency, formatArmorProficiency, CHOICE_KEYS } from './utils/choices.js'
+import { getFutureDateKey, getFutureDateKeyByYears } from './calendar/calendar-time.js'
+import { addRuneRefreshNote } from './sheet/listeners.js'
 import { parseSaveLinks } from './chat-save.js'
 
 // Sheet module imports
@@ -933,18 +935,33 @@ class DolmenSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 			})
 		}
 
-		// For runes: increment usage and delete "once ever" runes
+		// For runes: increment usage, handle refresh dates, and delete "once ever" runes
 		if (item.type === 'Rune') {
 			const magnitude = item.system.magnitude || 'lesser'
 			const usage = getRuneUsage(magnitude, this.actor.system.level)
+			const qty = item.system.quantity || 1
+			const totalMax = usage.max * qty
 			const runeUsage = foundry.utils.deepClone(this.actor.system.runeUsage || {})
-			const runeData = runeUsage[itemId] || { used: 0, max: usage.max }
-			runeData.used = Math.min(runeData.used + 1, usage.max)
-			runeData.max = usage.max
+			const runeData = runeUsage[itemId] || { used: 0, max: totalMax }
+			runeData.used = Math.min(runeData.used + 1, totalMax)
+			runeData.max = totalMax
+
+			// Add refresh date and calendar note for week/year runes
+			if (usage.frequencyType === 'week' || usage.frequencyType === 'year') {
+				if (!runeData.refreshDates) runeData.refreshDates = []
+				if (!runeData.refreshNoteIds) runeData.refreshNoteIds = []
+				const refreshDate = usage.frequencyType === 'week'
+					? getFutureDateKey(7)
+					: getFutureDateKeyByYears(1)
+				runeData.refreshDates.push(refreshDate)
+				const noteId = await addRuneRefreshNote(refreshDate, item.name, this.actor.name)
+				runeData.refreshNoteIds.push(noteId)
+			}
+
 			runeUsage[itemId] = runeData
 			await this.actor.update({ 'system.runeUsage': runeUsage })
 
-			if (usage.deleteOnUse && runeData.used >= usage.max) {
+			if (usage.deleteOnUse && runeData.used >= totalMax) {
 				await item.delete()
 			}
 		}

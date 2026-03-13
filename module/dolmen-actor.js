@@ -1,6 +1,6 @@
-/*global Actor, ui, game, Roll, ChatMessage, CONST, CONFIG */
+/*global Actor, ui, game, Roll, ChatMessage, CONST, CONFIG, foundry */
 import { drawFromTableSilent } from './utils/roll-tables.js'
-import { computeEncumbrance, computeAdjustedValues } from './sheet/data-context.js'
+import { computeEncumbrance, computeAdjustedValues, getRuneUsage } from './sheet/data-context.js'
 
 class DolmenActor extends Actor {
 
@@ -55,6 +55,11 @@ class DolmenActor extends Actor {
 			// Only apply class progression if level actually changed
 			if (newLevel !== oldLevel && newLevel >= 1 && newLevel <= 15) {
 				await this._applyClassProgression(newLevel, changed)
+			}
+
+			// Refresh x/level runes on level up
+			if (newLevel > oldLevel) {
+				this._refreshLevelRunes(changed)
 			}
 		}
 	}
@@ -180,6 +185,36 @@ class DolmenActor extends Actor {
 					}
 				})
 			}
+		}
+	}
+
+	/**
+	 * Refresh x/level runes when leveling up.
+	 * @param {object} changed - The update object being modified
+	 * @private
+	 */
+	_refreshLevelRunes(changed) {
+		if (!this.system.fairyMagic?.enabled) return
+		const runeUsage = this.system.runeUsage || {}
+		const resetUsage = {}
+		let anyReset = false
+
+		for (const [runeId, data] of Object.entries(runeUsage)) {
+			const rune = this.items.get(runeId)
+			if (!rune || rune.type !== 'Rune') continue
+			const magnitude = rune.system.magnitude || 'lesser'
+			const usage = getRuneUsage(magnitude, this.system.level)
+			if (usage.frequencyType === 'level' && data.used > 0) {
+				resetUsage[runeId] = { used: 0, max: data.max }
+				anyReset = true
+			}
+		}
+
+		if (anyReset) {
+			changed.system = changed.system || {}
+			changed.system.runeUsage = foundry.utils.mergeObject(
+				foundry.utils.deepClone(runeUsage), resetUsage
+			)
 		}
 	}
 

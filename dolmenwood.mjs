@@ -13,7 +13,8 @@ import { setupDamageContextMenu } from './module/chat-damage.js'
 import { createSaveLinkEnricher, openInlineSaveModifierPanel } from './module/chat-save.js'
 import WelcomeDialog from './module/welcome-dialog.js'
 import { initCalendarWidget, toggleWidget, handleCalendarSocket } from './module/calendar/calendar-widget.js'
-import { getFaSymbol } from './module/sheet/data-context.js'
+import { worldTimeToCalendar, dateKeyToEpochDay } from './module/calendar/calendar-time.js'
+import { getFaSymbol, getRuneUsage } from './module/sheet/data-context.js'
 import { registerCombatSystem } from './module/combat/combat.js'
 import { initDungeonTracker, toggleDungeonTracker, onLightSourcesChanged, onTrackerPausedChanged, onTurnCounterChanged } from './module/dungeon-tracker/dungeon-tracker.js'
 import { initPartyViewer, togglePartyViewer, onPartyMembersChanged } from './module/party-viewer/party-viewer.js'
@@ -22,6 +23,7 @@ import { openCreatureImportDialog } from './module/creature-importer.js'
 const { Actors, Items } = foundry.documents.collections
 
 let themePreview = null
+let lastRuneRefreshDay = null
 
 function isFoundryDark() {
 	return document.documentElement.classList.contains('theme-dark')
@@ -446,6 +448,10 @@ Hooks.once('ready', async function () {
 
 	// Socket listener for player calendar note operations
 	game.socket.on('system.dolmenwood', handleCalendarSocket)
+
+	// Initialize rune refresh day tracking
+	const initCal = worldTimeToCalendar(game.time.worldTime)
+	lastRuneRefreshDay = `${initCal.year}-${initCal.monthKey}-${initCal.day}`
 })
 
 // Randomize HP for unlinked creature tokens placed on canvas
@@ -466,6 +472,89 @@ Hooks.on('createToken', async (tokenDoc) => {
 		'delta.system.hp.value': hp,
 		'delta.system.hp.max': hp
 	})
+})
+
+// Refresh rune usage on day change (x/day, x/week, x/year)
+Hooks.on('updateWorldTime', async () => {
+	if (game.user !== game.users.activeGM) return
+
+	const cal = worldTimeToCalendar(game.time.worldTime)
+	const dayKey = `${cal.year}-${cal.monthKey}-${cal.day}`
+	const dayChanged = lastRuneRefreshDay !== null && dayKey !== lastRuneRefreshDay
+	lastRuneRefreshDay = dayKey
+	if (!dayChanged) return
+
+	const currentEpochDay = dateKeyToEpochDay(dayKey)
+
+	for (const actor of game.actors.filter(a => a.type === 'Adventurer' && a.system.fairyMagic?.enabled)) {
+		const runeUsage = actor.system.runeUsage || {}
+		const level = actor.system.level
+		const resetUsage = {}
+		let anyChange = false
+		const notesToRemove = []
+
+		for (const [runeId, data] of Object.entries(runeUsage)) {
+			if (!data.used || data.used <= 0) continue
+			const rune = actor.items.get(runeId)
+			if (!rune || rune.type !== 'Rune') continue
+			const magnitude = rune.system.magnitude || 'lesser'
+			const usage = getRuneUsage(magnitude, level)
+
+			if (usage.frequencyType === 'day') {
+				// x/day: refresh all
+				resetUsage[runeId] = { used: 0, max: data.max }
+				anyChange = true
+			} else if (usage.frequencyType === 'week' || usage.frequencyType === 'year') {
+				// x/week or x/year: check individual refresh dates
+				const refreshDates = data.refreshDates || []
+				const refreshNoteIds = data.refreshNoteIds || []
+				const newDates = []
+				const newNoteIds = []
+				let newUsed = data.used
+
+				for (let i = 0; i < refreshDates.length; i++) {
+					const refreshEpochDay = dateKeyToEpochDay(refreshDates[i])
+					if (currentEpochDay >= refreshEpochDay) {
+						// This slot has refreshed
+						newUsed--
+						if (refreshNoteIds[i]) {
+							notesToRemove.push({ dateKey: refreshDates[i], noteId: refreshNoteIds[i] })
+						}
+					} else {
+						// Not yet refreshed, keep it
+						newDates.push(refreshDates[i])
+						newNoteIds.push(refreshNoteIds[i] || null)
+					}
+				}
+
+				if (newUsed !== data.used) {
+					resetUsage[runeId] = {
+						used: Math.max(0, newUsed),
+						max: data.max,
+						refreshDates: newDates,
+						refreshNoteIds: newNoteIds
+					}
+					anyChange = true
+				}
+			}
+		}
+
+		if (anyChange) {
+			const merged = foundry.utils.mergeObject(foundry.utils.deepClone(runeUsage), resetUsage)
+			await actor.update({ 'system.runeUsage': merged })
+		}
+
+		// Clean up calendar notes for refreshed runes
+		if (notesToRemove.length > 0) {
+			const notes = foundry.utils.deepClone(game.settings.get('dolmenwood', 'calendarNotes'))
+			for (const { dateKey: ndk, noteId } of notesToRemove) {
+				if (!notes[ndk]) continue
+				notes[ndk] = notes[ndk].filter(n => n.id !== noteId)
+				if (notes[ndk].length === 0) delete notes[ndk]
+			}
+			await game.settings.set('dolmenwood', 'calendarNotes', notes)
+		}
+	}
 })
 
 // Live-preview theme when dropdown changes in settings

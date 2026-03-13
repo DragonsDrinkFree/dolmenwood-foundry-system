@@ -159,7 +159,15 @@
 								<span class="usage-label">{{this.usageFrequency}}</span>
 								<div class="usage-checkboxes">
 									{{#each this.usageCheckboxes}}
-									<input type="checkbox" class="rune-usage-checkbox" data-rune-id="{{../id}}" data-usage-index="{{this.index}}" data-max-uses="{{../maxUses}}" data-delete-on-use="{{../deleteOnUse}}" {{#if this.checked}}checked{{/if}}>
+									<span class="rune-checkbox-wrapper">
+										<input type="checkbox" class="rune-usage-checkbox" data-rune-id="{{../id}}" data-usage-index="{{this.index}}" data-max-uses="{{../maxUses}}" data-delete-on-use="{{../deleteOnUse}}" data-frequency-type="{{../frequencyType}}" {{#if this.checked}}checked{{/if}}>
+										{{#if this.refreshDate}}
+										<span class="tooltip rune-refresh-icon">
+											<i class="fas fa-hourglass-half"></i>
+											<span class="tooltiptext">{{this.refreshDateFormatted}}</span>
+										</span>
+										{{/if}}
+									</span>
 									{{/each}}
 								</div>
 							</div>

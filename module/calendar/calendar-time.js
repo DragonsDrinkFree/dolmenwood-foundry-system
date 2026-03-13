@@ -1,4 +1,4 @@
-/* global CONFIG */
+/* global CONFIG, game */
 
 /**
  * Convert Foundry worldTime (seconds) to a Dolmenwood calendar date.
@@ -167,4 +167,42 @@ export function getMoonChangesForMonth(monthKey) {
 		}
 	}
 	return changes
+}
+
+/**
+ * Convert a date key ("year-monthKey-day") to an absolute day number (epoch day).
+ * @param {string} dateKey - Date key in format "year-monthKey-day"
+ * @returns {number} Absolute day number from epoch
+ */
+export function dateKeyToEpochDay(dateKey) {
+	const parts = dateKey.split('-')
+	const year = parseInt(parts[0])
+	const monthKey = parts[1]
+	const day = parseInt(parts[2])
+	const { BASE_YEAR, DAYS_PER_YEAR, monthOffsets } = CONFIG.DOLMENWOOD
+	return (year - BASE_YEAR) * DAYS_PER_YEAR + monthOffsets[monthKey] + day
+}
+
+/**
+ * Compute a future date key by adding days to the current world time.
+ * @param {number} daysToAdd - Number of days to add
+ * @returns {string} Future date key
+ */
+export function getFutureDateKey(daysToAdd) {
+	const { SECONDS_PER_DAY } = CONFIG.DOLMENWOOD
+	const futureTime = game.time.worldTime + (daysToAdd * SECONDS_PER_DAY)
+	const cal = worldTimeToCalendar(futureTime)
+	return `${cal.year}-${cal.monthKey}-${cal.day}`
+}
+
+/**
+ * Compute a future date key by adding years to the current world time.
+ * @param {number} yearsToAdd - Number of years to add
+ * @returns {string} Future date key
+ */
+export function getFutureDateKeyByYears(yearsToAdd) {
+	const { DAYS_PER_YEAR, SECONDS_PER_DAY } = CONFIG.DOLMENWOOD
+	const futureTime = game.time.worldTime + (yearsToAdd * DAYS_PER_YEAR * SECONDS_PER_DAY)
+	const cal = worldTimeToCalendar(futureTime)
+	return `${cal.year}-${cal.monthKey}-${cal.day}`
 }
