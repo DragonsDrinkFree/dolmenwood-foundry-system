@@ -16,7 +16,9 @@
 			"ThemeMortalsEnd": "Koniec Śmiertelnika",
 			"ThemeSilverDagger": "Srebrny Sztylet",
 			"ThemeColdIronAxe": "Topór z Zimnego Żelaza",
-			"ThemeHighContrast": "Wysoki Kontrast"
+			"ThemeHighContrast": "Wysoki Kontrast",
+			"RandomizeCreatureHP": "Losowe HP potworów",
+			"RandomizeCreatureHPHint": "Przy umieszczaniu niepowiązanego tokena potwora na mapie, rzuć kośćmi HP potwora, aby wylosować jego punkty życia."
 		},
 		"Months": {
 			"grimvold": "Ciemnobor",

@@ -1,4 +1,4 @@
-/* global CONFIG, game, Hooks, foundry, Handlebars, ui */
+/* global CONFIG, game, Hooks, foundry, Handlebars, ui, Roll */
 
 import DOLMENWOOD from './module/config.js'
 import DolmenSheet from './module/dolmen-sheet.js'
@@ -268,6 +268,15 @@ Hooks.once('init', async function () {
 		}
 	})
 
+	game.settings.register('dolmenwood', 'randomizeCreatureHP', {
+		name: 'DOLMEN.Settings.RandomizeCreatureHP',
+		hint: 'DOLMEN.Settings.RandomizeCreatureHPHint',
+		scope: 'world',
+		config: true,
+		type: Boolean,
+		default: true
+	})
+
 	game.settings.register('dolmenwood', 'showWelcomeDialog', {
 		name: 'DOLMEN.Welcome.SettingName',
 		hint: 'DOLMEN.Welcome.SettingHint',
@@ -437,6 +446,26 @@ Hooks.once('ready', async function () {
 
 	// Socket listener for player calendar note operations
 	game.socket.on('system.dolmenwood', handleCalendarSocket)
+})
+
+// Randomize HP for unlinked creature tokens placed on canvas
+Hooks.on('createToken', async (tokenDoc) => {
+	if (!game.user.isGM) return
+	if (!game.settings.get('dolmenwood', 'randomizeCreatureHP')) return
+
+	const actor = tokenDoc.actor
+	if (!actor || actor.type !== 'Creature') return
+	if (tokenDoc.actorLink) return
+
+	const hpDice = actor.system.hpDice
+	if (!hpDice) return
+
+	const roll = await new Roll(hpDice).evaluate()
+	const hp = Math.max(1, roll.total)
+	await tokenDoc.update({
+		'delta.system.hp.value': hp,
+		'delta.system.hp.max': hp
+	})
 })
 
 // Live-preview theme when dropdown changes in settings

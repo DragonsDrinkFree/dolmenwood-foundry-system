@@ -768,7 +768,9 @@
 			"ThemeMortalsEnd": "Mortal's End",
 			"ThemeSilverDagger": "Silver Dagger",
 			"ThemeColdIronAxe": "Cold Iron Axe",
-			"ThemeHighContrast": "High Contrast"
+			"ThemeHighContrast": "High Contrast",
+			"RandomizeCreatureHP": "Randomize Creature HP",
+			"RandomizeCreatureHPHint": "When placing an unlinked creature token on the canvas, roll the creature's HP dice to randomize its hit points."
 		},
 		"Welcome": {
 			"Title": "Welcome to Dolmenwood VTT!",
