@@ -1,0 +1,113 @@
+/* Vehicle Sheet Styles */
+
+.dolmen.sheet.vehicle .vehicle-cost-field {
+	display: flex;
+	gap: 4px;
+	align-items: center;
+}
+
+.dolmen.sheet.vehicle .vehicle-cost-field input[type="number"] {
+	flex: 1;
+}
+
+.dolmen.sheet.vehicle .vehicle-cost-field .cost-denom {
+	width: 60px;
+}
+
+/* Inventory body: vertical stack */
+.dolmen.sheet.vehicle .vehicle-inventory-body {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	flex: 1;
+	min-height: 0;
+}
+
+/* Load section */
+.dolmen.sheet.vehicle .vehicle-load {
+	flex: 0 0 auto;
+}
+
+.dolmen.sheet.vehicle .vehicle-load-grid {
+	display: flex;
+	gap: 16px;
+	align-items: center;
+	margin: auto;
+}
+
+.dolmen.sheet.vehicle .load-stat {
+	display: flex;
+	gap: 8px;
+	align-items: center;
+}
+
+.dolmen.sheet.vehicle .load-stat label {
+	font-size: 0.85em;
+	font-weight: bold;
+	white-space: nowrap;
+}
+
+.dolmen.sheet.vehicle .load-stat input[type="number"] {
+	width: 50px;
+}
+
+.dolmen.sheet.vehicle .load-value {
+	font-size: 1em;
+	font-weight: bold;
+	white-space: nowrap;
+}
+
+.dolmen.sheet.vehicle .load-value.overloaded,
+.dolmen.sheet.vehicle .container-capacity.overloaded {
+	color: var(--dolmen-danger, #c41e1e);
+}
+
+
+
+/* Cargo row: stowed items + coins side by side */
+.dolmen.sheet.vehicle .vehicle-cargo-row {
+	display: flex;
+	gap: 8px;
+	flex: 1;
+	min-height: 0;
+}
+
+/* Cargo hold: fills remaining space */
+.dolmen.sheet.vehicle .stowed-items {
+	flex: 1;
+	min-width: 0;
+}
+
+/* Vehicle Coins Column */
+.dolmen.sheet.vehicle .vehicle-coins {
+	flex: 0 0 auto;
+}
+
+.dolmen.sheet.vehicle .vehicle-coins-grid {
+	display: flex;
+	flex-direction: column;
+	gap: 0.75em;
+	padding: 4px 0;
+}
+
+.dolmen.sheet.vehicle .vehicle-coins-grid .coin {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+}
+
+.dolmen.sheet.vehicle .vehicle-coins-grid .coin label {
+	font-size: 0.8em;
+	text-align: center;
+}
+
+.dolmen.sheet.vehicle .vehicle-coins-grid .coin-input {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+}
+
+.dolmen.sheet.vehicle .vehicle-coins-grid .coin-input input[type="number"] {
+	flex: 1;
+	width: 50px;
+}

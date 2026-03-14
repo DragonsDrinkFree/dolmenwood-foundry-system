@@ -9,6 +9,11 @@
 	border-bottom: 2px solid var(--dolmen-color-title-background);
 	padding: 0 0.5rem;
 	justify-content: flex-start;
+	position: relative;
+}
+
+.sheet.dolmen .tabs:has(.item[data-tab="settings"]) {
+	padding-right: 3rem;
 }
 
 .sheet.dolmen .tabs .item {
@@ -25,8 +30,10 @@
 	line-height: 1;
 }
 
-.sheet.dolmen .tabs .item:hover {
+.sheet.dolmen .tabs .item:hover,
+.sheet.dolmen .tabs .actor-link-icon:hover {
 	opacity: 1;
+	text-shadow: 0 0 2px var(--dolmen-color-title);
 }
 
 .sheet.dolmen .tabs .item.active {
@@ -44,6 +51,20 @@
 .sheet.dolmen .tabs .item[data-tab="settings"] {
 	position: absolute;
 	right: 0;
+}
+
+.sheet.dolmen .tabs .actor-link-icon {
+	margin-left: auto;
+	padding: 0.5rem 1rem;
+	cursor: pointer;
+	border-bottom: 2px solid transparent;
+	margin-bottom: -2px;
+	color: var(--dolmen-color-title);
+	opacity: 0.7;
+	transition: opacity 0.2s, border-color 0.2s;
+	display: inline-flex;
+	align-items: center;
+	line-height: 1;
 }
 
 /* -------------------------------------------- */

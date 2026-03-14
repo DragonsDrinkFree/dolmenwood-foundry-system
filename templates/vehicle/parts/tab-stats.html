@@ -1,0 +1,90 @@
+<section class="tab-content tab-stats {{tab.cssClass}}" data-group="primary" data-tab="stats">
+	<!-- Header: Portrait + Name + Vehicle Details -->
+	<section class="two-columns header">
+		<section class="details boxed-section">
+			<h2>{{localize "DOLMEN.Details"}}</h2>
+			<div class="header-details">
+				<div class="header-field" style="grid-column-end: span 2;">
+					<label>{{localize "DOLMEN.Name"}}</label>
+					<input type="text" name="name" value="{{actor.name}}" placeholder="{{localize 'DOLMEN.Name'}}">
+				</div>
+				<div class="header-field">
+					<label>{{localize "DOLMEN.Vehicle.Type"}}</label>
+					<select name="system.vehicleType">
+						{{selectOptions @root.vehicleTypeChoices selected=system.vehicleType}}
+					</select>
+				</div>
+				<div class="header-field">
+					<label>{{localize "DOLMEN.Vehicle.Cost"}}</label>
+					<div class="vehicle-cost-field">
+						<input type="number" name="system.cost" value="{{system.cost}}" min="0">
+						<select name="system.costDenomination" class="cost-denom">
+							{{selectOptions @root.costDenomChoices selected=system.costDenomination}}
+						</select>
+					</div>
+				</div>
+				<div class="header-field" style="grid-column-end: span 2;">
+					<label>{{@root.crewAnimalsLabel}}</label>
+					<input type="text" name="system.crewAnimals" value="{{system.crewAnimals}}" placeholder="{{@root.crewAnimalsPlaceholder}}">
+				</div>
+				{{#if @root.isLand}}
+				<div class="header-field">
+					<label>{{localize "DOLMEN.Vehicle.AnimalCount"}}</label>
+					<select name="system.animalCount">
+						{{selectOptions @root.animalCountChoices selected=system.animalCount}}
+					</select>
+				</div>
+				{{else}}
+				<div class="header-field">
+					<label>{{localize "DOLMEN.Vehicle.CrewPercent"}}</label>
+					<select name="system.crewPercent">
+						{{selectOptions @root.crewPercentChoices selected=system.crewPercent}}
+					</select>
+				</div>
+				{{/if}}
+				<div class="header-field">
+					<label>{{localize "DOLMEN.Vehicle.Cargo"}} ({{@root.cargoUnit}})</label>
+					<input type="hidden" name="system.cargo" value="{{system.cargo}}">
+					<input type="number" class="load-display" value="{{@root.cargoDisplay}}" data-divisor="{{@root.cargoDivisor}}" data-target="system.cargo" min="0">
+				</div>
+			</div>
+		</section>
+		<section class="portrait-section boxed-section">
+			<div class="portrait-container">
+				<img src="{{actor.img}}" alt="{{actor.name}}" class="portrait-image" data-edit="img">
+			</div>
+		</section>
+	</section>
+
+	<!-- Game Statistics -->
+	<section class="creature-stats boxed-section">
+		<h2>{{localize "DOLMEN.Combat.Title"}}</h2>
+		<div class="creature-stats-grid">
+			<div class="creature-stat hp-block">
+				<label>{{localize "DOLMEN.Combat.HP"}}</label>
+				<div class="hp-values">
+					<input type="number" name="system.hp.value" value="{{system.hp.value}}" min="0" class="hp-current">
+					<span class="hp-separator">/</span>
+					<input type="number" name="system.hp.max" value="{{system.hp.max}}" min="1" class="hp-max">
+				</div>
+			</div>
+			<div class="creature-stat">
+				<label>{{localize "DOLMEN.Creature.HPDice"}}</label>
+				<input type="text" name="system.hpDice" value="{{system.hpDice}}" placeholder="1d20+20">
+			</div>
+			<div class="creature-stat">
+				<label>{{localize "DOLMEN.Combat.AC"}}</label>
+				<input type="number" name="system.ac" value="{{system.ac}}" min="0">
+			</div>
+			<div class="creature-stat">
+				<label>{{localize "DOLMEN.Movement.Speed"}}</label>
+				{{#if @root.speedHasAdj}}
+				<input type="hidden" name="system.speed" value="{{@root.baseSpeed}}">
+				<input type="number" class="adjustable has-adjustment" value="{{@root.adjustedSpeed}}" data-base="{{@root.baseSpeed}}" data-adjusted="{{@root.adjustedSpeed}}" data-target="system.speed" min="0">
+				{{else}}
+				<input type="number" name="system.speed" value="{{system.speed}}" min="0">
+				{{/if}}
+			</div>
+		</div>
+	</section>
+</section>

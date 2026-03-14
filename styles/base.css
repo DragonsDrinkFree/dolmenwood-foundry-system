@@ -171,3 +171,8 @@ span.proficiency-value {
 	font-weight: bold;
 	width: 2.5rem;
 }
+
+.sheet.dolmen .prosemirror button.toggle,
+.sheet.dolmen prosemirror button.toggl {
+	color: var(--dolmen-color-text);
+}

@@ -5,6 +5,7 @@
  * Each function receives the sheet instance as the first parameter.
  */
 
+import { getFutureDateKey, getFutureDateKeyByYears } from '../calendar/calendar-time.js'
 import { onMeleeAttackRoll, onMissileAttackRoll, onAttackRollContextMenu } from './attack-rolls.js'
 import { onAbilityRoll, onSaveRoll, onSkillRoll, rollTrait } from './roll-handlers.js'
 import { openXPDialog, openXPEditDialog, openAddSkillDialog, openCoinDialog, removeSkill, levelUp, levelDown } from './dialogs.js'
@@ -862,14 +863,41 @@ export function setupRuneUsageListeners(sheet) {
 			const index = parseInt(event.currentTarget.dataset.usageIndex)
 			const maxUses = parseInt(event.currentTarget.dataset.maxUses)
 			const deleteOnUse = event.currentTarget.dataset.deleteOnUse === 'true'
+			const frequencyType = event.currentTarget.dataset.frequencyType
 
 			const usage = foundry.utils.deepClone(sheet.actor.system.runeUsage || {})
 			const runeData = usage[runeId] || { used: 0, max: maxUses }
 
+			const oldUsed = runeData.used || 0
 			runeData.used = event.currentTarget.checked ? index + 1 : index
 			runeData.max = maxUses
-			usage[runeId] = runeData
 
+			// Handle refresh dates for week/year runes
+			if (frequencyType === 'week' || frequencyType === 'year') {
+				if (!runeData.refreshDates) runeData.refreshDates = []
+				if (!runeData.refreshNoteIds) runeData.refreshNoteIds = []
+
+				if (runeData.used > oldUsed) {
+					// Checking a box — add refresh date and calendar note
+					const refreshDate = frequencyType === 'week'
+						? getFutureDateKey(7)
+						: getFutureDateKeyByYears(1)
+					runeData.refreshDates.push(refreshDate)
+
+					const item = sheet.actor.items.get(runeId)
+					const noteId = await addRuneRefreshNote(refreshDate, item?.name || 'Rune', sheet.actor.name)
+					runeData.refreshNoteIds.push(noteId)
+				} else if (runeData.used < oldUsed) {
+					// Unchecking a box — remove last refresh date and calendar note
+					const removedDate = runeData.refreshDates.pop()
+					const removedNoteId = runeData.refreshNoteIds.pop()
+					if (removedDate && removedNoteId) {
+						await removeRuneRefreshNote(removedDate, removedNoteId)
+					}
+				}
+			}
+
+			usage[runeId] = runeData
 			await sheet.actor.update({ 'system.runeUsage': usage })
 
 			// Delete "once ever" runes when fully used
@@ -879,6 +907,36 @@ export function setupRuneUsageListeners(sheet) {
 			}
 		})
 	})
+}
+
+/**
+ * Add a calendar note for a rune refresh date.
+ * @param {string} dateKey - The date key for the note
+ * @param {string} runeName - The rune's display name
+ * @param {string} actorName - The actor's name
+ * @returns {string} The note ID
+ */
+export async function addRuneRefreshNote(dateKey, runeName, actorName) {
+	const noteId = foundry.utils.randomID()
+	const text = game.i18n.format('DOLMEN.Magic.Fairy.RuneRefreshNote', { name: runeName, actor: actorName })
+	const notes = foundry.utils.deepClone(game.settings.get('dolmenwood', 'calendarNotes'))
+	if (!notes[dateKey]) notes[dateKey] = []
+	notes[dateKey].push({ id: noteId, text, gmOnly: false })
+	await game.settings.set('dolmenwood', 'calendarNotes', notes)
+	return noteId
+}
+
+/**
+ * Remove a calendar note for a rune refresh.
+ * @param {string} dateKey - The date key where the note lives
+ * @param {string} noteId - The note ID to remove
+ */
+async function removeRuneRefreshNote(dateKey, noteId) {
+	const notes = foundry.utils.deepClone(game.settings.get('dolmenwood', 'calendarNotes'))
+	if (!notes[dateKey]) return
+	notes[dateKey] = notes[dateKey].filter(n => n.id !== noteId)
+	if (notes[dateKey].length === 0) delete notes[dateKey]
+	await game.settings.set('dolmenwood', 'calendarNotes', notes)
 }
 
 /**

@@ -1,0 +1,51 @@
+<section class="tab-content tab-inventory {{tab.cssClass}}" data-group="primary" data-tab="inventory">
+	<!-- Load + Rider Row -->
+	<div class="horse-inventory-header">
+		<section class="horse-load boxed-section">
+			<h2><i class="fas fa-weight-hanging"></i> {{localize "DOLMEN.Horse.LoadTitle"}}</h2>
+			<div class="horse-load-grid">
+				<div class="load-stat">
+					<label>{{localize "DOLMEN.Horse.CurrentLoad"}}</label>
+					<span class="load-value {{#if @root.overloaded}}overloaded{{/if}}">{{currentLoad}} / {{@root.loadCapacity}}</span>
+				</div>
+			</div>
+		</section>
+		<section class="horse-rider boxed-section">
+			<h2>{{localize "DOLMEN.Horse.Rider"}}</h2>
+			{{#if (eq system.riderType "actor")}}
+			<div class="rider-row">
+				<select name="system.riderActorId">
+					<option value="">{{localize "DOLMEN.None"}}</option>
+					{{#each @root.actorChoices}}
+					<option value="{{this.id}}" {{#if this.selected}}selected{{/if}}>{{this.name}}</option>
+					{{/each}}
+				</select>
+				{{#if @root.riderActor}}
+				<a class="rider-open-btn" title="{{localize 'DOLMEN.Horse.OpenRider'}}">
+					<img src="{{@root.riderActor.img}}" class="rider-portrait">
+					<span class="rider-name">{{@root.riderActor.name}}</span>
+				</a>
+				{{/if}}
+			</div>
+			{{else}}
+			<div class="rider-info">{{@root.riderLabel}} (<i class="fas fa-weight-hanging"></i> {{@root.riderWeight}})</div>
+			{{/if}}
+		</section>
+	</div>
+
+	<!-- Stowed Items + Coins Row -->
+	{{#if @root.hasStorage}}
+	<div class="horse-inventory-body">
+		<section class="stowed-items inventory boxed-section" data-item-list="stowed">
+			<h2><i class="fas fa-bag-shopping"></i> {{@root.saddleStorageName}} {{#if @root.saddleStorageMax}}<span class="container-capacity {{#if @root.saddleOverweight}}overloaded{{/if}}">(<i class="fas fa-weight-hanging"></i> {{unsortedWeight}}/{{@root.saddleStorageMax}})</span>{{/if}}</h2>
+			<div class="item-list stowed-list" data-item-list="stowed">
+				{{> "systems/dolmenwood/templates/shared/container-list.html"}}
+			</div>
+		</section>
+		<section class="horse-coins boxed-section">
+			<h2><i class="fas fa-coins"></i> {{localize "DOLMEN.Coins.Title"}}</h2>
+			{{> "systems/dolmenwood/templates/shared/coins-grid.html" gridClass="horse-coins-grid"}}
+		</section>
+	</div>
+	{{/if}}
+</section>

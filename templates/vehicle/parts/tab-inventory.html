@@ -1,0 +1,34 @@
+<section class="tab-content tab-inventory {{tab.cssClass}}" data-group="primary" data-tab="inventory">
+	<div class="vehicle-inventory-body">
+		<!-- Load -->
+		<section class="vehicle-load boxed-section">
+			<h2><i class="fas fa-weight-hanging"></i> {{localize "DOLMEN.Vehicle.LoadTitle"}}</h2>
+			<div class="vehicle-load-grid">
+				<div class="load-stat">
+					<label>{{localize "DOLMEN.Vehicle.Passengers"}}</label>
+					<input type="number" name="system.passengers" value="{{system.passengers}}" min="0">
+				</div>
+				<div class="load-stat">
+					<label>{{localize "DOLMEN.Vehicle.CurrentLoad"}}</label>
+					<span class="load-value {{#if @root.overloaded}}overloaded{{/if}}">{{@root.totalLoad}} / {{@root.cargoCapacity}}</span>
+				</div>
+			</div>
+		</section>
+
+		<!-- Cargo Hold + Coins -->
+		<div class="vehicle-cargo-row">
+			<!-- Cargo Hold (Stowed Items) -->
+			<section class="stowed-items inventory boxed-section" data-item-list="stowed">
+				<h2><i class="fas fa-box"></i> {{localize "DOLMEN.Vehicle.CargoHold"}} <span class="container-capacity {{#if @root.cargoOverweight}}overloaded{{/if}}">(<i class="fas fa-weight-hanging"></i> {{unsortedWeight}}/{{@root.cargoCapacity}})</span></h2>
+				<div class="item-list stowed-list" data-item-list="stowed">
+					{{> "systems/dolmenwood/templates/shared/container-list.html"}}
+				</div>
+			</section>
+			<!-- Coins -->
+			<section class="vehicle-coins boxed-section">
+				<h2><i class="fas fa-coins"></i> {{localize "DOLMEN.Coins.Title"}}</h2>
+				{{> "systems/dolmenwood/templates/shared/coins-grid.html" gridClass="vehicle-coins-grid"}}
+			</section>
+		</div>
+	</div>
+</section>

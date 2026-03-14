@@ -452,3 +452,21 @@
 	accent-color: var(--dolmen-color-accent);
 	margin: 0;
 }
+
+.sheet.dolmen .tab-magic .rune-checkbox-wrapper {
+	display: inline-flex;
+	align-items: center;
+	gap: 0;
+}
+
+.sheet.dolmen .tab-magic .rune-refresh-icon {
+	font-size: 0.5rem;
+	color: var(--dolmen-color-text-muted);
+	cursor: default;
+	margin-right: 0.15rem;
+}
+
+.sheet.dolmen .tab-magic .rune-refresh-icon .tooltiptext {
+	white-space: nowrap;
+	font-size: 0.75rem;
+}

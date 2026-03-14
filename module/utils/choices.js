@@ -257,5 +257,11 @@ export const CHOICE_KEYS = {
 		"holyWater", "javelin", "lance", "longbow", "longsword", "mace",
 		"oil", "polearm", "shortbow", "shortsword", "sling", "spear",
 		"staff", "torch", "twoHandedSword", "warHammer"
-	]
+	],
+	horseTypes: ['riding', 'war', 'draft'],
+	saddleTypes: ['none', 'riding', 'ridingBags', 'pack'],
+	riderTypes: ['none', 'small', 'medium', 'actor'],
+	vehicleTypes: ['land', 'water', 'air'],
+	animalCounts: ['normal', 'double'],
+	crewPercents: ['100', '90', '80', '70', '60', '50', '40', '30', '20', '10', '0']
 }

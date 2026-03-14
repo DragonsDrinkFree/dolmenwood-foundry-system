@@ -6,7 +6,8 @@
 		"Actor": {
 			"Adventurer": "Adventurer",
 			"Creature": "Creature",
-			"Trait": "Trait"
+			"Horse": "Horse",
+			"Vehicle": "Vehicle"
 		},
 		"Item": {
 			"Item": "Gear",
@@ -28,6 +29,8 @@
 		"WelcomeMessage": "Welcome to the Dolmenwood RPG system!",
 		"SheetTitle": "Dolmenwood Sheet",
 		"CreatureSheetTitle": "Dolmenwood Creature Sheet",
+		"HorseSheetTitle": "Dolmenwood Horse Sheet",
+		"VehicleSheetTitle": "Dolmenwood Vehicle Sheet",
 		"Tabs": {
 			"Stats": "Stats",
 			"Description": "Description",
@@ -49,6 +52,8 @@
 			"Other": "Other"
 		},
 		"Details": "Details",
+		"TokenLinked": "Token linked to Actor",
+		"TokenUnlinked": "Token unlinked from Actor",
 		"NameType": "Definition",
 		"RolledKindredDetails": "Rolled details for new kindred ({kindred})",
 		"KindredClassIncompatible": "Changing kindred to {newKindred} is incompatible with your current kindred-class ({className}). Class changed to Fighter.",
@@ -280,7 +285,9 @@
 			"weight": "Weight (Full)",
 			"treasure": "Weight (Treasure)",
 			"slots": "Slots",
-			"disabled": "Disabled"
+			"disabled": "Disabled",
+			"UnitSlots": "slots",
+			"UnitCoins": "coins"
 		},
 		"Exhaustion": "Exhaustion",
 		"Coins": {
@@ -398,6 +405,79 @@
 			"FormatLabel": "Format",
 			"FormatDolmenwood": "Dolmenwood",
 			"FormatOSE": "OSE"
+		},
+		"Horse": {
+			"Type": "Type",
+			"Types": {
+				"riding": "Riding",
+				"war": "War",
+				"draft": "Draft"
+			},
+			"Saddle": "Saddle",
+			"Saddles": {
+				"none": "None",
+				"riding": "Riding",
+				"ridingBags": "Riding + Bags",
+				"pack": "Pack"
+			},
+			"Cost": "Cost",
+			"Load": "Max Load",
+			"LoadTitle": "Load",
+			"CurrentLoad": "Current Load",
+			"Armor": "Armor",
+			"ArmorNone": "None",
+			"ArmorBarding": "Barding (+2 AC)",
+			"Rider": "Rider",
+			"RiderType": "Rider Type",
+			"RiderTypes": {
+				"none": "None",
+				"small": "Small",
+				"medium": "Medium",
+				"actor": "Actor"
+			},
+			"RiderActor": "Actor",
+			"OpenRider": "Open Rider Sheet",
+			"SaddleBags": "Saddle Bags",
+			"PackSaddle": "Pack Saddle",
+			"MoveToRider": "Move to Rider"
+		},
+		"Vehicle": {
+			"Type": "Type",
+			"Types": {
+				"land": "Land",
+				"water": "Water",
+				"air": "Air"
+			},
+			"Cost": "Cost",
+			"Cargo": "Max Cargo",
+			"CargoTitle": "Cargo",
+			"CurrentLoad": "Current Load",
+			"AnimalCount": "Animal Count",
+			"AnimalCounts": {
+				"normal": "Normal",
+				"double": "Double"
+			},
+			"Animals": "Animals",
+			"AnimalsPlaceholder": "e.g. 1 draft horse or 2 mules",
+			"Crew": "Crew",
+			"CrewPlaceholder": "e.g. 1\u20132 untrained",
+			"CrewPercent": "Crew %",
+			"CrewPercents": {
+				"100": "100%",
+				"90": "90%",
+				"80": "80%",
+				"70": "70%",
+				"60": "60%",
+				"50": "50%",
+				"40": "40%",
+				"30": "30%",
+				"20": "20%",
+				"10": "10%",
+				"0": "0%"
+			},
+			"CargoHold": "Cargo Hold",
+			"Passengers": "Passengers",
+			"LoadTitle": "Load"
 		},
 		"Alignments": {
 			"lawful": "Lawful",
@@ -548,9 +628,14 @@
 			"Delete": "Delete",
 			"DeleteConfirmTitle": "Delete Item",
 			"DeleteConfirmContent": "Are you sure you want to delete {name}?",
+			"DeleteContainerTitle": "Delete Container",
+			"DeleteContainerContent": "What do you want to delete?",
+			"DeleteContainerOnly": "Container Only",
+			"DeleteContainerAndContents": "Container and Contents",
 			"Loose": "Loose Items",
 			"RemoveFromContainer": "Remove from Container",
-			"Unsorted": "Unsorted"
+			"Unsorted": "Unsorted",
+			"Empty": "Empty"
 		},
 		"Attack": {
 			"NoWeapon": "No equipped {type} weapon found.",
@@ -655,7 +740,8 @@
 				"OncePerWeek": "1/week",
 				"OncePerLevel": "1/level",
 				"OncePerYear": "1/year",
-				"OnceEver": "once ever"
+				"OnceEver": "once ever",
+				"RuneRefreshNote": "{name} rune refreshes ({actor})"
 			},
 			"Holy": {
 				"Title": "Holy Magic",
@@ -768,7 +854,9 @@
 			"ThemeMortalsEnd": "Mortal's End",
 			"ThemeSilverDagger": "Silver Dagger",
 			"ThemeColdIronAxe": "Cold Iron Axe",
-			"ThemeHighContrast": "High Contrast"
+			"ThemeHighContrast": "High Contrast",
+			"RandomizeCreatureHP": "Randomize Creature HP",
+			"RandomizeCreatureHPHint": "When placing an unlinked creature token on the canvas, roll the creature's HP dice to randomize its hit points."
 		},
 		"Welcome": {
 			"Title": "Welcome to Dolmenwood VTT!",

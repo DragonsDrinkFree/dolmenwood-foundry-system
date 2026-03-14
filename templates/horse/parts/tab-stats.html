@@ -1,0 +1,183 @@
+<section class="tab-content tab-stats {{tab.cssClass}}" data-group="primary" data-tab="stats">
+	<!-- Header: Portrait + Name + Horse Details -->
+	<section class="two-columns header">
+		<section class="details boxed-section">
+			<h2>{{localize "DOLMEN.Details"}}</h2>
+			<div class="header-details">
+				<div class="header-field" style="grid-column-end: span 2;">
+					<label>{{localize "DOLMEN.Name"}}</label>
+					<input type="text" name="name" value="{{actor.name}}" placeholder="{{localize 'DOLMEN.Name'}}">
+				</div>
+				<div class="header-field">
+					<label>{{localize "DOLMEN.Horse.Type"}}</label>
+					<select name="system.horseType">
+						{{selectOptions @root.horseTypeChoices selected=system.horseType}}
+					</select>
+				</div>
+				<div class="header-field">
+					<label>{{localize "DOLMEN.Horse.Cost"}}</label>
+					<div class="horse-cost-field">
+						<input type="number" name="system.cost" value="{{system.cost}}" min="0">
+						<select name="system.costDenomination" class="cost-denom">
+							{{selectOptions @root.costDenomChoices selected=system.costDenomination}}
+						</select>
+					</div>
+				</div>
+				<div class="header-field">
+					<label>{{localize "DOLMEN.Horse.Saddle"}}</label>
+					<select name="system.saddle">
+						{{selectOptions @root.saddleChoices selected=system.saddle}}
+					</select>
+				</div>
+				<div class="header-field">
+					<label>{{localize "DOLMEN.Horse.Armor"}}</label>
+					<select name="system.barding">
+						{{selectOptions @root.bardingChoices selected=@root.bardingValue}}
+					</select>
+				</div>
+				<div class="header-field">
+					<label>{{localize "DOLMEN.Horse.RiderType"}}</label>
+					<select name="system.riderType">
+						{{selectOptions @root.riderTypeChoices selected=system.riderType}}
+					</select>
+				</div>
+				<div class="header-field">
+					<label>{{localize "DOLMEN.Horse.Load"}} ({{@root.loadUnit}})</label>
+					<input type="hidden" name="system.load" value="{{system.load}}">
+					<input type="number" class="load-display" value="{{@root.loadDisplay}}" data-divisor="{{@root.loadDivisor}}" data-target="system.load" min="0">
+				</div>
+			</div>
+		</section>
+		<section class="portrait-section boxed-section">
+			<div class="portrait-container">
+				<img src="{{actor.img}}" alt="{{actor.name}}" class="portrait-image" data-edit="img">
+			</div>
+		</section>
+	</section>
+
+	<section class="two-columns">
+		<section class="creature-main-column">
+			<!-- Game Statistics -->
+			<section class="creature-stats boxed-section">
+				<h2>{{localize "DOLMEN.Combat.Title"}}</h2>
+				<div class="creature-stats-grid">
+					<div class="creature-stat hp-block">
+						<label>{{localize "DOLMEN.Combat.HP"}}</label>
+						<div class="hp-values">
+							<input type="number" name="system.hp.value" value="{{system.hp.value}}" min="0" class="hp-current">
+							<span class="hp-separator">/</span>
+							<input type="number" name="system.hp.max" value="{{system.hp.max}}" min="1" class="hp-max">
+						</div>
+					</div>
+					<div class="creature-stat">
+						<label>{{localize "DOLMEN.Creature.HPDice"}}</label>
+						<input type="text" name="system.hpDice" value="{{system.hpDice}}" placeholder="2d8">
+					</div>
+					<div class="creature-stat">
+						<label>{{localize "DOLMEN.Combat.AC"}}</label>
+						<input type="hidden" name="system.ac" value="{{@root.baseAC}}">
+						<input type="number" class="adjustable {{#if system.barding}}has-adjustment{{/if}}" value="{{@root.adjustedAC}}" data-base="{{@root.baseAC}}" data-adjusted="{{@root.adjustedAC}}" data-manual-adj="{{#if system.barding}}2{{else}}0{{/if}}" data-target="system.ac" min="0">
+					</div>
+					<div class="creature-stat">
+						<label>{{localize "DOLMEN.Creature.Morale"}}</label>
+						<div class="morale-values">
+							<input type="number" name="system.morale" value="{{system.morale}}" min="2" max="12">
+						</div>
+					</div>
+					<div class="combat"><i class="fa fa-swords rollable"></i></div>
+					<div class="combat"><i class="fa fa-flag rollable morale-roll" title="{{localize 'DOLMEN.Creature.RollMorale'}}"></i></div>
+				</div>
+			</section>
+
+			<!-- Saves -->
+			<section class="save-targets boxed-section">
+				<h2>{{localize "DOLMEN.SaveTargets"}}</h2>
+				<div class="saves-grid">
+					<div class="save">
+						<label>{{localize "DOLMEN.Saves.Doom"}}</label>
+						<input type="number" name="system.saves.doom" value="{{system.saves.doom}}" min="2" max="19">
+					</div>
+					<i class="fa fa-dice-d20 rollable save-roll" data-save="doom" title="{{localize 'DOLMEN.Roll.SavingThrow'}}"></i>
+					<div class="save">
+						<label>{{localize "DOLMEN.Saves.Ray"}}</label>
+						<input type="number" name="system.saves.ray" value="{{system.saves.ray}}" min="2" max="19">
+					</div>
+					<i class="fa fa-dice-d20 rollable save-roll" data-save="ray" title="{{localize 'DOLMEN.Roll.SavingThrow'}}"></i>
+					<div class="save">
+						<label>{{localize "DOLMEN.Saves.Hold"}}</label>
+						<input type="number" name="system.saves.hold" value="{{system.saves.hold}}" min="2" max="19">
+					</div>
+					<i class="fa fa-dice-d20 rollable save-roll" data-save="hold" title="{{localize 'DOLMEN.Roll.SavingThrow'}}"></i>
+					<div class="save">
+						<label>{{localize "DOLMEN.Saves.Blast"}}</label>
+						<input type="number" name="system.saves.blast" value="{{system.saves.blast}}" min="2" max="19">
+					</div>
+					<i class="fa fa-dice-d20 rollable save-roll" data-save="blast" title="{{localize 'DOLMEN.Roll.SavingThrow'}}"></i>
+					<div class="save">
+						<label>{{localize "DOLMEN.Saves.Spell"}}</label>
+						<input type="number" name="system.saves.spell" value="{{system.saves.spell}}" min="2" max="19">
+					</div>
+					<i class="fa fa-dice-d20 rollable save-roll" data-save="spell" title="{{localize 'DOLMEN.Roll.SavingThrow'}}"></i>
+				</div>
+			</section>
+
+			<!-- Movement -->
+			<section class="movement boxed-section">
+				<h2>{{localize "DOLMEN.Movement.Title"}}</h2>
+				<div class="creature-movement-grid">
+					<div class="movement-stat">
+						<label>{{localize "DOLMEN.Movement.Speed"}}</label>
+						<input type="hidden" name="system.speed" value="{{@root.baseSpeed}}">
+						<input type="number" class="adjustable {{#if @root.speedHasAdj}}has-adjustment{{/if}}" value="{{@root.adjustedSpeed}}" data-base="{{@root.baseSpeed}}" data-adjusted="{{@root.adjustedSpeed}}" data-target="system.speed" min="0">
+					</div>
+					<div class="movement-stat">
+						<label>{{localize "DOLMEN.Creature.Movement.swim"}}</label>
+						<input type="hidden" name="system.movement.swim" value="{{@root.movementSpeeds.swim.base}}">
+						<input type="number" class="adjustable {{#if @root.movementSpeeds.swim.hasAdj}}has-adjustment{{/if}}" value="{{@root.movementSpeeds.swim.adjusted}}" data-base="{{@root.movementSpeeds.swim.base}}" data-adjusted="{{@root.movementSpeeds.swim.adjusted}}" data-target="system.movement.swim" min="0">
+					</div>
+					<div class="movement-stat">
+						<label>{{localize "DOLMEN.Creature.Movement.fly"}}</label>
+						<input type="hidden" name="system.movement.fly" value="{{@root.movementSpeeds.fly.base}}">
+						<input type="number" class="adjustable {{#if @root.movementSpeeds.fly.hasAdj}}has-adjustment{{/if}}" value="{{@root.movementSpeeds.fly.adjusted}}" data-base="{{@root.movementSpeeds.fly.base}}" data-adjusted="{{@root.movementSpeeds.fly.adjusted}}" data-target="system.movement.fly" min="0">
+					</div>
+					<div class="movement-stat">
+						<label>{{localize "DOLMEN.Creature.Movement.climb"}}</label>
+						<input type="hidden" name="system.movement.climb" value="{{@root.movementSpeeds.climb.base}}">
+						<input type="number" class="adjustable {{#if @root.movementSpeeds.climb.hasAdj}}has-adjustment{{/if}}" value="{{@root.movementSpeeds.climb.adjusted}}" data-base="{{@root.movementSpeeds.climb.base}}" data-adjusted="{{@root.movementSpeeds.climb.adjusted}}" data-target="system.movement.climb" min="0">
+					</div>
+					<div class="movement-stat">
+						<label>{{localize "DOLMEN.Creature.Movement.burrow"}}</label>
+						<input type="hidden" name="system.movement.burrow" value="{{@root.movementSpeeds.burrow.base}}">
+						<input type="number" class="adjustable {{#if @root.movementSpeeds.burrow.hasAdj}}has-adjustment{{/if}}" value="{{@root.movementSpeeds.burrow.adjusted}}" data-base="{{@root.movementSpeeds.burrow.base}}" data-adjusted="{{@root.movementSpeeds.burrow.adjusted}}" data-target="system.movement.burrow" min="0">
+					</div>
+				</div>
+			</section>
+		</section>
+
+		<!-- Right Column: Attacks + Rider -->
+		<section class="horse-right-column">
+			<!-- Attacks -->
+			<section class="creature-attacks boxed-section">
+				<h2>{{localize "DOLMEN.Creature.Attacks"}}</h2>
+				{{#each enrichedAttacks}}
+				<div class="attack-row" data-attack-index="{{@index}}" {{#if this.attackGroup}}style="border-left-color:var(--dolmen-group-{{this.attackGroup}})" {{/if}}>
+					<span class="attack-label">{{this.attackName}}{{#if (gt this.numAttacks 1)}} (&times;{{this.numAttacks}}){{/if}}</span>
+					{{#if (eq this.attackType "save")}}
+					<span class="attack-bonus"></span>
+					{{else}}
+					<span class="attack-bonus">{{#if (gte this.attackBonus 0)}}+{{/if}}{{this.attackBonus}}</span>
+					{{/if}}
+					<span class="attack-damage">{{#unless (eq this.attackType "save")}}{{this.attackDamage}}{{/unless}}</span>
+					{{#if this.attackEffect}}
+					<span class="attack-note"><i class="fas fa-memo tooltip"><span class="tooltiptext">{{this.tooltipEffect}}</span></i></span>
+					{{else}}
+					<span class="attack-note">-</span>
+					{{/if}}
+					<a class="remove-attack rollable" data-action="removeAttack" data-attack-index="{{@index}}" title="{{localize 'DOLMEN.Creature.RemoveAttack'}}"><i class="fas fa-square-x"></i></a>
+				</div>
+				{{/each}}
+				<a class="add-attack-row" data-action="addAttack">{{localize "DOLMEN.Creature.AddAttack"}}</a>
+			</section>
+		</section>
+	</section>
+</section>

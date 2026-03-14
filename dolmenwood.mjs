@@ -1,19 +1,22 @@
-/* global CONFIG, game, Hooks, foundry, Handlebars, ui */
+/* global CONFIG, game, Hooks, foundry, Handlebars, ui, Roll */
 
 import DOLMENWOOD from './module/config.js'
 import DolmenSheet from './module/dolmen-sheet.js'
 import DolmenCreatureSheet from './module/dolmen-creature-sheet.js'
+import DolmenHorseSheet from './module/dolmen-horse-sheet.js'
+import DolmenVehicleSheet from './module/dolmen-vehicle-sheet.js'
 import DolmenItemSheet from './module/dolmen-item-sheet.js'
 import DolmenKindredSheet from './module/dolmen-kindred-sheet.js'
 import DolmenClassSheet from './module/dolmen-class-sheet.js'
 import DolmenActor from './module/dolmen-actor.js'
 import DolmenItem from './module/dolmen-item.js'
-import { AdventurerDataModel, CreatureDataModel, TraitDataModel, GearDataModel, ContainerDataModel, TreasureDataModel, WeaponDataModel, SpellDataModel, HolySpellDataModel, ArmorDataModel, ForagedDataModel, GlamourDataModel, RuneDataModel, KindredDataModel, ClassDataModel } from './module/data-models.mjs'
+import { AdventurerDataModel, CreatureDataModel, HorseDataModel, VehicleDataModel, GearDataModel, ContainerDataModel, TreasureDataModel, WeaponDataModel, SpellDataModel, HolySpellDataModel, ArmorDataModel, ForagedDataModel, GlamourDataModel, RuneDataModel, KindredDataModel, ClassDataModel } from './module/data-models.mjs'
 import { setupDamageContextMenu } from './module/chat-damage.js'
 import { createSaveLinkEnricher, openInlineSaveModifierPanel } from './module/chat-save.js'
 import WelcomeDialog from './module/welcome-dialog.js'
 import { initCalendarWidget, toggleWidget, handleCalendarSocket } from './module/calendar/calendar-widget.js'
-import { getFaSymbol } from './module/sheet/data-context.js'
+import { worldTimeToCalendar, dateKeyToEpochDay } from './module/calendar/calendar-time.js'
+import { getFaSymbol, getRuneUsage } from './module/sheet/data-context.js'
 import { registerCombatSystem } from './module/combat/combat.js'
 import { initDungeonTracker, toggleDungeonTracker, onLightSourcesChanged, onTrackerPausedChanged, onTurnCounterChanged } from './module/dungeon-tracker/dungeon-tracker.js'
 import { initPartyViewer, togglePartyViewer, onPartyMembersChanged } from './module/party-viewer/party-viewer.js'
@@ -22,6 +25,7 @@ import { openCreatureImportDialog } from './module/creature-importer.js'
 const { Actors, Items } = foundry.documents.collections
 
 let themePreview = null
+let lastRuneRefreshDay = null
 
 function isFoundryDark() {
 	return document.documentElement.classList.contains('theme-dark')
@@ -198,6 +202,17 @@ Hooks.once('init', async function () {
 		return array.join(separator || ', ')
 	})
 
+	// Register Handlebars partials
+	const partials = [
+		'systems/dolmenwood/templates/shared/item-group.html',
+		'systems/dolmenwood/templates/shared/container-list.html',
+		'systems/dolmenwood/templates/shared/coins-grid.html'
+	]
+	for (const partialPath of partials) {
+		const partialContent = await fetch(partialPath).then(r => r.text())
+		Handlebars.registerPartial(partialPath, partialContent)
+	}
+
 	CONFIG.Actor.documentClass = DolmenActor
 	CONFIG.Item.documentClass = DolmenItem
 
@@ -205,7 +220,8 @@ Hooks.once('init', async function () {
 	CONFIG.Actor.dataModels = {
 		Adventurer: AdventurerDataModel,
 		Creature: CreatureDataModel,
-		Trait: TraitDataModel
+		Horse: HorseDataModel,
+		Vehicle: VehicleDataModel
 	}
 	CONFIG.Item.dataModels = {
 		Item: GearDataModel,
@@ -243,13 +259,14 @@ Hooks.once('init', async function () {
 			foundry.applications.instances?.forEach(app => {
 				if (app.collection?.documentName === 'Item') app.render()
 			})
-			// Recompute derived data and re-render open adventurer sheets
-			game.actors.filter(a => a.type === 'Adventurer').forEach(a => a.prepareData())
+			// Recompute derived data and re-render open actor sheets
+			const affectedTypes = ['Adventurer', 'Horse', 'Vehicle']
+			game.actors.filter(a => affectedTypes.includes(a.type)).forEach(a => a.prepareData())
 			Object.values(ui.windows).forEach(app => {
-				if (app.document?.type === 'Adventurer') app.render()
+				if (affectedTypes.includes(app.document?.type)) app.render()
 			})
 			foundry.applications.instances?.forEach(app => {
-				if (app.document?.type === 'Adventurer') app.render()
+				if (affectedTypes.includes(app.document?.type)) app.render()
 			})
 		}
 	})
@@ -266,6 +283,15 @@ Hooks.once('init', async function () {
 			max: 100,
 			step: 1
 		}
+	})
+
+	game.settings.register('dolmenwood', 'randomizeCreatureHP', {
+		name: 'DOLMEN.Settings.RandomizeCreatureHP',
+		hint: 'DOLMEN.Settings.RandomizeCreatureHPHint',
+		scope: 'world',
+		config: true,
+		type: Boolean,
+		default: true
 	})
 
 	game.settings.register('dolmenwood', 'showWelcomeDialog', {
@@ -394,6 +420,18 @@ Hooks.once('init', async function () {
 		makeDefault: true
 	})
 
+	Actors.registerSheet('dolmen', DolmenHorseSheet, {
+		types: ['Horse'],
+		label: 'DOLMEN.HorseSheetTitle',
+		makeDefault: true
+	})
+
+	Actors.registerSheet('dolmen', DolmenVehicleSheet, {
+		types: ['Vehicle'],
+		label: 'DOLMEN.VehicleSheetTitle',
+		makeDefault: true
+	})
+
 	Items.registerSheet('dolmen', DolmenItemSheet, {
 		types: ['Item', 'Treasure', 'Weapon', 'Armor', 'Foraged', 'Container', 'Spell', 'HolySpell', 'Glamour', 'Rune'],
 		label: 'DOLMEN.ItemSheetTitle',
@@ -437,6 +475,113 @@ Hooks.once('ready', async function () {
 
 	// Socket listener for player calendar note operations
 	game.socket.on('system.dolmenwood', handleCalendarSocket)
+
+	// Initialize rune refresh day tracking
+	const initCal = worldTimeToCalendar(game.time.worldTime)
+	lastRuneRefreshDay = `${initCal.year}-${initCal.monthKey}-${initCal.day}`
+})
+
+// Randomize HP for unlinked creature tokens placed on canvas
+Hooks.on('createToken', async (tokenDoc) => {
+	if (!game.user.isGM) return
+	if (!game.settings.get('dolmenwood', 'randomizeCreatureHP')) return
+
+	const actor = tokenDoc.actor
+	if (!actor || !['Creature', 'Horse'].includes(actor.type)) return
+	if (tokenDoc.actorLink) return
+
+	const hpDice = actor.system.hpDice
+	if (!hpDice) return
+
+	const roll = await new Roll(hpDice).evaluate()
+	const hp = Math.max(1, roll.total)
+	await tokenDoc.update({
+		'delta.system.hp.value': hp,
+		'delta.system.hp.max': hp
+	})
+})
+
+// Refresh rune usage on day change (x/day, x/week, x/year)
+Hooks.on('updateWorldTime', async () => {
+	if (game.user !== game.users.activeGM) return
+
+	const cal = worldTimeToCalendar(game.time.worldTime)
+	const dayKey = `${cal.year}-${cal.monthKey}-${cal.day}`
+	const dayChanged = lastRuneRefreshDay !== null && dayKey !== lastRuneRefreshDay
+	lastRuneRefreshDay = dayKey
+	if (!dayChanged) return
+
+	const currentEpochDay = dateKeyToEpochDay(dayKey)
+
+	for (const actor of game.actors.filter(a => a.type === 'Adventurer' && a.system.fairyMagic?.enabled)) {
+		const runeUsage = actor.system.runeUsage || {}
+		const level = actor.system.level
+		const resetUsage = {}
+		let anyChange = false
+		const notesToRemove = []
+
+		for (const [runeId, data] of Object.entries(runeUsage)) {
+			if (!data.used || data.used <= 0) continue
+			const rune = actor.items.get(runeId)
+			if (!rune || rune.type !== 'Rune') continue
+			const magnitude = rune.system.magnitude || 'lesser'
+			const usage = getRuneUsage(magnitude, level)
+
+			if (usage.frequencyType === 'day') {
+				// x/day: refresh all
+				resetUsage[runeId] = { used: 0, max: data.max }
+				anyChange = true
+			} else if (usage.frequencyType === 'week' || usage.frequencyType === 'year') {
+				// x/week or x/year: check individual refresh dates
+				const refreshDates = data.refreshDates || []
+				const refreshNoteIds = data.refreshNoteIds || []
+				const newDates = []
+				const newNoteIds = []
+				let newUsed = data.used
+
+				for (let i = 0; i < refreshDates.length; i++) {
+					const refreshEpochDay = dateKeyToEpochDay(refreshDates[i])
+					if (currentEpochDay >= refreshEpochDay) {
+						// This slot has refreshed
+						newUsed--
+						if (refreshNoteIds[i]) {
+							notesToRemove.push({ dateKey: refreshDates[i], noteId: refreshNoteIds[i] })
+						}
+					} else {
+						// Not yet refreshed, keep it
+						newDates.push(refreshDates[i])
+						newNoteIds.push(refreshNoteIds[i] || null)
+					}
+				}
+
+				if (newUsed !== data.used) {
+					resetUsage[runeId] = {
+						used: Math.max(0, newUsed),
+						max: data.max,
+						refreshDates: newDates,
+						refreshNoteIds: newNoteIds
+					}
+					anyChange = true
+				}
+			}
+		}
+
+		if (anyChange) {
+			const merged = foundry.utils.mergeObject(foundry.utils.deepClone(runeUsage), resetUsage)
+			await actor.update({ 'system.runeUsage': merged })
+		}
+
+		// Clean up calendar notes for refreshed runes
+		if (notesToRemove.length > 0) {
+			const notes = foundry.utils.deepClone(game.settings.get('dolmenwood', 'calendarNotes'))
+			for (const { dateKey: ndk, noteId } of notesToRemove) {
+				if (!notes[ndk]) continue
+				notes[ndk] = notes[ndk].filter(n => n.id !== noteId)
+				if (notes[ndk].length === 0) delete notes[ndk]
+			}
+			await game.settings.set('dolmenwood', 'calendarNotes', notes)
+		}
+	}
 })
 
 // Live-preview theme when dropdown changes in settings
@@ -615,5 +760,33 @@ Hooks.on('updateItem', (item) => {
 	Object.values(ui.windows).forEach(app => {
 		if (app.collection?.documentName === 'Item') app.render()
 	})
+})
+
+// Helper: re-prepare data and re-render open sheets for horses linked to a given rider actor
+function refreshHorsesForRider(riderId) {
+	for (const horse of game.actors.filter(a => a.type === 'Horse' && a.system.riderActorId === riderId)) {
+		horse.prepareData()
+		horse.sheet?.render()
+	}
+}
+
+// When rider actor is updated (e.g. size change), refresh linked horse sheets
+Hooks.on('updateActor', (actor) => {
+	if (actor.type !== 'Adventurer') return
+	refreshHorsesForRider(actor.id)
+})
+
+// When rider actor's items change, refresh linked horse sheets
+Hooks.on('createItem', (item) => {
+	if (!item.isEmbedded || item.parent?.type !== 'Adventurer') return
+	refreshHorsesForRider(item.parent.id)
+})
+Hooks.on('updateItem', (item) => {
+	if (!item.isEmbedded || item.parent?.type !== 'Adventurer') return
+	refreshHorsesForRider(item.parent.id)
+})
+Hooks.on('deleteItem', (item) => {
+	if (!item.isEmbedded || item.parent?.type !== 'Adventurer') return
+	refreshHorsesForRider(item.parent.id)
 })
 

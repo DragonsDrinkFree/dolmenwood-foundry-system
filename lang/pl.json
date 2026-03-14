@@ -16,7 +16,82 @@
 			"ThemeMortalsEnd": "Koniec Śmiertelnika",
 			"ThemeSilverDagger": "Srebrny Sztylet",
 			"ThemeColdIronAxe": "Topór z Zimnego Żelaza",
-			"ThemeHighContrast": "Wysoki Kontrast"
+			"ThemeHighContrast": "Wysoki Kontrast",
+			"RandomizeCreatureHP": "Losowe HP potworów",
+			"RandomizeCreatureHPHint": "Przy umieszczaniu niepowiązanego tokena potwora na mapie, rzuć kośćmi HP potwora, aby wylosować jego punkty życia."
+		},
+		"Horse": {
+			"Type": "Typ",
+			"Types": {
+				"riding": "Wierzchowy",
+				"war": "Bojowy",
+				"draft": "Juczny"
+			},
+			"Saddle": "Siodło",
+			"Saddles": {
+				"none": "Brak",
+				"riding": "Wierzchowe",
+				"ridingBags": "Wierzchowe + Juki",
+				"pack": "Juczne"
+			},
+			"Cost": "Koszt",
+			"Load": "Maks. udźwig",
+			"LoadTitle": "Ładunek",
+			"CurrentLoad": "Aktualny ładunek",
+			"Armor": "Zbroja",
+			"ArmorNone": "Brak",
+			"ArmorBarding": "Kirys koński (+2 KP)",
+			"Rider": "Jeździec",
+			"RiderType": "Typ jeźdźca",
+			"RiderTypes": {
+				"none": "Brak",
+				"small": "Mały",
+				"medium": "Średni",
+				"actor": "Aktor"
+			},
+			"RiderActor": "Aktor",
+			"OpenRider": "Otwórz kartę jeźdźca",
+			"SaddleBags": "Juki",
+			"PackSaddle": "Siodło juczne",
+			"MoveToRider": "Przenieś do jeźdźca"
+		},
+		"Vehicle": {
+			"Type": "Typ",
+			"Types": {
+				"land": "Lądowy",
+				"water": "Wodny",
+				"air": "Powietrzny"
+			},
+			"Cost": "Koszt",
+			"Cargo": "Maks. ładunek",
+			"CargoTitle": "Ładunek",
+			"CurrentLoad": "Aktualny ładunek",
+			"AnimalCount": "Liczba zwierząt",
+			"AnimalCounts": {
+				"normal": "Normalna",
+				"double": "Podwójna"
+			},
+			"Animals": "Zwierzęta",
+			"AnimalsPlaceholder": "np. 1 koń pociągowy lub 2 muły",
+			"Crew": "Załoga",
+			"CrewPlaceholder": "np. 1\u20132 niewyszkolonych",
+			"CrewPercent": "Załoga %",
+			"CrewPercents": {
+				"100": "100%",
+				"90": "90%",
+				"80": "80%",
+				"70": "70%",
+				"60": "60%",
+				"50": "50%",
+				"40": "40%",
+				"30": "30%",
+				"20": "20%",
+				"10": "10%",
+				"0": "0%"
+			},
+			"CargoHold": "Ładownia",
+			"Passengers": "Pasażerowie",
+			"LoadTitle": "Obciążenie"
 		},
 		"Months": {
 			"grimvold": "Ciemnobor",

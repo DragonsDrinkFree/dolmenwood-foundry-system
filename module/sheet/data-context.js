@@ -462,6 +462,20 @@ export function prepareMemorizedSlots(slotsData, knownSpells, maxRank) {
 }
 
 /**
+ * Format a date key (e.g., "1089-grimvold-15") into a localized display string.
+ * @param {string} dateKey - Date key in format "year-monthKey-day"
+ * @returns {string} Formatted date string
+ */
+function formatDateKey(dateKey) {
+	const parts = dateKey.split('-')
+	const year = parts[0]
+	const monthKey = parts[1]
+	const day = parts[2]
+	const monthName = game.i18n.localize(`DOLMEN.Months.${monthKey}`)
+	return `${day} ${monthName}, ${year}`
+}
+
+/**
  * Compute rune usage limits based on magnitude and character level.
  * @param {string} magnitude - 'lesser', 'greater', or 'mighty'
  * @param {number} level - Character level
@@ -469,18 +483,18 @@ export function prepareMemorizedSlots(slotsData, knownSpells, maxRank) {
  */
 export function getRuneUsage(magnitude, level) {
 	if (magnitude === 'lesser') {
-		if (level >= 10) return { max: 3, frequency: 'DOLMEN.Magic.Fairy.ThricePerDay', resetsOnRest: true }
-		if (level >= 5) return { max: 2, frequency: 'DOLMEN.Magic.Fairy.TwicePerDay', resetsOnRest: true }
-		return { max: 1, frequency: 'DOLMEN.Magic.Fairy.OncePerDay', resetsOnRest: true }
+		if (level >= 10) return { max: 3, frequency: 'DOLMEN.Magic.Fairy.ThricePerDay', frequencyType: 'day', resetsOnRest: true }
+		if (level >= 5) return { max: 2, frequency: 'DOLMEN.Magic.Fairy.TwicePerDay', frequencyType: 'day', resetsOnRest: true }
+		return { max: 1, frequency: 'DOLMEN.Magic.Fairy.OncePerDay', frequencyType: 'day', resetsOnRest: true }
 	}
 	if (magnitude === 'greater') {
-		if (level >= 10) return { max: 1, frequency: 'DOLMEN.Magic.Fairy.OncePerDay', resetsOnRest: true }
-		if (level >= 5) return { max: 1, frequency: 'DOLMEN.Magic.Fairy.OncePerWeek', resetsOnRest: false }
-		return { max: 1, frequency: 'DOLMEN.Magic.Fairy.OncePerLevel', resetsOnRest: false }
+		if (level >= 10) return { max: 1, frequency: 'DOLMEN.Magic.Fairy.OncePerDay', frequencyType: 'day', resetsOnRest: true }
+		if (level >= 5) return { max: 1, frequency: 'DOLMEN.Magic.Fairy.OncePerWeek', frequencyType: 'week', resetsOnRest: false }
+		return { max: 1, frequency: 'DOLMEN.Magic.Fairy.OncePerLevel', frequencyType: 'level', resetsOnRest: false }
 	}
 	// mighty
-	if (level >= 10) return { max: 1, frequency: 'DOLMEN.Magic.Fairy.OncePerYear', resetsOnRest: false }
-	return { max: 1, frequency: 'DOLMEN.Magic.Fairy.OnceEver', resetsOnRest: false, deleteOnUse: true }
+	if (level >= 10) return { max: 1, frequency: 'DOLMEN.Magic.Fairy.OncePerYear', frequencyType: 'year', resetsOnRest: false }
+	return { max: 1, frequency: 'DOLMEN.Magic.Fairy.OnceEver', frequencyType: 'single', resetsOnRest: false, deleteOnUse: true }
 }
 
 /**
@@ -507,14 +521,21 @@ export function groupRunesByMagnitude(runes, actor) {
 				const usedCount = Math.min(stored.used || 0, totalMax)
 
 				data.usageFrequency = game.i18n.localize(usage.frequency)
+				data.frequencyType = usage.frequencyType
 				data.maxUses = totalMax
 				data.usedCount = usedCount
 				data.usesRemaining = totalMax - usedCount
 				data.deleteOnUse = !!usage.deleteOnUse
 				data.resetsOnRest = usage.resetsOnRest
+				const refreshDates = stored.refreshDates || []
 				data.usageCheckboxes = []
 				for (let i = 0; i < totalMax; i++) {
-					data.usageCheckboxes.push({ index: i, checked: i < usedCount })
+					const checkbox = { index: i, checked: i < usedCount }
+					if (i < usedCount && refreshDates[i]) {
+						checkbox.refreshDate = refreshDates[i]
+						checkbox.refreshDateFormatted = formatDateKey(refreshDates[i])
+					}
+					data.usageCheckboxes.push(checkbox)
 				}
 				return data
 			})
@@ -531,6 +552,20 @@ export function groupRunesByMagnitude(runes, actor) {
 	}
 
 	return groups
+}
+
+/**
+ * Calculate weight of an item accounting for stack size.
+ * @param {object} item - Prepared item data
+ * @param {string} weightKey - 'weightSlots' or 'weightCoins'
+ * @returns {number} The calculated weight
+ */
+export function calcItemWeight(item, weightKey) {
+	const w = item.system[weightKey] || 0
+	if (!w) return 0
+	const qty = item.system.quantity || 1
+	const stack = item.system.stackSize || 1
+	return stack > 1 ? w * Math.ceil(qty / stack) : w * qty
 }
 
 /**

@@ -1,4 +1,4 @@
-/* global foundry, game, FilePicker, Roll, ChatMessage, CONST, CONFIG, fromUuid */
+/* global foundry, game, FilePicker, Roll, ChatMessage, CONST, CONFIG */
 
 const { DialogV2 } = foundry.applications.api
 import { buildChoices, CHOICE_KEYS } from './utils/choices.js'
@@ -6,13 +6,16 @@ import { onSaveRoll } from './sheet/roll-handlers.js'
 import { createContextMenu } from './sheet/context-menu.js'
 import { getDieIconFromFormula } from './sheet/attack-rolls.js'
 import { parseSaveLinks } from './chat-save.js'
+import { prepareItemData, groupItemsByType, computeEncumbrance, calcItemWeight } from './sheet/data-context.js'
+import { setupAdjustableInputListeners } from './sheet/listeners.js'
+import { onOpenItem, onDeleteItem, onIncreaseQty, onDecreaseQty, onToggleContainer, onDropItemSimple } from './sheet/inventory-actions.js'
 
 const { HandlebarsApplicationMixin } = foundry.applications.api
 const { ActorSheetV2 } = foundry.applications.sheets
 
-class DolmenCreatureSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
+class DolmenHorseSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 	static DEFAULT_OPTIONS = {
-		classes: ['dolmen', 'sheet', 'creature'],
+		classes: ['dolmen', 'sheet', 'creature', 'horse'],
 		tag: 'form',
 		form: {
 			submitOnChange: true
@@ -25,27 +28,31 @@ class DolmenCreatureSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 			resizable: true
 		},
 		actions: {
-			addAttack: DolmenCreatureSheet._onAddAttack,
-			removeAttack: DolmenCreatureSheet._onRemoveAttack,
-			addAbility: DolmenCreatureSheet._onAddAbility,
-			removeAbility: DolmenCreatureSheet._onRemoveAbility
+			addAttack: DolmenHorseSheet._onAddAttack,
+			removeAttack: DolmenHorseSheet._onRemoveAttack,
+			openItem: onOpenItem,
+			deleteItem: onDeleteItem,
+			increaseQty: onIncreaseQty,
+			decreaseQty: onDecreaseQty,
+			toggleContainer: onToggleContainer,
+			moveToRider: DolmenHorseSheet._onMoveToRider
 		}
 	}
 
 	static PARTS = {
 		tabs: {
-			template: 'systems/dolmenwood/templates/creature/parts/tab-nav.html'
+			template: 'systems/dolmenwood/templates/horse/parts/tab-nav.html'
 		},
 		stats: {
-			template: 'systems/dolmenwood/templates/creature/parts/tab-stats.html',
+			template: 'systems/dolmenwood/templates/horse/parts/tab-stats.html',
+			scrollable: ['']
+		},
+		inventory: {
+			template: 'systems/dolmenwood/templates/horse/parts/tab-inventory.html',
 			scrollable: ['']
 		},
 		description: {
-			template: 'systems/dolmenwood/templates/creature/parts/tab-description.html',
-			scrollable: ['']
-		},
-		notes: {
-			template: 'systems/dolmenwood/templates/creature/parts/tab-notes.html',
+			template: 'systems/dolmenwood/templates/horse/parts/tab-description.html',
 			scrollable: ['']
 		}
 	}
@@ -53,8 +60,8 @@ class DolmenCreatureSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 	static TABS = {
 		primary: {
 			tabs: [
-				{ id: 'stats', icon: 'fas fa-dragon', label: 'DOLMEN.Tabs.Stats' },
-				{ id: 'notes', icon: 'fas fa-eye', label: 'DOLMEN.Tabs.Details' },
+				{ id: 'stats', icon: 'fas fa-horse', label: 'DOLMEN.Tabs.Stats' },
+				{ id: 'inventory', icon: 'fas fa-box', label: 'DOLMEN.Tabs.Inventory' },
 				{ id: 'description', icon: 'fas fa-book-open', label: 'DOLMEN.Tabs.Description' }
 			],
 			initial: 'stats'
@@ -84,6 +91,11 @@ class DolmenCreatureSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 		return tabs
 	}
 
+	_hasStorage() {
+		const saddle = this.actor.system.saddle
+		return saddle === 'ridingBags' || saddle === 'pack'
+	}
+
 	async _prepareContext(options) {
 		const context = await super._prepareContext(options)
 		const actor = this.actor
@@ -94,31 +106,73 @@ class DolmenCreatureSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 		context.tabs = this._getTabs()
 
 		// Dropdown choices
-		context.sizeChoices = buildChoices('DOLMEN.Sizes', CHOICE_KEYS.sizes)
-		context.monsterTypeChoices = buildChoices('DOLMEN.MonsterTypes', CHOICE_KEYS.monsterTypes)
-		context.intelligenceChoices = buildChoices('DOLMEN.IntelligenceTypes', CHOICE_KEYS.intelligenceTypes)
-		context.alignmentChoices = buildChoices('DOLMEN.Alignments', CHOICE_KEYS.alignments)
+		context.horseTypeChoices = buildChoices('DOLMEN.Horse.Types', CHOICE_KEYS.horseTypes)
+		context.saddleChoices = buildChoices('DOLMEN.Horse.Saddles', CHOICE_KEYS.saddleTypes)
+		context.riderTypeChoices = buildChoices('DOLMEN.Horse.RiderTypes', CHOICE_KEYS.riderTypes)
+		context.costDenomChoices = buildChoices('DOLMEN.Item.Denomination', CHOICE_KEYS.costDenominations)
 
-		// Active movement types (non-zero)
-		context.activeMovement = []
-		for (const [key, value] of Object.entries(actor.system.movement || {})) {
-			if (value > 0) {
-				context.activeMovement.push({
-					key,
-					label: game.i18n.localize(`DOLMEN.Creature.Movement.${key}`),
-					value
-				})
+		// Barding select (boolean stored, but displayed as dropdown)
+		context.bardingChoices = {
+			false: game.i18n.localize('DOLMEN.Horse.ArmorNone'),
+			true: game.i18n.localize('DOLMEN.Horse.ArmorBarding')
+		}
+		context.bardingValue = String(actor.system.barding)
+
+		// AC: base value (stored) vs adjusted (with barding)
+		// prepareDerivedData adds +2 when barding is true, so system.ac is already adjusted
+		const baseAC = actor.system.barding ? actor.system.ac - 2 : actor.system.ac
+		context.baseAC = baseAC
+		context.adjustedAC = actor.system.ac
+
+		// Compute rider's carried weight using adventurer encumbrance calculation
+		if (actor.system.riderType === 'actor' && actor.system.riderActorId) {
+			const rider = game.actors.get(actor.system.riderActorId)
+			if (rider?.type === 'Adventurer') {
+				const riderEnc = computeEncumbrance(rider)
+				// Slot mode returns {equipped, stowed} objects; weight mode returns flat {current}
+				if (riderEnc.equipped) {
+					actor.system._riderEncumbrance = (riderEnc.equipped.current || 0) + (riderEnc.stowed.current || 0)
+				} else {
+					actor.system._riderEncumbrance = riderEnc.current || 0
+				}
 			}
 		}
 
-		// Enrich special ability descriptions for inline save links
-		context.enrichedAbilities = await Promise.all(
-			(actor.system.specialAbilities || []).map(async (ability) => ({
-				name: ability.name,
-				description: ability.description,
-				enrichedDescription: await foundry.applications.ux.TextEditor.implementation.enrichHTML(ability.description, { async: true, secrets: game.user.isGM })
-			}))
-		)
+		// Compute encumbrance (must run here, after all actors are prepared)
+		actor.system.computeEncumbrance()
+
+		// Speed: base vs adjusted (encumbrance halves speed, or 0 if over 2x load)
+		const totalWeight = actor.system.totalWeight || 0
+		const loadCapacity = context.loadCapacity
+		const overloaded = loadCapacity > 0 && totalWeight > loadCapacity
+		context.overloaded = overloaded
+		context.totalWeight = totalWeight
+
+		// Base speeds from source (pre-derivation), adjusted from system (post-derivation)
+		const sourceSystem = actor._source.system
+		context.baseSpeed = sourceSystem.speed
+		context.adjustedSpeed = actor.system.speed
+		context.speedHasAdj = context.baseSpeed !== context.adjustedSpeed
+
+		// Movement types: base vs adjusted for each
+		context.movementSpeeds = {}
+		const sourceMovement = sourceSystem.movement || {}
+		for (const key of Object.keys(actor.system.movement || {})) {
+			const base = sourceMovement[key] || 0
+			const adjusted = actor.system.movement[key] || 0
+			context.movementSpeeds[key] = { base, adjusted, hasAdj: base !== adjusted }
+		}
+
+		// Rider actor choices (Adventurer actors in the world)
+		context.actorChoices = game.actors
+			.filter(a => a.type === 'Adventurer')
+			.map(a => ({ id: a.id, name: a.name, selected: a.id === actor.system.riderActorId }))
+
+		// Get linked rider actor (must be Adventurer)
+		if (actor.system.riderActorId) {
+			const rider = game.actors.get(actor.system.riderActorId)
+			context.riderActor = rider?.type === 'Adventurer' ? rider : null
+		}
 
 		// Enrich attack effects for inline save links
 		context.enrichedAttacks = await Promise.all(
@@ -133,12 +187,89 @@ class DolmenCreatureSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 			}))
 		)
 
+		// Encumbrance method
+		const encumbranceMethod = game.settings.get('dolmenwood', 'encumbranceMethod')
+		context.encumbranceMethod = encumbranceMethod
+		const isSlots = encumbranceMethod === 'slots'
+		const divisor = isSlots ? 100 : 1
+
+		// Rider display info for non-actor types
+		const riderWeights = { none: 0, small: 1200, medium: 1700 }
+		const riderType = actor.system.riderType
+		if (riderType !== 'actor') {
+			context.riderLabel = game.i18n.localize(`DOLMEN.Horse.RiderTypes.${riderType}`)
+			context.riderWeight = isSlots ? 0 : (riderWeights[riderType] || 0)
+		}
+
+		// Prepare inventory data
+		context.hasStorage = this._hasStorage()
+		context.loadCapacity = actor.system.load / divisor
+		context.loadDisplay = actor.system.load / divisor
+		context.loadDivisor = divisor
+		context.loadUnit = isSlots
+			? game.i18n.localize('DOLMEN.Encumbrance.UnitSlots')
+			: game.i18n.localize('DOLMEN.Encumbrance.UnitCoins')
+		if (actor.system.saddle === 'ridingBags') {
+			context.saddleStorageName = game.i18n.localize('DOLMEN.Horse.SaddleBags')
+			context.saddleStorageMax = 500 / divisor
+		} else if (actor.system.saddle === 'pack') {
+			context.saddleStorageName = game.i18n.localize('DOLMEN.Horse.PackSaddle')
+			context.saddleStorageMax = 0
+		}
+		this._prepareInventoryContext(context, actor)
+		if (context.saddleStorageMax && context.unsortedWeight > context.saddleStorageMax) {
+			context.saddleOverweight = true
+		}
+
 		return context
+	}
+
+	_prepareInventoryContext(context, actor) {
+		const isSlots = context.encumbranceMethod === 'slots'
+		const weightKey = isSlots ? 'weightSlots' : 'weightCoins'
+
+		const excludedTypes = ['Kindred', 'Class', 'Spell', 'HolySpell', 'Glamour', 'Rune']
+		const items = actor.items.contents.filter(i => !excludedTypes.includes(i.type))
+		const allStowedItems = items.filter(i => i.type !== 'Container').map(i => prepareItemData(i))
+
+		// Build container data
+		const containerItems = items.filter(i => i.type === 'Container')
+		context.containers = containerItems.map(c => {
+			const prepared = prepareItemData(c)
+			const contents = allStowedItems.filter(i => i.system.containerId === c.id)
+			const coinsUsed = contents.reduce((sum, i) => sum + calcItemWeight(i, weightKey), 0)
+			return {
+				...prepared,
+				contents: groupItemsByType(contents),
+				hasContents: contents.length > 0,
+				coinsUsed,
+				coinsMax: isSlots ? c.system.capacitySlots : c.system.capacityCoins,
+				infiniteCapacity: c.system.infiniteCapacity,
+				ignoreEncumbrance: c.system.ignoreEncumbrance
+			}
+		})
+		context.hasContainers = context.containers.length > 0
+
+		// Loose stowed items (not in any container)
+		const containerIds = new Set(containerItems.map(c => c.id))
+		const looseStowedItems = allStowedItems.filter(i => !i.system.containerId || !containerIds.has(i.system.containerId))
+
+		context.stowedByType = groupItemsByType(looseStowedItems)
+		context.hasLooseStowedItems = looseStowedItems.length > 0
+		const itemWeight = looseStowedItems.reduce((sum, i) => sum + calcItemWeight(i, weightKey), 0)
+		const totalCoins = (actor.system.coins.copper || 0) + (actor.system.coins.silver || 0)
+			+ (actor.system.coins.gold || 0) + (actor.system.coins.pellucidium || 0)
+		const coinsWeight = isSlots ? Math.ceil(totalCoins / 100) : totalCoins
+		context.unsortedWeight = itemWeight + coinsWeight
+		context.hasStowedItems = context.hasLooseStowedItems || context.hasContainers
+
+		// Total load from data model (includes rider, saddle, barding, equipment)
+		context.currentLoad = actor.system.totalWeight || 0
 	}
 
 	async _preparePartContext(partId, context) {
 		context = await super._preparePartContext(partId, context)
-		const tabIds = ['stats', 'description', 'notes']
+		const tabIds = ['stats', 'inventory', 'description']
 		if (tabIds.includes(partId)) {
 			context.tab = context.tabs?.primary?.[partId] || {
 				id: partId,
@@ -170,6 +301,9 @@ class DolmenCreatureSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 			const linked = !this.actor.prototypeToken.actorLink
 			await this.actor.update({'prototypeToken.actorLink': linked})
 		})
+
+		// Adjustable input listeners (AC with barding bonus)
+		setupAdjustableInputListeners(this)
 
 		// Tab listeners
 		this.element.querySelectorAll('.tabs .item').forEach(tab => {
@@ -210,7 +344,7 @@ class DolmenCreatureSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 			})
 		}
 
-		// Attack roll listener (swords icon opens attack selection menu)
+		// Attack roll listener
 		const swordsIcon = this.element.querySelector('.combat .fa-swords')
 		if (swordsIcon) {
 			swordsIcon.addEventListener('click', (event) => {
@@ -219,37 +353,19 @@ class DolmenCreatureSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 			})
 		}
 
-		// Codex link button in notes tab
-		const codexBtn = this.element.querySelector('.codex-link-btn')
-		if (codexBtn) {
-			codexBtn.addEventListener('click', async () => {
-				const uuid = this.actor.system.codexUuid
-				if (uuid) {
-					const doc = await fromUuid(uuid)
-					doc?.sheet?.render(true)
+		// Rider open button
+		const riderBtn = this.element.querySelector('.rider-open-btn')
+		if (riderBtn) {
+			riderBtn.addEventListener('click', () => {
+				const riderId = this.actor.system.riderActorId
+				if (riderId) {
+					const rider = game.actors.get(riderId)
+					rider?.sheet?.render(true)
 				}
 			})
 		}
 
-		// Codex icon in navbar (only if UUID is set)
-		const codexUuid = this.actor.system.codexUuid
-		if (codexUuid) {
-			const nav = this.element.querySelector('.tabs[data-group="primary"]')
-			if (nav) {
-				const codexLink = document.createElement('a')
-				codexLink.className = 'item codex-nav-btn'
-				codexLink.title = game.i18n.localize('DOLMEN.Item.CodexOpen')
-				codexLink.innerHTML = '<i class="fas fa-book-open"></i>'
-				codexLink.addEventListener('click', async (event) => {
-					event.preventDefault()
-					const doc = await fromUuid(codexUuid)
-					doc?.sheet?.render(true)
-				})
-				nav.appendChild(codexLink)
-			}
-		}
-
-		// Attack edit listeners (click row to open edit dialog)
+		// Attack edit listeners
 		this.element.querySelectorAll('.attack-row').forEach(el => {
 			el.addEventListener('click', (event) => {
 				if (event.target.closest('[data-action]')) return
@@ -259,15 +375,44 @@ class DolmenCreatureSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 			})
 		})
 
-		// Ability edit listeners (click row to open edit dialog)
-		this.element.querySelectorAll('.ability-row').forEach(el => {
-			el.addEventListener('click', (event) => {
-				if (event.target.closest('[data-action]')) return
+		// Load display ↔ hidden coins conversion
+		this.element.querySelectorAll('.load-display').forEach(input => {
+			input.addEventListener('change', (event) => {
 				event.preventDefault()
-				const index = parseInt(el.dataset.abilityIndex)
-				this._openAbilityDialog(index)
+				event.stopPropagation()
+				const divisor = parseInt(input.dataset.divisor) || 1
+				const target = input.dataset.target
+				const coinsValue = Math.round(parseFloat(input.value) * divisor)
+				const hidden = this.element.querySelector(`input[name="${target}"]`)
+				if (hidden) {
+					hidden.value = coinsValue
+					hidden.dispatchEvent(new Event('change', { bubbles: true }))
+				}
 			})
 		})
+
+		// Drag & drop for inventory items
+		this.element.querySelectorAll('.item-row.draggable').forEach(el => {
+			el.setAttribute('draggable', true)
+			el.addEventListener('dragstart', (event) => {
+				const itemId = el.dataset.itemId
+				const item = this.actor.items.get(itemId)
+				if (!item) return
+				event.dataTransfer.setData('text/plain', JSON.stringify({
+					type: 'Item',
+					uuid: item.uuid
+				}))
+			})
+		})
+	}
+
+	/* -------------------------------------------- */
+	/*  Drag & Drop                                 */
+	/* -------------------------------------------- */
+
+	async _onDropItem(event, data) {
+		if (!this._hasStorage()) return
+		return onDropItemSimple(this, event, data)
 	}
 
 	/* -------------------------------------------- */
@@ -298,22 +443,29 @@ class DolmenCreatureSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 		this.actor.update({ 'system.attacks': attacks })
 	}
 
-	static _onAddAbility() {
-		const abilities = foundry.utils.deepClone(this.actor.system.specialAbilities)
-		abilities.push({ name: "Ability", description: "" })
-		this.actor.update({ 'system.specialAbilities': abilities })
-	}
+	static async _onMoveToRider(_event, target) {
+		const itemId = target.dataset.itemId ?? target.closest('[data-item-id]')?.dataset.itemId
+		if (!itemId) return
+		const item = this.actor.items.get(itemId)
+		if (!item) return
 
-	static _onRemoveAbility(_event, target) {
-		const index = parseInt(target.dataset.abilityIndex ?? target.closest('[data-ability-index]')?.dataset.abilityIndex)
-		if (isNaN(index)) return
-		const abilities = foundry.utils.deepClone(this.actor.system.specialAbilities)
-		abilities.splice(index, 1)
-		this.actor.update({ 'system.specialAbilities': abilities })
+		const riderId = this.actor.system.riderActorId
+		if (!riderId) return
+		const rider = game.actors.get(riderId)
+		if (!rider || rider.type !== 'Adventurer') return
+
+		// Create the item on the rider as stowed (unequipped)
+		const itemData = item.toObject()
+		itemData.system.equipped = false
+		itemData.system.containerId = ''
+		await rider.createEmbeddedDocuments('Item', [itemData])
+
+		// Delete from horse
+		await item.delete()
 	}
 
 	/* -------------------------------------------- */
-	/*  Attack Edit Dialog                          */
+	/*  Attack Dialog                               */
 	/* -------------------------------------------- */
 
 	_openAttackDialog(index) {
@@ -349,32 +501,6 @@ class DolmenCreatureSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 					<label>${game.i18n.localize('DOLMEN.Creature.AttackDamage')}</label>
 					<input type="text" id="attack-damage" value="${attack.attackDamage}" ${!isAttack ? 'disabled' : ''}>
 				</div>
-				<div class="range-group">
-					<div class="form-group">
-						<label>${game.i18n.localize('DOLMEN.Creature.RangeShort')}</label>
-						<input type="number" id="range-short" value="${attack.rangeShort || 0}" min="0">
-					</div>
-					<div class="form-group">
-						<label>${game.i18n.localize('DOLMEN.Creature.RangeMedium')}</label>
-						<input type="number" id="range-medium" value="${attack.rangeMedium || 0}" min="0">
-					</div>
-					<div class="form-group">
-						<label>${game.i18n.localize('DOLMEN.Creature.RangeLong')}</label>
-						<input type="number" id="range-long" value="${attack.rangeLong || 0}" min="0">
-					</div>
-				</div>
-				<div class="form-group">
-					<label>${game.i18n.localize('DOLMEN.Creature.AttackGroup')}</label>
-					<select id="attack-group">
-						<option value="" ${!attack.attackGroup ? 'selected' : ''}>${game.i18n.localize('DOLMEN.None')}</option>
-						<option value="a" ${attack.attackGroup === 'a' ? 'selected' : ''} style="color:var(--dolmen-group-a)">A</option>
-						<option value="b" ${attack.attackGroup === 'b' ? 'selected' : ''} style="color:var(--dolmen-group-b)">B</option>
-						<option value="c" ${attack.attackGroup === 'c' ? 'selected' : ''} style="color:var(--dolmen-group-c)">C</option>
-						<option value="d" ${attack.attackGroup === 'd' ? 'selected' : ''} style="color:var(--dolmen-group-d)">D</option>
-						<option value="e" ${attack.attackGroup === 'e' ? 'selected' : ''} style="color:var(--dolmen-group-e)">E</option>
-						<option value="f" ${attack.attackGroup === 'f' ? 'selected' : ''} style="color:var(--dolmen-group-f)">F</option>
-					</select>
-				</div>
 				<div class="form-group full-width">
 					<label>${game.i18n.localize('DOLMEN.Creature.SaveEffect')}</label>
 					<textarea id="attack-effect">${attack.attackEffect || ''}</textarea>
@@ -402,10 +528,10 @@ class DolmenCreatureSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 							attackDamage: el.querySelector('#attack-damage').value || '1d6',
 							attackEffect: el.querySelector('#attack-effect').value || '',
 							attackType: el.querySelector('input[name="attackType"]:checked')?.value || 'attack',
-							rangeShort: parseInt(el.querySelector('#range-short').value) || 0,
-							rangeMedium: parseInt(el.querySelector('#range-medium').value) || 0,
-							rangeLong: parseInt(el.querySelector('#range-long').value) || 0,
-							attackGroup: el.querySelector('#attack-group').value || ''
+							rangeShort: 0,
+							rangeMedium: 0,
+							rangeLong: 0,
+							attackGroup: ''
 						}
 						this.actor.update({ 'system.attacks': attacks })
 					}
@@ -421,52 +547,6 @@ class DolmenCreatureSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 					})
 				})
 			},
-			rejectClose: false
-		})
-	}
-
-	/* -------------------------------------------- */
-	/*  Ability Edit Dialog                         */
-	/* -------------------------------------------- */
-
-	_openAbilityDialog(index) {
-		const ability = this.actor.system.specialAbilities[index]
-		if (!ability) return
-
-		const content = `
-			<div class="ability-edit-modal">
-				<div class="form-group full-width">
-					<label>${game.i18n.localize('DOLMEN.Creature.AbilityName')}</label>
-					<input type="text" id="ability-name" value="${ability.name}">
-				</div>
-				<div class="form-group full-width">
-					<label>${game.i18n.localize('DOLMEN.Creature.AbilityDescription')}</label>
-					<textarea id="ability-description">${ability.description || ''}</textarea>
-				</div>
-			</div>
-		`
-
-		DialogV2.wait({
-			window: { title: game.i18n.localize('DOLMEN.Creature.EditAbility') },
-			position: { width: 500 },
-			content,
-			buttons: [
-				{
-					action: 'save',
-					icon: 'fas fa-check',
-					label: game.i18n.localize('DOLMEN.Save'),
-					default: true,
-					callback: (event, button, html) => {
-						const el = html.element
-						const abilities = foundry.utils.deepClone(this.actor.system.specialAbilities)
-						abilities[index] = {
-							name: el.querySelector('#ability-name').value || 'Ability',
-							description: el.querySelector('#ability-description').value || ''
-						}
-						this.actor.update({ 'system.specialAbilities': abilities })
-					}
-				}
-			],
 			rejectClose: false
 		})
 	}
@@ -520,14 +600,13 @@ class DolmenCreatureSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 	}
 
 	/* -------------------------------------------- */
-	/*  Creature Attack Rolls                       */
+	/*  Attack Rolls                                */
 	/* -------------------------------------------- */
 
 	_openAttackSelectionMenu(event) {
 		const attacks = this.actor.system.attacks
 		if (!attacks.length) return
 
-		// Single attack: skip menu, roll directly
 		if (attacks.length === 1) {
 			this._rollCreatureAttack(attacks[0], { top: event.clientY, left: event.clientX })
 			return
@@ -557,55 +636,14 @@ class DolmenCreatureSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
 	_rollCreatureAttack(attack, position) {
 		if (!attack) return
-
-		const hasRanges = (attack.rangeShort || 0) > 0 || (attack.rangeMedium || 0) > 0 || (attack.rangeLong || 0) > 0
-
-		// If attack has ranges, open range selection menu first
-		if (hasRanges) {
-			this._openRangeMenu(attack, position)
+		if (attack.attackType === 'save') {
+			this._executeCreatureAttack(attack, 0, null)
 			return
 		}
-
-		// No ranges: open modifier panel
 		this._openCreatureModifierPanel(attack, 0, null, position)
 	}
 
-	_openRangeMenu(attack, position) {
-		const ranges = [
-			{ id: 'short', mod: 1, nameKey: 'DOLMEN.Attack.Range.Close', badgeKey: 'DOLMEN.Item.Range.short', dist: attack.rangeShort },
-			{ id: 'medium', mod: 0, nameKey: 'DOLMEN.Attack.Range.Medium', badgeKey: 'DOLMEN.Item.Range.medium', dist: attack.rangeMedium },
-			{ id: 'long', mod: -1, nameKey: 'DOLMEN.Attack.Range.Long', badgeKey: 'DOLMEN.Item.Range.long', dist: attack.rangeLong }
-		]
-
-		const html = ranges.map(r => {
-			const modStr = r.mod > 0 ? `(+${r.mod})` : r.mod === 0 ? '(0)' : `(${r.mod})`
-			return `
-			<div class="weapon-menu-item" data-range-mod="${r.mod}" data-range-name="${game.i18n.localize(r.badgeKey)}">
-				<span class="weapon-name">${game.i18n.localize(r.nameKey)} (${r.dist}')</span>
-				<span class="weapon-damage">${modStr}</span>
-			</div>
-		`
-		}).join('')
-
-		createContextMenu(this, {
-			html,
-			position,
-			onItemClick: (item, menu) => {
-				const rangeMod = parseInt(item.dataset.rangeMod)
-				const rangeName = item.dataset.rangeName
-				menu.remove()
-				this._openCreatureModifierPanel(attack, rangeMod, rangeName, position)
-			}
-		})
-	}
-
 	_openCreatureModifierPanel(attack, rangeMod, rangeName, position) {
-		// Save-type attacks skip the modifier panel
-		if (attack.attackType === 'save') {
-			this._executeCreatureAttack(attack, rangeMod, rangeName)
-			return
-		}
-
 		const rollLabel = game.i18n.localize('DOLMEN.Attack.Roll')
 
 		let html = `<div class="roll-btn"><i class="fas fa-dice-d20"></i> ${rollLabel}</div>`
@@ -626,7 +664,6 @@ class DolmenCreatureSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 			onItemClick: () => {}
 		})
 
-		// Numeric button behavior (single-select toggle)
 		panel.querySelectorAll('.numeric-btn').forEach(btn => {
 			btn.addEventListener('click', () => {
 				const wasSelected = btn.classList.contains('selected')
@@ -635,7 +672,6 @@ class DolmenCreatureSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 			})
 		})
 
-		// ROLL button
 		panel.querySelector('.roll-btn').addEventListener('click', () => {
 			const selectedNumBtn = panel.querySelector('.numeric-btn.selected')
 			const numericMod = selectedNumBtn ? parseInt(selectedNumBtn.dataset.numMod) : 0
@@ -652,7 +688,6 @@ class DolmenCreatureSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 			? `<span class="trait-badge">${rangeName}</span>`
 			: ''
 
-		// Save type: no dice rolls, just display effect
 		if (attack.attackType === 'save') {
 			const content = `
 				<div class="dolmen attack-roll">
@@ -674,7 +709,6 @@ class DolmenCreatureSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 			return
 		}
 
-		// Attack type: roll attack and damage dice
 		const totalBonus = attack.attackBonus + rangeMod
 		const modSign = totalBonus >= 0 ? '+' : ''
 		const atkFormula = `1d20${modSign}${totalBonus}`
@@ -720,7 +754,6 @@ class DolmenCreatureSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 			style: CONST.CHAT_MESSAGE_STYLES.OTHER
 		})
 	}
-
 }
 
-export default DolmenCreatureSheet
+export default DolmenHorseSheet
