@@ -133,8 +133,9 @@ class DolmenVehicleSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 		const isSlots = encumbranceMethod === 'slots'
 		const divisor = isSlots ? 100 : 1
 		const cargoMultiplier = (isLand && actor.system.animalCount === 'double') ? 2 : 1
-		context.cargoCapacity = (actor.system.cargo / divisor) * cargoMultiplier
 		context.cargoDisplay = actor.system.cargo / divisor
+		context.cargoCapacity = context.cargoDisplay * cargoMultiplier
+		context.cargoHasAdj = cargoMultiplier > 1
 		context.cargoDivisor = divisor
 		context.cargoUnit = isSlots
 			? game.i18n.localize('DOLMEN.Encumbrance.UnitSlots')
@@ -267,6 +268,19 @@ class DolmenVehicleSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
 		// Cargo display ↔ hidden coins conversion
 		this.element.querySelectorAll('.load-display').forEach(input => {
+			const baseValue = input.dataset.base
+			const displayValue = input.value
+			const hasAdj = baseValue !== undefined && baseValue !== displayValue
+
+			if (hasAdj) {
+				input.addEventListener('focus', () => {
+					input.value = baseValue 
+				})
+				input.addEventListener('blur', () => {
+					input.value = displayValue 
+				})
+			}
+
 			input.addEventListener('change', (event) => {
 				event.preventDefault()
 				event.stopPropagation()
