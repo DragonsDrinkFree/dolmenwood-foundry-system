@@ -198,6 +198,7 @@ class DolmenSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 		// Add actor and system data
 		context.actor = actor
 		context.system = actor.system
+		context.isGM = game.user.isGM
 
 		// Prepare tabs for the tabs part
 		context.tabs = this._getTabs()

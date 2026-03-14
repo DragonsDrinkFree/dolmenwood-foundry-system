@@ -5,5 +5,5 @@
 		<span>{{label}}</span>
 	</a>
 	{{/each}}
-	<i class="fas {{#if @root.actor.prototypeToken.actorLink}}fa-link{{else}}fa-link-slash{{/if}} actor-link-icon" title="{{#if @root.actor.prototypeToken.actorLink}}{{localize 'DOLMEN.TokenLinked'}}{{else}}{{localize 'DOLMEN.TokenUnlinked'}}{{/if}}"></i>
+	{{#if @root.isGM}}<i class="fas {{#if @root.actor.prototypeToken.actorLink}}fa-link{{else}}fa-link-slash{{/if}} actor-link-icon" title="{{#if @root.actor.prototypeToken.actorLink}}{{localize 'DOLMEN.TokenLinked'}}{{else}}{{localize 'DOLMEN.TokenUnlinked'}}{{/if}}"></i>{{/if}}
 </nav>

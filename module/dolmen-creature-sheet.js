@@ -90,6 +90,7 @@ class DolmenCreatureSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
 		context.actor = actor
 		context.system = actor.system
+		context.isGM = game.user.isGM
 		context.tabs = this._getTabs()
 
 		// Dropdown choices
