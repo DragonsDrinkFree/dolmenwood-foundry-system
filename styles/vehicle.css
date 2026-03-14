@@ -62,6 +62,8 @@
 	color: var(--dolmen-danger, #c41e1e);
 }
 
+
+
 /* Cargo row: stowed items + coins side by side */
 .dolmen.sheet.vehicle .vehicle-cargo-row {
 	display: flex;

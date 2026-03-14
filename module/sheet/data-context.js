@@ -555,6 +555,20 @@ export function groupRunesByMagnitude(runes, actor) {
 }
 
 /**
+ * Calculate weight of an item accounting for stack size.
+ * @param {object} item - Prepared item data
+ * @param {string} weightKey - 'weightSlots' or 'weightCoins'
+ * @returns {number} The calculated weight
+ */
+export function calcItemWeight(item, weightKey) {
+	const w = item.system[weightKey] || 0
+	if (!w) return 0
+	const qty = item.system.quantity || 1
+	const stack = item.system.stackSize || 1
+	return stack > 1 ? w * Math.ceil(qty / stack) : w * qty
+}
+
+/**
  * Group items by their type for display.
  * @param {object[]} items - Array of prepared item data
  * @returns {object[]} Array of type groups with items

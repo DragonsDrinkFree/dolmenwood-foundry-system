@@ -52,6 +52,8 @@
 			"Other": "Other"
 		},
 		"Details": "Details",
+		"TokenLinked": "Token linked to Actor",
+		"TokenUnlinked": "Token unlinked from Actor",
 		"NameType": "Definition",
 		"RolledKindredDetails": "Rolled details for new kindred ({kindred})",
 		"KindredClassIncompatible": "Changing kindred to {newKindred} is incompatible with your current kindred-class ({className}). Class changed to Fighter.",
@@ -626,9 +628,14 @@
 			"Delete": "Delete",
 			"DeleteConfirmTitle": "Delete Item",
 			"DeleteConfirmContent": "Are you sure you want to delete {name}?",
+			"DeleteContainerTitle": "Delete Container",
+			"DeleteContainerContent": "What do you want to delete?",
+			"DeleteContainerOnly": "Container Only",
+			"DeleteContainerAndContents": "Container and Contents",
 			"Loose": "Loose Items",
 			"RemoveFromContainer": "Remove from Container",
-			"Unsorted": "Unsorted"
+			"Unsorted": "Unsorted",
+			"Empty": "Empty"
 		},
 		"Attack": {
 			"NoWeapon": "No equipped {type} weapon found.",

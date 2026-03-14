@@ -1,0 +1,33 @@
+<div class="{{gridClass}}">
+	<div class="coin">
+		<label>{{localize "DOLMEN.Coins.Copper"}}</label>
+		<div class="coin-input">
+			<i class="fa-duotone fa-light fa-coin coin-icon coin-copper"></i>
+			<input type="number" name="system.coins.copper" value="{{system.coins.copper}}" min="0">
+		</div>
+	</div>
+	<div class="coin">
+		<label>{{localize "DOLMEN.Coins.Silver"}}</label>
+		<div class="coin-input">
+			<i class="fa-duotone fa-light fa-coin coin-icon coin-silver"></i>
+			<input type="number" name="system.coins.silver" value="{{system.coins.silver}}" min="0">
+		</div>
+	</div>
+	<div class="coin">
+		<label>{{localize "DOLMEN.Coins.Gold"}}</label>
+		<div class="coin-input">
+			<i class="fa-duotone fa-light fa-coin coin-icon coin-gold"></i>
+			<input type="number" name="system.coins.gold" value="{{system.coins.gold}}" min="0">
+		</div>
+	</div>
+	<div class="coin">
+		<label>{{localize "DOLMEN.Coins.Pellucidium"}}</label>
+		<div class="coin-input">
+			<i class="fa-duotone fa-light fa-coin coin-icon coin-pellucidium"></i>
+			<input type="number" name="system.coins.pellucidium" value="{{system.coins.pellucidium}}" min="0">
+		</div>
+	</div>
+	{{#if @root.showCoinAdjust}}
+	<i class="fa-duotone fa-light fa-right-left-large rollable coins-adjust-btn" title="{{localize 'DOLMEN.Coins.AdjustTitle'}}"></i>
+	{{/if}}
+</div>

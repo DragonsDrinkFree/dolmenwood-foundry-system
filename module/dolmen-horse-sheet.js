@@ -1,4 +1,4 @@
-/* global foundry, game, FilePicker, Roll, ChatMessage, CONST, CONFIG, Item */
+/* global foundry, game, FilePicker, Roll, ChatMessage, CONST, CONFIG */
 
 const { DialogV2 } = foundry.applications.api
 import { buildChoices, CHOICE_KEYS } from './utils/choices.js'
@@ -6,8 +6,9 @@ import { onSaveRoll } from './sheet/roll-handlers.js'
 import { createContextMenu } from './sheet/context-menu.js'
 import { getDieIconFromFormula } from './sheet/attack-rolls.js'
 import { parseSaveLinks } from './chat-save.js'
-import { prepareItemData, groupItemsByType, computeEncumbrance } from './sheet/data-context.js'
+import { prepareItemData, groupItemsByType, computeEncumbrance, calcItemWeight } from './sheet/data-context.js'
 import { setupAdjustableInputListeners } from './sheet/listeners.js'
+import { onOpenItem, onDeleteItem, onIncreaseQty, onDecreaseQty, onToggleContainer, onDropItemSimple } from './sheet/inventory-actions.js'
 
 const { HandlebarsApplicationMixin } = foundry.applications.api
 const { ActorSheetV2 } = foundry.applications.sheets
@@ -29,11 +30,11 @@ class DolmenHorseSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 		actions: {
 			addAttack: DolmenHorseSheet._onAddAttack,
 			removeAttack: DolmenHorseSheet._onRemoveAttack,
-			openItem: DolmenHorseSheet._onOpenItem,
-			deleteItem: DolmenHorseSheet._onDeleteItem,
-			increaseQty: DolmenHorseSheet._onIncreaseQty,
-			decreaseQty: DolmenHorseSheet._onDecreaseQty,
-			toggleContainer: DolmenHorseSheet._onToggleContainer,
+			openItem: onOpenItem,
+			deleteItem: onDeleteItem,
+			increaseQty: onIncreaseQty,
+			decreaseQty: onDecreaseQty,
+			toggleContainer: onToggleContainer,
 			moveToRider: DolmenHorseSheet._onMoveToRider
 		}
 	}
@@ -141,8 +142,8 @@ class DolmenHorseSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
 		// Speed: base vs adjusted (encumbrance halves speed, or 0 if over 2x load)
 		const totalWeight = actor.system.totalWeight || 0
-		const load = actor.system.load || 0
-		const overloaded = load > 0 && totalWeight > load
+		const loadCapacity = context.loadCapacity
+		const overloaded = loadCapacity > 0 && totalWeight > loadCapacity
 		context.overloaded = overloaded
 		context.totalWeight = totalWeight
 
@@ -235,13 +236,15 @@ class DolmenHorseSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 		context.containers = containerItems.map(c => {
 			const prepared = prepareItemData(c)
 			const contents = allStowedItems.filter(i => i.system.containerId === c.id)
-			const coinsUsed = contents.reduce((sum, i) => sum + (i.system[weightKey] || 0) * (i.system.quantity || 1), 0)
+			const coinsUsed = contents.reduce((sum, i) => sum + calcItemWeight(i, weightKey), 0)
 			return {
 				...prepared,
 				contents: groupItemsByType(contents),
 				hasContents: contents.length > 0,
 				coinsUsed,
-				coinsMax: c.system.capacityCoins
+				coinsMax: isSlots ? c.system.capacitySlots : c.system.capacityCoins,
+				infiniteCapacity: c.system.infiniteCapacity,
+				ignoreEncumbrance: c.system.ignoreEncumbrance
 			}
 		})
 		context.hasContainers = context.containers.length > 0
@@ -252,7 +255,7 @@ class DolmenHorseSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
 		context.stowedByType = groupItemsByType(looseStowedItems)
 		context.hasLooseStowedItems = looseStowedItems.length > 0
-		const itemWeight = looseStowedItems.reduce((sum, i) => sum + (i.system[weightKey] || 0) * (i.system.quantity || 1), 0)
+		const itemWeight = looseStowedItems.reduce((sum, i) => sum + calcItemWeight(i, weightKey), 0)
 		const totalCoins = (actor.system.coins.copper || 0) + (actor.system.coins.silver || 0)
 			+ (actor.system.coins.gold || 0) + (actor.system.coins.pellucidium || 0)
 		const coinsWeight = isSlots ? Math.ceil(totalCoins / 100) : totalCoins
@@ -291,6 +294,12 @@ class DolmenHorseSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
 	_onRender(context, options) {
 		super._onRender(context, options)
+
+		// Actor link toggle
+		this.element.querySelector('.actor-link-icon')?.addEventListener('click', async () => {
+			const linked = !this.actor.prototypeToken.actorLink
+			await this.actor.update({'prototypeToken.actorLink': linked})
+		})
 
 		// Adjustable input listeners (AC with barding bonus)
 		setupAdjustableInputListeners(this)
@@ -402,27 +411,7 @@ class DolmenHorseSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
 	async _onDropItem(event, data) {
 		if (!this._hasStorage()) return
-		const item = await Item.implementation.fromDropData(data)
-		if (!item) return
-
-		// Only allow gear-type items on horses
-		const allowedTypes = ['Item', 'Weapon', 'Armor', 'Treasure', 'Foraged', 'Container']
-		if (!allowedTypes.includes(item.type)) return
-
-		// Check if dropping into a container
-		const containerEl = event.target?.closest('.container-group[data-container-id]')
-		const containerId = containerEl?.dataset?.containerId || ''
-
-		// If item belongs to this actor, just move it to the container
-		if (item.parent?.id === this.actor.id) {
-			return item.update({ 'system.containerId': containerId })
-		}
-
-		// Create a new embedded item
-		const itemData = item.toObject()
-		itemData.system.equipped = false
-		if (containerId) itemData.system.containerId = containerId
-		return this.actor.createEmbeddedDocuments('Item', [itemData])
+		return onDropItemSimple(this, event, data)
 	}
 
 	/* -------------------------------------------- */
@@ -451,39 +440,6 @@ class DolmenHorseSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 		const attacks = foundry.utils.deepClone(this.actor.system.attacks)
 		attacks.splice(index, 1)
 		this.actor.update({ 'system.attacks': attacks })
-	}
-
-	static _onOpenItem(_event, target) {
-		const itemId = target.dataset.itemId ?? target.closest('[data-item-id]')?.dataset.itemId
-		if (!itemId) return
-		const item = this.actor.items.get(itemId)
-		item?.sheet?.render(true)
-	}
-
-	static _onDeleteItem(_event, target) {
-		const itemId = target.dataset.itemId ?? target.closest('[data-item-id]')?.dataset.itemId
-		if (!itemId) return
-		const item = this.actor.items.get(itemId)
-		item?.delete()
-	}
-
-	static _onIncreaseQty(_event, target) {
-		const itemId = target.dataset.itemId ?? target.closest('[data-item-id]')?.dataset.itemId
-		if (!itemId) return
-		const item = this.actor.items.get(itemId)
-		if (item) item.update({ 'system.quantity': (item.system.quantity || 1) + 1 })
-	}
-
-	static _onDecreaseQty(_event, target) {
-		const itemId = target.dataset.itemId ?? target.closest('[data-item-id]')?.dataset.itemId
-		if (!itemId) return
-		const item = this.actor.items.get(itemId)
-		if (item && item.system.quantity > 1) item.update({ 'system.quantity': item.system.quantity - 1 })
-	}
-
-	static _onToggleContainer(_event, target) {
-		const group = target.closest('.container-group')
-		if (group) group.classList.toggle('collapsed')
 	}
 
 	static async _onMoveToRider(_event, target) {

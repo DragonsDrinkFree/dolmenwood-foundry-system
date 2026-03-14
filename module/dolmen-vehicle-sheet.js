@@ -1,8 +1,9 @@
-/* global foundry, game, FilePicker, Item */
+/* global foundry, game, FilePicker */
 
 import { buildChoices, CHOICE_KEYS } from './utils/choices.js'
-import { prepareItemData, groupItemsByType } from './sheet/data-context.js'
+import { prepareItemData, groupItemsByType, calcItemWeight } from './sheet/data-context.js'
 import { setupAdjustableInputListeners } from './sheet/listeners.js'
+import { onOpenItem, onDeleteItem, onIncreaseQty, onDecreaseQty, onToggleContainer, onDropItemSimple } from './sheet/inventory-actions.js'
 
 const { HandlebarsApplicationMixin } = foundry.applications.api
 const { ActorSheetV2 } = foundry.applications.sheets
@@ -22,11 +23,11 @@ class DolmenVehicleSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 			resizable: true
 		},
 		actions: {
-			openItem: DolmenVehicleSheet._onOpenItem,
-			deleteItem: DolmenVehicleSheet._onDeleteItem,
-			increaseQty: DolmenVehicleSheet._onIncreaseQty,
-			decreaseQty: DolmenVehicleSheet._onDecreaseQty,
-			toggleContainer: DolmenVehicleSheet._onToggleContainer
+			openItem: onOpenItem,
+			deleteItem: onDeleteItem,
+			increaseQty: onIncreaseQty,
+			decreaseQty: onDecreaseQty,
+			toggleContainer: onToggleContainer
 		}
 	}
 
@@ -166,13 +167,15 @@ class DolmenVehicleSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 		context.containers = containerItems.map(c => {
 			const prepared = prepareItemData(c)
 			const contents = allStowedItems.filter(i => i.system.containerId === c.id)
-			const coinsUsed = contents.reduce((sum, i) => sum + (i.system[weightKey] || 0) * (i.system.quantity || 1), 0)
+			const coinsUsed = contents.reduce((sum, i) => sum + calcItemWeight(i, weightKey), 0)
 			return {
 				...prepared,
 				contents: groupItemsByType(contents),
 				hasContents: contents.length > 0,
 				coinsUsed,
-				coinsMax: c.system.capacityCoins
+				coinsMax: isSlots ? c.system.capacitySlots : c.system.capacityCoins,
+				infiniteCapacity: c.system.infiniteCapacity,
+				ignoreEncumbrance: c.system.ignoreEncumbrance
 			}
 		})
 		context.hasContainers = context.containers.length > 0
@@ -183,15 +186,17 @@ class DolmenVehicleSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
 		context.stowedByType = groupItemsByType(looseStowedItems)
 		context.hasLooseStowedItems = looseStowedItems.length > 0
-		const itemWeight = looseStowedItems.reduce((sum, i) => sum + (i.system[weightKey] || 0) * (i.system.quantity || 1), 0)
+		const itemWeight = looseStowedItems.reduce((sum, i) => sum + calcItemWeight(i, weightKey), 0)
 		const totalCoins = (actor.system.coins.copper || 0) + (actor.system.coins.silver || 0)
 			+ (actor.system.coins.gold || 0) + (actor.system.coins.pellucidium || 0)
 		const coinsWeight = isSlots ? Math.ceil(totalCoins / 100) : totalCoins
 		context.unsortedWeight = itemWeight + coinsWeight
 		context.hasStowedItems = context.hasLooseStowedItems || context.hasContainers
 
-		// Total load: items in containers + loose items + coins
-		const containerWeight = context.containers.reduce((sum, c) => sum + c.coinsUsed, 0)
+		// Total load: items in containers (excluding ignored) + loose items + coins
+		const containerWeight = context.containers
+			.filter(c => !c.ignoreEncumbrance)
+			.reduce((sum, c) => sum + c.coinsUsed, 0)
 		context.currentLoad = containerWeight + itemWeight + coinsWeight
 
 		// Cargo overweight indicator
@@ -228,6 +233,12 @@ class DolmenVehicleSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
 	_onRender(context, options) {
 		super._onRender(context, options)
+
+		// Actor link toggle
+		this.element.querySelector('.actor-link-icon')?.addEventListener('click', async () => {
+			const linked = !this.actor.prototypeToken.actorLink
+			await this.actor.update({'prototypeToken.actorLink': linked})
+		})
 
 		// Adjustable input listeners (speed with crew % penalty)
 		setupAdjustableInputListeners(this)
@@ -289,65 +300,9 @@ class DolmenVehicleSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 	/* -------------------------------------------- */
 
 	async _onDropItem(event, data) {
-		const item = await Item.implementation.fromDropData(data)
-		if (!item) return
-
-		// Only allow gear-type items on vehicles
-		const allowedTypes = ['Item', 'Weapon', 'Armor', 'Treasure', 'Foraged', 'Container']
-		if (!allowedTypes.includes(item.type)) return
-
-		// Check if dropping into a container
-		const containerEl = event.target?.closest('.container-group[data-container-id]')
-		const containerId = containerEl?.dataset?.containerId || ''
-
-		// If item belongs to this actor, just move it to the container
-		if (item.parent?.id === this.actor.id) {
-			return item.update({ 'system.containerId': containerId })
-		}
-
-		// Create a new embedded item
-		const itemData = item.toObject()
-		itemData.system.equipped = false
-		if (containerId) itemData.system.containerId = containerId
-		return this.actor.createEmbeddedDocuments('Item', [itemData])
+		return onDropItemSimple(this, event, data)
 	}
 
-	/* -------------------------------------------- */
-	/*  Static Action Handlers                      */
-	/* -------------------------------------------- */
-
-	static _onOpenItem(_event, target) {
-		const itemId = target.dataset.itemId ?? target.closest('[data-item-id]')?.dataset.itemId
-		if (!itemId) return
-		const item = this.actor.items.get(itemId)
-		item?.sheet?.render(true)
-	}
-
-	static _onDeleteItem(_event, target) {
-		const itemId = target.dataset.itemId ?? target.closest('[data-item-id]')?.dataset.itemId
-		if (!itemId) return
-		const item = this.actor.items.get(itemId)
-		item?.delete()
-	}
-
-	static _onIncreaseQty(_event, target) {
-		const itemId = target.dataset.itemId ?? target.closest('[data-item-id]')?.dataset.itemId
-		if (!itemId) return
-		const item = this.actor.items.get(itemId)
-		if (item) item.update({ 'system.quantity': (item.system.quantity || 1) + 1 })
-	}
-
-	static _onDecreaseQty(_event, target) {
-		const itemId = target.dataset.itemId ?? target.closest('[data-item-id]')?.dataset.itemId
-		if (!itemId) return
-		const item = this.actor.items.get(itemId)
-		if (item && item.system.quantity > 1) item.update({ 'system.quantity': item.system.quantity - 1 })
-	}
-
-	static _onToggleContainer(_event, target) {
-		const group = target.closest('.container-group')
-		if (group) group.classList.toggle('collapsed')
-	}
 }
 
 export default DolmenVehicleSheet

@@ -840,7 +840,11 @@ export class HorseDataModel extends CreatureDataModel {
 		const hasStorage = this.saddle === 'ridingBags' || this.saddle === 'pack'
 		if (hasStorage) {
 			if (this.parent?.items) {
+				const ignoreIds = new Set(
+					this.parent.items.filter(i => i.type === 'Container' && i.system.ignoreEncumbrance).map(i => i.id)
+				)
 				for (const item of this.parent.items) {
+					if (ignoreIds.has(item.system.containerId)) continue
 					const qty = item.system.quantity || 1
 					const w = isSlots ? (item.system.weightSlots || 0) : (item.system.weightCoins || 0)
 					totalWeight += w * qty

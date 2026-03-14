@@ -204,8 +204,9 @@ Hooks.once('init', async function () {
 
 	// Register Handlebars partials
 	const partials = [
-		'systems/dolmenwood/templates/horse/parts/item-group.html',
-		'systems/dolmenwood/templates/vehicle/parts/item-group.html'
+		'systems/dolmenwood/templates/shared/item-group.html',
+		'systems/dolmenwood/templates/shared/container-list.html',
+		'systems/dolmenwood/templates/shared/coins-grid.html'
 	]
 	for (const partialPath of partials) {
 		const partialContent = await fetch(partialPath).then(r => r.text())
@@ -258,13 +259,14 @@ Hooks.once('init', async function () {
 			foundry.applications.instances?.forEach(app => {
 				if (app.collection?.documentName === 'Item') app.render()
 			})
-			// Recompute derived data and re-render open adventurer sheets
-			game.actors.filter(a => a.type === 'Adventurer').forEach(a => a.prepareData())
+			// Recompute derived data and re-render open actor sheets
+			const affectedTypes = ['Adventurer', 'Horse', 'Vehicle']
+			game.actors.filter(a => affectedTypes.includes(a.type)).forEach(a => a.prepareData())
 			Object.values(ui.windows).forEach(app => {
-				if (app.document?.type === 'Adventurer') app.render()
+				if (affectedTypes.includes(app.document?.type)) app.render()
 			})
 			foundry.applications.instances?.forEach(app => {
-				if (app.document?.type === 'Adventurer') app.render()
+				if (affectedTypes.includes(app.document?.type)) app.render()
 			})
 		}
 	})

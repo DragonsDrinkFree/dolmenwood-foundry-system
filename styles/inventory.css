@@ -11,6 +11,10 @@
 	min-width: 1em;
 }
 
+.sheet.dolmen .tab-inventory .fa-coins {
+	min-width: 1.25em;
+}
+
 /* -------------------------------------------- */
 /*  Inventory Tab - Encumbrance Grid            */
 /* -------------------------------------------- */
@@ -428,7 +432,13 @@
 	justify-self: center;
 }
 
-.sheet.dolmen .tab-content .container-header .container-capacity {
+.sheet.dolmen .tab-content .container-header .fa-ellipsis {
+	min-height: 16px;
+	align-content: center;
+}
+
+.sheet.dolmen .tab-content .container-header .container-capacity,
+.sheet.dolmen .tab-content h2 .container-capacity {
 	font-weight: normal;
 	font-size: 0.65rem;
 	opacity: 0.85;

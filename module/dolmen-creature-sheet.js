@@ -164,6 +164,12 @@ class DolmenCreatureSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 	_onRender(context, options) {
 		super._onRender(context, options)
 
+		// Actor link toggle
+		this.element.querySelector('.actor-link-icon')?.addEventListener('click', async () => {
+			const linked = !this.actor.prototypeToken.actorLink
+			await this.actor.update({'prototypeToken.actorLink': linked})
+		})
+
 		// Tab listeners
 		this.element.querySelectorAll('.tabs .item').forEach(tab => {
 			tab.addEventListener('click', (event) => {

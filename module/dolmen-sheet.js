@@ -9,7 +9,7 @@ import {
 	computeXPModifier, computeMoonSign,
 	prepareSpellSlots, prepareKnackAbilities, prepareSpellData,
 	groupSpellsByRank, prepareMemorizedSlots, groupRunesByMagnitude,
-	groupItemsByType, prepareItemData, getRuneUsage, computeSkillPoints
+	groupItemsByType, prepareItemData, getRuneUsage, computeSkillPoints, calcItemWeight
 } from './sheet/data-context.js'
 import {
 	isKindredClass, getAlignmentRestrictions, buildCustomSections,
@@ -27,6 +27,7 @@ import {
 	setupChargesListeners
 } from './sheet/listeners.js'
 import { openAddSkillDialog, removeSkill } from './sheet/dialogs.js'
+import { onOpenItem, onIncreaseQty, onDecreaseQty, onToggleContainer, createDeleteItemHandler, onEquipItem, onStowItem, onRemoveFromContainer } from './sheet/inventory-actions.js'
 
 const TextEditor = foundry.applications.ux.TextEditor.implementation
 const { HandlebarsApplicationMixin } = foundry.applications.api
@@ -47,6 +48,29 @@ function formatHeightFormula(formula) {
 	const inches = baseInches % 12
 	const base = inches > 0 ? `${feet}'${inches}"` : `${feet}'`
 	return rest ? `${base} ${rest}"` : base
+}
+
+/**
+ * Clean up memorized spell slots before deleting a spell item.
+ * @param {Actor} actor - The actor owning the item
+ * @param {Item} item - The item being deleted
+ */
+async function cleanupSpellSlots(actor, item) {
+	if (!['Spell', 'HolySpell'].includes(item.type)) return
+	const magicPath = item.type === 'HolySpell' ? 'holyMagic' : 'arcaneMagic'
+	const slotsData = actor.system[magicPath]?.spellSlots
+	if (!slotsData) return
+	const updates = {}
+	for (const [key, slot] of Object.entries(slotsData)) {
+		const memorized = slot.memorized
+		if (memorized?.includes(item.id)) {
+			updates[`system.${magicPath}.spellSlots.${key}.memorized`] =
+				memorized.map(id => id === item.id ? null : id)
+		}
+	}
+	if (Object.keys(updates).length) {
+		await actor.update(updates)
+	}
 }
 
 class DolmenSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
@@ -73,19 +97,19 @@ class DolmenSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 			removeSkill: DolmenSheet._onRemoveSkill,
 			setKindred: DolmenSheet._onSetKindred,
 			setClass: DolmenSheet._onSetClass,
-			openItem: DolmenSheet._onOpenItem,
-			equipItem: DolmenSheet._onEquipItem,
-			stowItem: DolmenSheet._onStowItem,
-			deleteItem: DolmenSheet._onDeleteItem,
-			increaseQty: DolmenSheet._onIncreaseQty,
-			decreaseQty: DolmenSheet._onDecreaseQty,
+			openItem: onOpenItem,
+			equipItem: onEquipItem,
+			stowItem: onStowItem,
+			deleteItem: createDeleteItemHandler(cleanupSpellSlots),
+			increaseQty: onIncreaseQty,
+			decreaseQty: onDecreaseQty,
 			memorizeSpell: DolmenSheet._onMemorizeSpell,
 			forgetSpell: DolmenSheet._onForgetSpell,
 			memorizeToSlot: DolmenSheet._onMemorizeToSlot,
 			castSpell: DolmenSheet._onCastSpell,
 			setExhaustion: DolmenSheet._onSetExhaustion,
-			toggleContainer: DolmenSheet._onToggleContainer,
-			removeFromContainer: DolmenSheet._onRemoveFromContainer
+			toggleContainer: onToggleContainer,
+			removeFromContainer: onRemoveFromContainer
 		}
 	}
 
@@ -274,6 +298,8 @@ class DolmenSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 		}
 		context.encumbranceMethod = game.settings.get('dolmenwood', 'encumbranceMethod')
 		context.encumbranceMethodLabel = game.i18n.localize(`DOLMEN.Encumbrance.${context.encumbranceMethod}`)
+		context.inventoryShowEquip = true
+		context.showCoinAdjust = true
 		context.exhaustionValues = [0, -1, -2, -3, -4].map(v => ({
 			value: v,
 			label: v === 0 ? '0' : String(v),
@@ -383,29 +409,20 @@ class DolmenSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
 		// Separate containers and build container data for stowed section
 		const containerItems = items.filter(i => i.type === 'Container')
-		const encumbranceMethod = game.settings.get('dolmenwood', 'encumbranceMethod')
+		const isSlots = context.encumbranceMethod === 'slots'
+		const weightKey = isSlots ? 'weightSlots' : 'weightCoins'
 		context.containers = containerItems.map(c => {
 			const prepared = prepareItemData(c)
 			const contents = allStowedItems.filter(i => i.system.containerId === c.id)
-			const slotsUsed = contents.reduce((sum, i) => {
-				const w = i.system.weightSlots || 0
-				if (!w) return sum
-				const qty = i.system.quantity || 1
-				const stack = i.system.stackSize || 1
-				return sum + (stack > 1 ? w * Math.ceil(qty / stack) : w * qty)
-			}, 0)
-			const coinsUsed = contents.reduce((sum, i) => sum + (i.system.weightCoins || 0) * (i.system.quantity || 1), 0)
+			const coinsUsed = contents.reduce((sum, i) => sum + calcItemWeight(i, weightKey), 0)
 			return {
 				...prepared,
 				contents: groupItemsByType(contents),
 				hasContents: contents.length > 0,
-				slotsUsed,
-				slotsMax: c.system.capacitySlots,
 				coinsUsed,
-				coinsMax: c.system.capacityCoins,
+				coinsMax: isSlots ? c.system.capacitySlots : c.system.capacityCoins,
 				infiniteCapacity: c.system.infiniteCapacity,
-				ignoreEncumbrance: c.system.ignoreEncumbrance,
-				isSlots: encumbranceMethod === 'slots'
+				ignoreEncumbrance: c.system.ignoreEncumbrance
 			}
 		})
 		context.hasContainers = context.containers.length > 0
@@ -419,16 +436,13 @@ class DolmenSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 		context.stowedByType = groupItemsByType(looseStowedItems)
 		context.hasEquippedItems = equippedItems.length > 0
 		context.hasLooseStowedItems = looseStowedItems.length > 0
-		context.unsortedWeight = encumbranceMethod === 'slots'
-			? looseStowedItems.reduce((sum, i) => {
-				const w = i.system.weightSlots || 0
-				if (!w) return sum
-				const qty = i.system.quantity || 1
-				const stack = i.system.stackSize || 1
-				return sum + (stack > 1 ? w * Math.ceil(qty / stack) : w * qty)
-			}, 0)
-			: looseStowedItems.reduce((sum, i) => sum + (i.system.weightCoins || 0) * (i.system.quantity || 1), 0)
+		context.unsortedWeight = looseStowedItems.reduce((sum, i) => sum + calcItemWeight(i, weightKey), 0)
 		context.hasStowedItems = context.hasLooseStowedItems || context.hasContainers
+		context.equippedWeight = equippedItems.reduce((sum, i) => sum + calcItemWeight(i, weightKey), 0)
+		const totalCoins = (actor.system.coins.copper || 0) + (actor.system.coins.silver || 0)
+			+ (actor.system.coins.gold || 0) + (actor.system.coins.pellucidium || 0)
+		const coinsWeight = isSlots ? Math.ceil(totalCoins / 100) : totalCoins
+		context.stowedWeight = allStowedItems.reduce((sum, i) => sum + calcItemWeight(i, weightKey), 0) + coinsWeight
 
 		// Prepare magic tab data
 		context.knackTypeChoices = buildChoices('DOLMEN.Magic.Knacks.Types', CHOICE_KEYS.knackTypes)
@@ -592,6 +606,12 @@ class DolmenSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 	_onRender(context, options) {
 		super._onRender(context, options)
 
+		// Actor link toggle
+		this.element.querySelector('.actor-link-icon')?.addEventListener('click', async () => {
+			const linked = !this.actor.prototypeToken.actorLink
+			await this.actor.update({'prototypeToken.actorLink': linked})
+		})
+
 		setupTabListeners(this)
 		setupXPListener(this)
 		setupLevelListeners(this)
@@ -682,119 +702,6 @@ class DolmenSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 		if (classId) {
 			await this.actor.setClass(classId)
 			// Foundry auto-renders on actor updates
-		}
-	}
-
-	static _onOpenItem(_event, target) {
-		const itemId = target.closest('[data-item-id]')?.dataset.itemId
-		if (itemId) {
-			const item = this.actor.items.get(itemId)
-			item?.sheet.render(true)
-		}
-	}
-
-	static async _onEquipItem(_event, target) {
-		const itemId = target.dataset.itemId
-		if (itemId) {
-			const item = this.actor.items.get(itemId)
-			if (item) {
-				this.actor.warnIfIncompatibleSize(item)
-				const updates = { 'system.equipped': true }
-				if (item.system.containerId) updates['system.containerId'] = ''
-				await item.update(updates)
-			}
-		}
-	}
-
-	static async _onStowItem(_event, target) {
-		const itemId = target.dataset.itemId
-		if (itemId) {
-			const item = this.actor.items.get(itemId)
-			await item?.update({ 'system.equipped': false })
-		}
-	}
-
-	static async _onDeleteItem(_event, target) {
-		const itemId = target.dataset.itemId
-		if (itemId) {
-			const item = this.actor.items.get(itemId)
-			if (item) {
-				const confirmed = await foundry.applications.api.DialogV2.confirm({
-					window: { title: game.i18n.localize('DOLMEN.Inventory.DeleteConfirmTitle') },
-					content: game.i18n.format('DOLMEN.Inventory.DeleteConfirmContent', { name: item.name }),
-					rejectClose: false,
-					modal: true
-				})
-				if (confirmed) {
-					// Clean up contained items when deleting a container
-					if (item.type === 'Container') {
-						const contained = this.actor.items.filter(i => i.system.containerId === itemId)
-						for (const ci of contained) {
-							await ci.update({ 'system.containerId': '' })
-						}
-					}
-					// Clean up memorized spell slots before deleting
-					if (['Spell', 'HolySpell'].includes(item.type)) {
-						const magicPath = item.type === 'HolySpell' ? 'holyMagic' : 'arcaneMagic'
-						const slotsData = this.actor.system[magicPath]?.spellSlots
-						if (slotsData) {
-							const updates = {}
-							for (const [key, slot] of Object.entries(slotsData)) {
-								const memorized = slot.memorized
-								if (memorized?.includes(itemId)) {
-									updates[`system.${magicPath}.spellSlots.${key}.memorized`] =
-										memorized.map(id => id === itemId ? null : id)
-								}
-							}
-							if (Object.keys(updates).length) {
-								await this.actor.update(updates)
-							}
-						}
-					}
-					await item.delete()
-				}
-			}
-		}
-	}
-
-	static async _onIncreaseQty(_event, target) {
-		const itemId = target.dataset.itemId
-		if (itemId) {
-			const item = this.actor.items.get(itemId)
-			if (item) {
-				const currentQty = item.system.quantity || 1
-				await item.update({ 'system.quantity': currentQty + 1 })
-			}
-		}
-	}
-
-	static async _onDecreaseQty(_event, target) {
-		const itemId = target.dataset.itemId
-		if (itemId) {
-			const item = this.actor.items.get(itemId)
-			if (item) {
-				const currentQty = item.system.quantity || 1
-				if (currentQty > 1) {
-					await item.update({ 'system.quantity': currentQty - 1 })
-				}
-			}
-		}
-	}
-
-	static _onToggleContainer(_event, target) {
-		const group = target.closest('.container-group')
-		if (group) {
-			group.classList.toggle('collapsed')
-		}
-	}
-
-	static async _onRemoveFromContainer(_event, target) {
-		const itemId = target.closest('[data-item-id]')?.dataset.itemId
-		if (itemId) {
-			const item = this.actor.items.get(itemId)
-			if (item) {
-				await item.update({ 'system.containerId': '' })
-			}
 		}
 	}
 

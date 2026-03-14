@@ -111,6 +111,8 @@
 	color: var(--dolmen-danger, #c41e1e);
 }
 
+
+
 /* Inventory body: stowed items + coins side by side */
 .dolmen.sheet.horse .horse-inventory-body {
 	display: flex;

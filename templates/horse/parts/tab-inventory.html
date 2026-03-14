@@ -37,95 +37,14 @@
 	{{#if @root.hasStorage}}
 	<div class="horse-inventory-body">
 		<section class="stowed-items inventory boxed-section" data-item-list="stowed">
-			<h2><i class="fas fa-box"></i> {{localize "DOLMEN.Inventory.Stowed"}}</h2>
+			<h2><i class="fas fa-bag-shopping"></i> {{@root.saddleStorageName}} {{#if @root.saddleStorageMax}}<span class="container-capacity {{#if @root.saddleOverweight}}overloaded{{/if}}">(<i class="fas fa-weight-hanging"></i> {{unsortedWeight}}/{{@root.saddleStorageMax}})</span>{{/if}}</h2>
 			<div class="item-list stowed-list" data-item-list="stowed">
-				{{#if hasStowedItems}}
-				{{#each @root.containers}}
-				<div class="container-group" data-container-id="{{this.id}}" data-item-list="container">
-					<div class="container-header" data-action="toggleContainer" data-container-id="{{this.id}}">
-						<i class="fas fa-chevron-down container-toggle"></i>
-						<img src="{{this.img}}" class="item-image">
-						<span class="container-name">{{this.name}} <span class="container-capacity">(<i class="fas fa-weight-hanging"></i> {{this.coinsUsed}}/{{this.coinsMax}})</span></span>
-						<span class="item-controls">
-							<a class="item-control" data-action="openItem" data-item-id="{{this.id}}" title="{{localize 'DOLMEN.Edit'}}">
-								<i class="fas fa-pen-to-square"></i>
-							</a>
-							<a class="item-control" data-action="deleteItem" data-item-id="{{this.id}}" title="{{localize 'DOLMEN.Inventory.Delete'}}">
-								<i class="fas fa-square-x"></i>
-							</a>
-						</span>
-					</div>
-					<div class="container-contents">
-						{{#if this.hasContents}}
-						{{#each this.contents}}
-						<div class="item-type-group {{this.typeLower}}">
-							{{> "systems/dolmenwood/templates/horse/parts/item-group.html"}}
-						</div>
-						{{/each}}
-						{{else}}
-						<div class="item-list-empty container-empty">
-							<span>Empty</span>
-						</div>
-						{{/if}}
-					</div>
-				</div>
-				{{/each}}
-				{{#if hasLooseStowedItems}}
-				<div class="container-group saddle-storage-group" data-item-list="stowed">
-					<div class="container-header" data-action="toggleContainer">
-						<i class="fas fa-chevron-down container-toggle"></i>
-						<i class="fa-solid fa-bag-shopping"></i>
-						<span class="container-name">{{@root.saddleStorageName}} <span class="container-capacity {{#if @root.saddleOverweight}}overloaded{{/if}}">(<i class="fas fa-weight-hanging"></i> {{unsortedWeight}}{{#if @root.saddleStorageMax}}/{{@root.saddleStorageMax}}{{/if}})</span></span>
-						<span class="item-controls"></span>
-					</div>
-					<div class="container-contents">
-						{{#each stowedByType}}
-						<div class="item-type-group {{this.typeLower}}">
-							{{> "systems/dolmenwood/templates/horse/parts/item-group.html"}}
-						</div>
-						{{/each}}
-					</div>
-				</div>
-				{{/if}}
-				{{else}}
-				<div class="item-list-empty">
-					<span>{{localize "DOLMEN.Inventory.NoStowed"}}</span>
-				</div>
-				{{/if}}
+				{{> "systems/dolmenwood/templates/shared/container-list.html"}}
 			</div>
 		</section>
 		<section class="horse-coins boxed-section">
 			<h2><i class="fas fa-coins"></i> {{localize "DOLMEN.Coins.Title"}}</h2>
-			<div class="horse-coins-grid">
-				<div class="coin">
-					<label>{{localize "DOLMEN.Coins.Copper"}}</label>
-					<div class="coin-input">
-						<i class="fa-duotone fa-light fa-coin coin-icon coin-copper"></i>
-						<input type="number" name="system.coins.copper" value="{{system.coins.copper}}" min="0">
-					</div>
-				</div>
-				<div class="coin">
-					<label>{{localize "DOLMEN.Coins.Silver"}}</label>
-					<div class="coin-input">
-						<i class="fa-duotone fa-light fa-coin coin-icon coin-silver"></i>
-						<input type="number" name="system.coins.silver" value="{{system.coins.silver}}" min="0">
-					</div>
-				</div>
-				<div class="coin">
-					<label>{{localize "DOLMEN.Coins.Gold"}}</label>
-					<div class="coin-input">
-						<i class="fa-duotone fa-light fa-coin coin-icon coin-gold"></i>
-						<input type="number" name="system.coins.gold" value="{{system.coins.gold}}" min="0">
-					</div>
-				</div>
-				<div class="coin">
-					<label>{{localize "DOLMEN.Coins.Pellucidium"}}</label>
-					<div class="coin-input">
-						<i class="fa-duotone fa-light fa-coin coin-icon coin-pellucidium"></i>
-						<input type="number" name="system.coins.pellucidium" value="{{system.coins.pellucidium}}" min="0">
-					</div>
-				</div>
-			</div>
+			{{> "systems/dolmenwood/templates/shared/coins-grid.html" gridClass="horse-coins-grid"}}
 		</section>
 	</div>
 	{{/if}}
