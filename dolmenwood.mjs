@@ -48,7 +48,7 @@ Hooks.on('initializeDynamicTokenRingConfig', ringConfig => {
 			RING_GRADIENT: 'TOKEN.RING.EFFECTS.RING_GRADIENT',
 			BACKGROUND_WAVE: 'TOKEN.RING.EFFECTS.BACKGROUND_WAVE'
 		},
-		spritesheet: 'systems/dolmenwood/assets/dynamic-token-ring/dynamic-xcc-spritesheet.json'
+		spritesheet: 'systems/dolmenwood/assets/dynamic-token-ring/dynamic-dolmen-spritesheet.json'
 	})
 	ringConfig.addConfig('dolmenwoodRing', dolmenwoodRing)
 })

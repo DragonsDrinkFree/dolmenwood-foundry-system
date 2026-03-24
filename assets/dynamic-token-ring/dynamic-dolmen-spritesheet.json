@@ -1,0 +1,38 @@
+{
+	"config": {
+		"defaultColorBand": {
+			"startRadius": 0.717,
+			"endRadius": 0.815
+		}
+	},
+
+	"frames": {
+		"token-ring-gargantuan-bkg":
+		{
+			"frame": {"x":0,"y":0,"w":1024,"h":1024},
+			"rotated": false,
+			"trimmed": false,
+			"spriteSourceSize": {"x":0,"y":0,"w":1024,"h":1024},
+			"sourceSize": {"w":1024,"h":1024},
+			"anchor": {"x":0.5,"y":0.5}
+		},
+		"token-ring-gargantuan":
+		{
+			"frame": {"x":1024,"y":0,"w":1024,"h":1024},
+			"rotated": false,
+			"trimmed": false,
+			"spriteSourceSize": {"x":0,"y":0,"w":1024,"h":1024},
+			"sourceSize": {"w":1024,"h":1024},
+			"anchor": {"x":0.5,"y":0.5},
+			"gridTarget": 3
+		}
+	},
+	"meta": {
+		"app": "https://www.codeandweb.com/texturepacker",
+		"version": "1.1",
+		"image": "dynamic-dolmen-spritesheet.webp",
+		"format": "RGBA8888",
+		"size": {"w":2048,"h":1024},
+		"scale": "1"
+	}
+}
