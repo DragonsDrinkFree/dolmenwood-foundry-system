@@ -259,6 +259,34 @@ class DolmenCreatureSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 			})
 		})
 
+		// Attack drag listeners
+		this.element.querySelectorAll('.attack-row[draggable]').forEach(el => {
+			el.addEventListener('dragstart', (event) => {
+				const index = parseInt(el.dataset.attackIndex)
+				const attack = this.actor.system.attacks[index]
+				if (!attack) return
+				event.dataTransfer.setData('text/plain', JSON.stringify({
+					type: 'CreatureAttack',
+					actorId: this.actor.id,
+					attack: foundry.utils.deepClone(attack)
+				}))
+			})
+		})
+
+		// Ability drag listeners
+		this.element.querySelectorAll('.ability-row[draggable]').forEach(el => {
+			el.addEventListener('dragstart', (event) => {
+				const index = parseInt(el.dataset.abilityIndex)
+				const ability = this.actor.system.specialAbilities[index]
+				if (!ability) return
+				event.dataTransfer.setData('text/plain', JSON.stringify({
+					type: 'CreatureAbility',
+					actorId: this.actor.id,
+					ability: foundry.utils.deepClone(ability)
+				}))
+			})
+		})
+
 		// Ability edit listeners (click row to open edit dialog)
 		this.element.querySelectorAll('.ability-row').forEach(el => {
 			el.addEventListener('click', (event) => {
@@ -268,6 +296,31 @@ class DolmenCreatureSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 				this._openAbilityDialog(index)
 			})
 		})
+	}
+
+	async _onDrop(event) {
+		let data
+		try {
+			data = JSON.parse(event.dataTransfer.getData('text/plain'))
+		} catch {
+			return super._onDrop(event)
+		}
+
+		if (data.type === 'CreatureAttack') {
+			const attacks = foundry.utils.deepClone(this.actor.system.attacks)
+			attacks.push(data.attack)
+			await this.actor.update({ 'system.attacks': attacks })
+			return
+		}
+
+		if (data.type === 'CreatureAbility') {
+			const abilities = foundry.utils.deepClone(this.actor.system.specialAbilities)
+			abilities.push(data.ability)
+			await this.actor.update({ 'system.specialAbilities': abilities })
+			return
+		}
+
+		return super._onDrop(event)
 	}
 
 	/* -------------------------------------------- */
