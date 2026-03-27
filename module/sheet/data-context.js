@@ -135,7 +135,8 @@ function itemSlots(i) {
 
 function computeSlots(equipped, stowed, totalCoins, slotCapacityAdj) {
 	const equippedSlots = equipped.reduce((sum, i) => sum + itemSlots(i), 0)
-	const coinSlots = Math.ceil(totalCoins / 100)
+	const coinsPerSlot = game.settings.get('dolmenwood', 'coinsPerSlot')
+	const coinSlots = Math.ceil(totalCoins / coinsPerSlot)
 	const stowedSlots = stowed.reduce((sum, i) => sum + itemSlots(i), 0) + coinSlots
 	const eAdj = slotCapacityAdj.equipped || 0
 	const sAdj = slotCapacityAdj.stowed || 0

@@ -1,0 +1,106 @@
+{
+	"config": {
+		"defaultColorBand": {
+			"startRadius": 0.717,
+			"endRadius": 0.815
+		}
+	},
+	"frames": {
+		"token-ring-large-huge-bkg": {
+			"frame": {
+				"x": 0,
+				"y": 0,
+				"w": 1024,
+				"h": 1024
+			},
+			"rotated": false,
+			"trimmed": false,
+			"anchor": {
+				"x": 0.5,
+				"y": 0.5
+			}
+		},
+		"token-ring-large-huge": {
+			"frame": {
+				"x": 1024,
+				"y": 0,
+				"w": 1024,
+				"h": 1024
+			},
+			"rotated": false,
+			"trimmed": false,
+			"anchor": {
+				"x": 0.5,
+				"y": 0.5
+			},
+			"gridTarget": 2
+		},
+		"token-ring-med-bkg": {
+			"frame": {
+				"x": 0,
+				"y": 1024,
+				"w": 512,
+				"h": 512
+			},
+			"rotated": false,
+			"trimmed": false,
+			"anchor": {
+				"x": 0.5,
+				"y": 0.5
+			}
+		},
+		"token-ring-med": {
+			"frame": {
+				"x": 512,
+				"y": 1024,
+				"w": 512,
+				"h": 512
+			},
+			"rotated": false,
+			"trimmed": false,
+			"anchor": {
+				"x": 0.5,
+				"y": 0.5
+			},
+			"gridTarget": 1
+		},
+		"token-ring-tiny-bkg": {
+			"frame": {
+				"x": 1024,
+				"y": 1024,
+				"w": 256,
+				"h": 256
+			},
+			"rotated": false,
+			"trimmed": false,
+			"anchor": {
+				"x": 0.5,
+				"y": 0.5
+			}
+		},
+		"token-tiny": {
+			"frame": {
+				"x": 1280,
+				"y": 1024,
+				"w": 256,
+				"h": 256
+			},
+			"rotated": false,
+			"trimmed": false,
+			"anchor": {
+				"x": 0.5,
+				"y": 0.5
+			},
+			"gridTarget": 0.5
+		}
+	},
+	"meta": {
+		"image": "dynamic-dolmen-spritesheet.webp",
+		"format": "RGBA8888",
+		"size": {
+			"w": 2048,
+			"h": 2048
+		},
+		"scale": "1"
+	}
+}

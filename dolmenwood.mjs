@@ -46,9 +46,11 @@ Hooks.on('initializeDynamicTokenRingConfig', ringConfig => {
 		effects: {
 			RING_PULSE: 'TOKEN.RING.EFFECTS.RING_PULSE',
 			RING_GRADIENT: 'TOKEN.RING.EFFECTS.RING_GRADIENT',
-			BACKGROUND_WAVE: 'TOKEN.RING.EFFECTS.BACKGROUND_WAVE'
+			BKG_WAVE: 'TOKEN.RING.EFFECTS.BKG_WAVE',
+			INVISIBILITY: 'TOKEN.RING.EFFECTS.INVISIBILITY',
+			COLOR_OVER_SUBJECT: 'TOKEN.RING.EFFECTS.COLOR_OVER_SUBJECT'
 		},
-		spritesheet: 'systems/dolmenwood/assets/dynamic-token-ring/dynamic-xcc-spritesheet.json'
+		spritesheet: 'systems/dolmenwood/assets/dynamic-token-ring/dynamic-dolmen-spritesheet.json'
 	})
 	ringConfig.addConfig('dolmenwoodRing', dolmenwoodRing)
 })
@@ -281,6 +283,20 @@ Hooks.once('init', async function () {
 		range: {
 			min: 0,
 			max: 100,
+			step: 1
+		}
+	})
+
+	game.settings.register('dolmenwood', 'coinsPerSlot', {
+		name: 'DOLMEN.Encumbrance.CoinsPerSlot',
+		hint: 'DOLMEN.Encumbrance.CoinsPerSlotHint',
+		scope: 'world',
+		config: true,
+		type: Number,
+		default: 100,
+		range: {
+			min: 1,
+			max: 1000,
 			step: 1
 		}
 	})

@@ -415,3 +415,4 @@ packs/**/CURRENT
 packs/**/MANIFEST-*
 packs/**/*.ldb
 packs/**/*.log
+*.af
