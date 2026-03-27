@@ -158,7 +158,7 @@
 					</div>
 					{{#each system.extraSkills}}
 					<div class="adj-row">
-						<span class="adj-label">{{localize (concat "DOLMEN.Skills." this.id)}}</span>
+						<span class="adj-label">{{#if this.customName}}{{this.customName}}{{else}}{{localize (concat "DOLMEN.Skills." this.id)}}{{/if}}</span>
 						<input type="number" name="system.adjustments.skills.{{this.id}}" value="{{lookup @root.system.adjustments.skills this.id}}" placeholder="0">
 					</div>
 					{{/each}}

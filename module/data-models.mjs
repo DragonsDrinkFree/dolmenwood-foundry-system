@@ -462,7 +462,8 @@ export class AdventurerDataModel extends ActorDataModel {
 			// Extra skills (class-specific or acquired)
 			extraSkills: new ArrayField(new SchemaField({
 				id: new StringField({ required: true, blank: false }),
-				target: new NumberField({ required: true, integer: true, min: 2, max: 6, initial: 6 })
+				target: new NumberField({ required: true, integer: true, min: 2, max: 6, initial: 6 }),
+				customName: new StringField({ required: false, blank: true, initial: '' })
 			}), { initial: [] }),
 
 			// Customize Skills optional rule (prevents auto-updating skill targets)

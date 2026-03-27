@@ -291,8 +291,9 @@ export function setupSkillRollListeners(sheet) {
 			const targetOverride = event.currentTarget.dataset.skillTarget
 				? parseInt(event.currentTarget.dataset.skillTarget)
 				: null
+			const customName = event.currentTarget.dataset.skillName || null
 			if (skillKey) {
-				onSkillRoll(sheet, skillKey, targetOverride, event)
+				onSkillRoll(sheet, skillKey, targetOverride, event, customName)
 			}
 		})
 	})
