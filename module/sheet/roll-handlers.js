@@ -22,8 +22,9 @@ import { getDieIconFromFormula } from './attack-rolls.js'
  * @param {object[]} options - Available trait options
  * @param {object} position - Position {top, left}
  * @param {number} [skillTargetOverride] - For skill rolls, the target override value
+ * @param {string} [customName] - Custom display name for user-defined skills
  */
-function openTraitRollContextMenu(sheet, key, rollType, options, position, skillTargetOverride = null) {
+function openTraitRollContextMenu(sheet, key, rollType, options, position, skillTargetOverride = null, customName = null) {
 	const normalLabel = game.i18n.localize('DOLMEN.Roll.NormalRoll')
 
 	let html = `
@@ -57,7 +58,7 @@ function openTraitRollContextMenu(sheet, key, rollType, options, position, skill
 			} else if (rollType === 'save') {
 				performSavingThrow(sheet, key, bonus, traitName)
 			} else if (rollType === 'skill') {
-				performSkillCheck(sheet, key, skillTargetOverride, bonus, traitName)
+				performSkillCheck(sheet, key, skillTargetOverride, bonus, traitName, customName)
 			}
 		}
 	})
@@ -387,19 +388,20 @@ async function performSavingThrow(sheet, saveKey, traitBonus = 0, modifierNames 
  * @param {string} skillKey - The skill key (e.g., 'listen', 'search', 'survival')
  * @param {number} [targetOverride] - Override the target value (for extra skills)
  * @param {Event} event - The click event for positioning
+ * @param {string} [customName] - Custom display name for user-defined skills
  */
-export function onSkillRoll(sheet, skillKey, targetOverride, event) {
+export function onSkillRoll(sheet, skillKey, targetOverride, event, customName) {
 	const rollOptions = getTraitRollOptions(sheet.actor, `skills.${skillKey}`)
 
 	if (rollOptions.length === 0) {
-		performSkillCheck(sheet, skillKey, targetOverride, 0)
+		performSkillCheck(sheet, skillKey, targetOverride, 0, null, customName)
 	} else {
 		const position = event ? {
 			top: event.currentTarget.getBoundingClientRect().top,
 			left: event.currentTarget.getBoundingClientRect().left
 		} : { top: 100, left: 100 }
 
-		openTraitRollContextMenu(sheet, skillKey, 'skill', rollOptions, position, targetOverride)
+		openTraitRollContextMenu(sheet, skillKey, 'skill', rollOptions, position, targetOverride, customName)
 	}
 }
 
@@ -410,8 +412,9 @@ export function onSkillRoll(sheet, skillKey, targetOverride, event) {
  * @param {number} [targetOverride] - Override the target value (for extra skills)
  * @param {number} traitBonus - Additional bonus from selected trait
  * @param {string} [traitName] - Name of the trait providing bonus
+ * @param {string} [customName] - Custom display name for user-defined skills
  */
-async function performSkillCheck(sheet, skillKey, targetOverride = null, traitBonus = 0, traitName = null) {
+async function performSkillCheck(sheet, skillKey, targetOverride = null, traitBonus = 0, traitName = null, customName = null) {
 	const adjusted = sheet.actor.system.final
 	let baseSkillTarget = targetOverride
 
@@ -424,8 +427,7 @@ async function performSkillCheck(sheet, skillKey, targetOverride = null, traitBo
 	// Trait bonus increases the skill target (making it easier)
 	const skillTarget = baseSkillTarget + traitBonus
 
-	const localeKey = `DOLMEN.Skills.${skillKey}`
-	const skillName = game.i18n.localize(localeKey)
+	const skillName = customName || game.i18n.localize(`DOLMEN.Skills.${skillKey}`)
 
 	const roll = new Roll('1d6')
 	await roll.evaluate()

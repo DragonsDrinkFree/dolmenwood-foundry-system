@@ -191,7 +191,7 @@ export function openAddSkillDialog(sheet) {
 	const currentSkillIds = currentSkills.map(s => s.id)
 	const availableSkills = CONFIG.DOLMENWOOD.extraSkills.filter(id => !currentSkillIds.includes(id))
 
-	if (availableSkills.length === 0 || currentSkills.length >= CONFIG.DOLMENWOOD.maxExtraSkills) {
+	if (currentSkills.length >= CONFIG.DOLMENWOOD.maxExtraSkills) {
 		ui.notifications.warn(game.i18n.localize('DOLMEN.NoSkillsAvailable') || 'No more skills available to add.')
 		return
 	}
@@ -201,11 +201,29 @@ export function openAddSkillDialog(sheet) {
 		return `<option value="${id}">${label}</option>`
 	}).join('')
 
+	// World-level custom skills from settings
+	const customSkillsSetting = game.settings.get('dolmenwood', 'customSkills') || ''
+	const worldCustomSkills = customSkillsSetting.split(',').map(s => s.trim()).filter(Boolean)
+	const worldOptions = worldCustomSkills
+		.filter(name => !currentSkills.some(s => s.customName === name))
+		.map(name => `<option value="_world:${name}">${name}</option>`)
+		.join('')
+
+	const customLabel = game.i18n.localize('DOLMEN.Skills.Custom')
+
 	const content = `
 		<div class="add-skill-modal">
 			<div class="form-group">
 				<label>${game.i18n.localize('DOLMEN.SelectSkill')}</label>
-				<select id="skill-select">${options}</select>
+				<select id="skill-select">
+					${options}
+					${worldOptions}
+					<option value="_custom">${customLabel}</option>
+				</select>
+			</div>
+			<div class="form-group" id="custom-skill-group" style="display:none;">
+				<label>${game.i18n.localize('DOLMEN.Skills.CustomName')}</label>
+				<input type="text" id="custom-skill-name" placeholder="${game.i18n.localize('DOLMEN.Skills.CustomName')}">
 			</div>
 		</div>
 	`
@@ -222,7 +240,16 @@ export function openAddSkillDialog(sheet) {
 				default: true,
 				callback: (event, button, html) => {
 					const selectedSkill = html.element.querySelector('#skill-select').value
-					addSkill(sheet, selectedSkill)
+					if (selectedSkill === '_custom') {
+						const customName = html.element.querySelector('#custom-skill-name').value.trim()
+						if (!customName) return
+						addSkill(sheet, `custom_${Date.now()}`, customName)
+					} else if (selectedSkill.startsWith('_world:')) {
+						const customName = selectedSkill.slice(7)
+						addSkill(sheet, `custom_${Date.now()}`, customName)
+					} else {
+						addSkill(sheet, selectedSkill)
+					}
 				}
 			},
 			{
@@ -231,6 +258,14 @@ export function openAddSkillDialog(sheet) {
 				label: game.i18n.localize('DOLMEN.Cancel')
 			}
 		],
+		render: (event) => {
+			const el = event.target.element
+			const select = el.querySelector('#skill-select')
+			const customGroup = el.querySelector('#custom-skill-group')
+			select.addEventListener('change', () => {
+				customGroup.style.display = select.value === '_custom' ? '' : 'none'
+			})
+		},
 		rejectClose: false
 	})
 }
@@ -239,10 +274,13 @@ export function openAddSkillDialog(sheet) {
  * Add a skill to the actor.
  * @param {DolmenSheet} sheet - The sheet instance
  * @param {string} skillId - The skill ID to add
+ * @param {string} [customName] - Optional custom name for user-defined skills
  */
-function addSkill(sheet, skillId) {
+function addSkill(sheet, skillId, customName) {
 	const currentSkills = foundry.utils.deepClone(sheet.actor.system.extraSkills || [])
-	currentSkills.push({ id: skillId, target: 6 })
+	const entry = { id: skillId, target: 6 }
+	if (customName) entry.customName = customName
+	currentSkills.push(entry)
 	sheet.actor.update({ 'system.extraSkills': currentSkills })
 }
 

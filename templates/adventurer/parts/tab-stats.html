@@ -270,16 +270,20 @@
 					<input type="number" class="adjustable skill-target" value="{{adjusted.skills.survival}}" data-base="{{system.skills.survival}}" data-adjusted="{{adjusted.skills.survival}}" data-manual-adj="{{system.adjustments.skills.survival}}" data-target="system.skills.survival" min="2" max="6" {{#unless system.customizeSkills}}readonly{{/unless}}>
 					<i class="fa fa-dice-d6 rollable skill-roll" data-skill="survival" title="{{localize 'DOLMEN.Roll.SkillCheck'}}"></i>
 				</div>
-				{{#each system.extraSkills}}
+				{{#each extraSkills}}
 				<div class="skill extra-skill" data-skill-index="{{@index}}">
-					<label>{{localize (concat "DOLMEN.Skills." this.id)}}</label>
+					<label>{{#if this.customName}}{{this.customName}}{{else}}{{localize (concat "DOLMEN.Skills." this.id)}}{{/if}}</label>
 					<input type="hidden" name="system.extraSkills.{{@index}}.id" value="{{this.id}}">
 					<input type="hidden" name="system.extraSkills.{{@index}}.target" value="{{this.target}}">
-					<input type="number" class="adjustable extra-skill-target skill-target" value="{{add this.target (lookup @root.system.adjustments.skills this.id)}}" data-base="{{this.target}}" data-adjusted="{{add this.target (lookup @root.system.adjustments.skills this.id)}}" data-manual-adj="{{lookup @root.system.adjustments.skills this.id}}" data-target="system.extraSkills.{{@index}}.target" min="2" max="6" {{#unless @root.system.customizeSkills}}readonly{{/unless}}>
+					<input type="hidden" name="system.extraSkills.{{@index}}.customName" value="{{this.customName}}">
+					{{#unless this.customName}}
+					<input type="hidden" name="system.extraSkills.{{@index}}.adjustment" value="0">
+					{{/unless}}
+					<input type="number" class="adjustable extra-skill-target skill-target" value="{{add this.target this.effectiveAdj}}" data-base="{{this.target}}" data-adjusted="{{add this.target this.effectiveAdj}}" data-manual-adj="{{this.effectiveAdj}}" data-target="system.extraSkills.{{@index}}.target" min="2" max="6" {{#unless @root.system.customizeSkills}}readonly{{/unless}}>
 					<button type="button" class="remove-skill-btn" data-skill-index="{{@index}}" title="{{localize 'DOLMEN.RemoveSkill'}}">
 						<i class="fas fa-square-xmark"></i>
 					</button>
-					<i class="fa fa-dice-d6 rollable skill-roll extra-skill-roll" data-skill="{{this.id}}" data-skill-target="{{add this.target (lookup @root.system.adjustments.skills this.id)}}" title="{{localize 'DOLMEN.Roll.SkillCheck'}}"></i>
+					<i class="fa fa-dice-d6 rollable skill-roll extra-skill-roll" data-skill="{{this.id}}" data-skill-name="{{this.customName}}" data-skill-target="{{add this.target this.effectiveAdj}}" title="{{localize 'DOLMEN.Roll.SkillCheck'}}"></i>
 				</div>
 				{{/each}}
 				{{#if (lt system.extraSkills.length @root.maxExtraSkills)}}

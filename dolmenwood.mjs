@@ -301,6 +301,15 @@ Hooks.once('init', async function () {
 		}
 	})
 
+	game.settings.register('dolmenwood', 'customSkills', {
+		name: 'DOLMEN.Settings.CustomSkills',
+		hint: 'DOLMEN.Settings.CustomSkillsHint',
+		scope: 'world',
+		config: true,
+		type: String,
+		default: ''
+	})
+
 	game.settings.register('dolmenwood', 'randomizeCreatureHP', {
 		name: 'DOLMEN.Settings.RandomizeCreatureHP',
 		hint: 'DOLMEN.Settings.RandomizeCreatureHPHint',
