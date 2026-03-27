@@ -287,7 +287,9 @@
 			"slots": "Slots",
 			"disabled": "Disabled",
 			"UnitSlots": "slots",
-			"UnitCoins": "coins"
+			"UnitCoins": "coins",
+			"CoinsPerSlot": "Coins Per Slot",
+			"CoinsPerSlotHint": "Number of coins that occupy one inventory slot (Slots method)."
 		},
 		"Exhaustion": "Exhaustion",
 		"Coins": {

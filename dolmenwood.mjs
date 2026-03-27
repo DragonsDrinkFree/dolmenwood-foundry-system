@@ -287,6 +287,20 @@ Hooks.once('init', async function () {
 		}
 	})
 
+	game.settings.register('dolmenwood', 'coinsPerSlot', {
+		name: 'DOLMEN.Encumbrance.CoinsPerSlot',
+		hint: 'DOLMEN.Encumbrance.CoinsPerSlotHint',
+		scope: 'world',
+		config: true,
+		type: Number,
+		default: 100,
+		range: {
+			min: 1,
+			max: 1000,
+			step: 1
+		}
+	})
+
 	game.settings.register('dolmenwood', 'randomizeCreatureHP', {
 		name: 'DOLMEN.Settings.RandomizeCreatureHP',
 		hint: 'DOLMEN.Settings.RandomizeCreatureHPHint',
