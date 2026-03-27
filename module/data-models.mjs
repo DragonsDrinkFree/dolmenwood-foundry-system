@@ -464,7 +464,7 @@ export class AdventurerDataModel extends ActorDataModel {
 				id: new StringField({ required: true, blank: false }),
 				target: new NumberField({ required: true, integer: true, min: 2, max: 6, initial: 6 }),
 				customName: new StringField({ required: false, blank: true, initial: '' }),
-				adjustment: new NumberField({ required: true, integer: true, initial: 0 })
+				adjustment: new NumberField({ required: false, integer: true, initial: 0, nullable: true })
 			}), { initial: [] }),
 
 			// Customize Skills optional rule (prevents auto-updating skill targets)
