@@ -101,23 +101,25 @@ function createSaveAdjustmentsSchema() {
  * @returns {SchemaField} Schema field containing skill adjustments
  */
 function createSkillAdjustmentsSchema() {
-	return new SchemaField({
-		// Base skills
-		listen: createAdjustmentField(),
-		search: createAdjustmentField(),
-		survival: createAdjustmentField(),
-		// Extra skills
-		detectMagic: createAdjustmentField(),
-		alertness: createAdjustmentField(),
-		stalking: createAdjustmentField(),
-		tracking: createAdjustmentField(),
-		pickLock: createAdjustmentField(),
-		stealth: createAdjustmentField(),
-		decipherDocument: createAdjustmentField(),
-		climbWall: createAdjustmentField(),
-		disarmMechanism: createAdjustmentField(),
-		legerdemain: createAdjustmentField(),
-		monsterLore: createAdjustmentField()
+	return new foundry.data.fields.ObjectField({
+		initial: {
+			// Base skills
+			listen: 0,
+			search: 0,
+			survival: 0,
+			// Extra skills
+			detectMagic: 0,
+			alertness: 0,
+			stalking: 0,
+			tracking: 0,
+			pickLock: 0,
+			stealth: 0,
+			decipherDocument: 0,
+			climbWall: 0,
+			disarmMechanism: 0,
+			legerdemain: 0,
+			monsterLore: 0
+		}
 	})
 }
 
