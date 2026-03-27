@@ -101,25 +101,23 @@ function createSaveAdjustmentsSchema() {
  * @returns {SchemaField} Schema field containing skill adjustments
  */
 function createSkillAdjustmentsSchema() {
-	return new foundry.data.fields.ObjectField({
-		initial: {
-			// Base skills
-			listen: 0,
-			search: 0,
-			survival: 0,
-			// Extra skills
-			detectMagic: 0,
-			alertness: 0,
-			stalking: 0,
-			tracking: 0,
-			pickLock: 0,
-			stealth: 0,
-			decipherDocument: 0,
-			climbWall: 0,
-			disarmMechanism: 0,
-			legerdemain: 0,
-			monsterLore: 0
-		}
+	return new SchemaField({
+		// Base skills
+		listen: createAdjustmentField(),
+		search: createAdjustmentField(),
+		survival: createAdjustmentField(),
+		// Extra skills
+		detectMagic: createAdjustmentField(),
+		alertness: createAdjustmentField(),
+		stalking: createAdjustmentField(),
+		tracking: createAdjustmentField(),
+		pickLock: createAdjustmentField(),
+		stealth: createAdjustmentField(),
+		decipherDocument: createAdjustmentField(),
+		climbWall: createAdjustmentField(),
+		disarmMechanism: createAdjustmentField(),
+		legerdemain: createAdjustmentField(),
+		monsterLore: createAdjustmentField()
 	})
 }
 
@@ -465,7 +463,8 @@ export class AdventurerDataModel extends ActorDataModel {
 			extraSkills: new ArrayField(new SchemaField({
 				id: new StringField({ required: true, blank: false }),
 				target: new NumberField({ required: true, integer: true, min: 2, max: 6, initial: 6 }),
-				customName: new StringField({ required: false, blank: true, initial: '' })
+				customName: new StringField({ required: false, blank: true, initial: '' }),
+				adjustment: new NumberField({ required: true, integer: true, initial: 0 })
 			}), { initial: [] }),
 
 			// Customize Skills optional rule (prevents auto-updating skill targets)

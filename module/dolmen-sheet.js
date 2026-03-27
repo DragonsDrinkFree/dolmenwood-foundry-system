@@ -347,6 +347,13 @@ class DolmenSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 		// Max extra skills for template conditional
 		context.maxExtraSkills = CONFIG.DOLMENWOOD.maxExtraSkills
 
+		// Compute effective adjustment for each extra skill
+		const skillAdj = actor.system.adjustments?.skills || {}
+		context.extraSkills = (actor.system.extraSkills || []).map(s => ({
+			...s,
+			effectiveAdj: s.customName ? (s.adjustment || 0) : (skillAdj[s.id] || 0)
+		}))
+
 		// Determine body/fur label based on kindred
 		const hasFur = kindredItem?.system?.hasFur
 		const kindred = kindredItem?.system?.kindredId
