@@ -1,4 +1,4 @@
-<img width="1000" height="309" alt="image" src="https://raw.githubusercontent.com/blaze-sanecki/foundry-dolmenwood/master/assets/logo.webp" />
+<img width="1000" height="309" alt="image" src="https://raw.githubusercontent.com/NecroticGnome/dolmenwood-foundry-system/master/assets/logo.webp" />
 
 # Dolmenwood
 This is a Foundry VTT game system implementing the Dolmenwood ruleset.
