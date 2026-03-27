@@ -27,6 +27,7 @@ import {
 	setupChargesListeners
 } from './sheet/listeners.js'
 import { openAddSkillDialog, removeSkill } from './sheet/dialogs.js'
+import { createContextMenu } from './sheet/context-menu.js'
 import { onOpenItem, onIncreaseQty, onDecreaseQty, onToggleContainer, createDeleteItemHandler, onEquipItem, onStowItem, onRemoveFromContainer } from './sheet/inventory-actions.js'
 
 const TextEditor = foundry.applications.ux.TextEditor.implementation
@@ -109,7 +110,8 @@ class DolmenSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 			castSpell: DolmenSheet._onCastSpell,
 			setExhaustion: DolmenSheet._onSetExhaustion,
 			toggleContainer: onToggleContainer,
-			removeFromContainer: onRemoveFromContainer
+			removeFromContainer: onRemoveFromContainer,
+			addInventoryItem: DolmenSheet._onAddInventoryItem
 		}
 	}
 
@@ -929,6 +931,40 @@ class DolmenSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 	static async _onSetExhaustion(_event, target) {
 		const value = Number(target.dataset.value)
 		await this.actor.update({ 'system.exhaustion': value })
+	}
+
+	static _onAddInventoryItem(event, target) {
+		const slot = target.dataset.slot
+		const equipped = slot === 'equipped'
+		const itemTypes = [
+			{ type: 'Item', icon: 'fas fa-sack', label: game.i18n.localize('TYPES.Item.Item') },
+			{ type: 'Weapon', icon: 'fas fa-sword', label: game.i18n.localize('TYPES.Item.Weapon') },
+			{ type: 'Armor', icon: 'fas fa-shield', label: game.i18n.localize('TYPES.Item.Armor') },
+			{ type: 'Treasure', icon: 'fas fa-gem', label: game.i18n.localize('TYPES.Item.Treasure') },
+			{ type: 'Foraged', icon: 'fas fa-leaf', label: game.i18n.localize('TYPES.Item.Foraged') },
+			{ type: 'Container', icon: 'fas fa-box', label: game.i18n.localize('TYPES.Item.Container') }
+		]
+		const html = itemTypes.map(t =>
+			`<div class="weapon-menu-item" data-type="${t.type}"><i class="${t.icon}"></i><span class="weapon-name">${t.label}</span></div>`
+		).join('')
+		const rect = target.getBoundingClientRect()
+		const menu = createContextMenu(this, {
+			html,
+			position: { top: rect.bottom, left: rect.right },
+			menuClass: 'dolmen-add-item-menu',
+			itemSelector: '.weapon-menu-item',
+			onItemClick: async (menuItem, m) => {
+				const type = menuItem.dataset.type
+				const name = game.i18n.localize(`TYPES.Item.${type}`)
+				const itemData = { name, type, system: { equipped } }
+				const created = await this.actor.createEmbeddedDocuments('Item', [itemData])
+				m.remove()
+				if (created?.[0]) created[0].sheet.render(true)
+			}
+		})
+		// Reposition: align right edge of menu with right edge of button
+		const menuRect = menu.getBoundingClientRect()
+		menu.style.left = `${rect.right - menuRect.width}px`
 	}
 
 	// Divide item cost by qty, converting to lower denomination if needed

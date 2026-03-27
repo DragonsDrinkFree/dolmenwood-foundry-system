@@ -44,7 +44,7 @@
 	<section class="inventory two-columns">
 		<!-- Equipped Items Section -->
 		<section class="equipped-items boxed-section" data-item-list="equipped">
-			<h2><i class="fas fa-person"></i> {{localize "DOLMEN.Inventory.Equipped"}} {{#unless (eq @root.encumbranceMethod "disabled")}}<span class="container-capacity">(<i class="fas fa-weight-hanging"></i> {{equippedWeight}})</span>{{/unless}}</h2>
+			<h2><i class="fas fa-person"></i> {{localize "DOLMEN.Inventory.Equipped"}} {{#unless (eq @root.encumbranceMethod "disabled")}}<span class="container-capacity">(<i class="fas fa-weight-hanging"></i> {{equippedWeight}})</span>{{/unless}}<button type="button" class="add-item-btn" data-slot="equipped" data-action="addInventoryItem"><i class="fas fa-plus"></i></button></h2>
 			<div class="item-list equipped-list" data-item-list="equipped">
 				{{#if hasEquippedItems}}
 				{{#each equippedByType}}
@@ -62,7 +62,7 @@
 
 		<!-- Stowed Items Section -->
 		<section class="stowed-items boxed-section" data-item-list="stowed">
-			<h2><i class="fas fa-box"></i> {{localize "DOLMEN.Inventory.Stowed"}} {{#unless (eq @root.encumbranceMethod "disabled")}}<span class="container-capacity">(<i class="fas fa-weight-hanging"></i> {{stowedWeight}})</span>{{/unless}}</h2>
+			<h2><i class="fas fa-box"></i> {{localize "DOLMEN.Inventory.Stowed"}} {{#unless (eq @root.encumbranceMethod "disabled")}}<span class="container-capacity">(<i class="fas fa-weight-hanging"></i> {{stowedWeight}})</span>{{/unless}}<button type="button" class="add-item-btn" data-slot="stowed" data-action="addInventoryItem"><i class="fas fa-plus"></i></button></h2>
 			<div class="item-list stowed-list" data-item-list="stowed">
 				{{> "systems/dolmenwood/templates/shared/container-list.html"}}
 			</div>
