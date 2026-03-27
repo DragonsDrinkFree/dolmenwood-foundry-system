@@ -276,9 +276,7 @@
 					<input type="hidden" name="system.extraSkills.{{@index}}.id" value="{{this.id}}">
 					<input type="hidden" name="system.extraSkills.{{@index}}.target" value="{{this.target}}">
 					<input type="hidden" name="system.extraSkills.{{@index}}.customName" value="{{this.customName}}">
-					{{#if this.customName}}
-					<input type="hidden" name="system.extraSkills.{{@index}}.adjustment" value="{{this.adjustment}}">
-					{{/if}}
+					<input type="hidden" name="system.extraSkills.{{@index}}.adjustment" value="{{#if this.customName}}{{this.adjustment}}{{else}}0{{/if}}">
 					<input type="number" class="adjustable extra-skill-target skill-target" value="{{add this.target this.effectiveAdj}}" data-base="{{this.target}}" data-adjusted="{{add this.target this.effectiveAdj}}" data-manual-adj="{{this.effectiveAdj}}" data-target="system.extraSkills.{{@index}}.target" min="2" max="6" {{#unless @root.system.customizeSkills}}readonly{{/unless}}>
 					<button type="button" class="remove-skill-btn" data-skill-index="{{@index}}" title="{{localize 'DOLMEN.RemoveSkill'}}">
 						<i class="fas fa-square-xmark"></i>
