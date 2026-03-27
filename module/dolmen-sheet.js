@@ -602,20 +602,17 @@ class DolmenSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 	}
 
 	_prepareSubmitData(event, form, formData) {
+		// Sanitize extraSkills adjustment values before validation in super
+		const obj = formData.object
+		for (const key of Object.keys(obj)) {
+			if (key.match(/^system\.extraSkills\.\d+\.adjustment$/)) {
+				obj[key] = parseInt(obj[key]) || 0
+			}
+		}
 		const submitData = super._prepareSubmitData(event, form, formData)
 		// Remove kindred/class selects from submission (they're handled separately)
 		delete submitData._kindred
 		delete submitData._class
-		// Ensure extraSkills adjustment values are valid integers
-		if (Array.isArray(submitData.system?.extraSkills)) {
-			for (const skill of submitData.system.extraSkills) {
-				if (skill.adjustment === undefined || skill.adjustment === null || skill.adjustment === '') {
-					skill.adjustment = 0
-				} else {
-					skill.adjustment = parseInt(skill.adjustment) || 0
-				}
-			}
-		}
 		return submitData
 	}
 
