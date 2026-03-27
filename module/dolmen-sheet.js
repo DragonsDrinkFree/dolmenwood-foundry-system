@@ -606,6 +606,16 @@ class DolmenSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 		// Remove kindred/class selects from submission (they're handled separately)
 		delete submitData._kindred
 		delete submitData._class
+		// Ensure extraSkills adjustment values are valid integers
+		if (Array.isArray(submitData.system?.extraSkills)) {
+			for (const skill of submitData.system.extraSkills) {
+				if (skill.adjustment === undefined || skill.adjustment === null || skill.adjustment === '') {
+					skill.adjustment = 0
+				} else {
+					skill.adjustment = parseInt(skill.adjustment) || 0
+				}
+			}
+		}
 		return submitData
 	}
 
