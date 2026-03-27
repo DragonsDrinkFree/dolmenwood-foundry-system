@@ -365,6 +365,20 @@ class DolmenHorseSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 			})
 		}
 
+		// Attack drag listeners
+		this.element.querySelectorAll('.attack-row[draggable]').forEach(el => {
+			el.addEventListener('dragstart', (event) => {
+				const index = parseInt(el.dataset.attackIndex)
+				const attack = this.actor.system.attacks[index]
+				if (!attack) return
+				event.dataTransfer.setData('text/plain', JSON.stringify({
+					type: 'CreatureAttack',
+					actorId: this.actor.id,
+					attack: foundry.utils.deepClone(attack)
+				}))
+			})
+		})
+
 		// Attack edit listeners
 		this.element.querySelectorAll('.attack-row').forEach(el => {
 			el.addEventListener('click', (event) => {
@@ -409,6 +423,24 @@ class DolmenHorseSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 	/* -------------------------------------------- */
 	/*  Drag & Drop                                 */
 	/* -------------------------------------------- */
+
+	async _onDrop(event) {
+		let data
+		try {
+			data = JSON.parse(event.dataTransfer.getData('text/plain'))
+		} catch {
+			return super._onDrop(event)
+		}
+
+		if (data.type === 'CreatureAttack') {
+			const attacks = foundry.utils.deepClone(this.actor.system.attacks)
+			attacks.push(data.attack)
+			await this.actor.update({ 'system.attacks': attacks })
+			return
+		}
+
+		return super._onDrop(event)
+	}
 
 	async _onDropItem(event, data) {
 		if (!this._hasStorage()) return
