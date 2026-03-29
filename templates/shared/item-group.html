@@ -142,7 +142,7 @@
 <div class="item-row draggable treasure" data-item-id="{{this.id}}" data-action="openItem">
 	<img src="{{this.img}}" class="item-image">
 	<span class="item-name">{{this.name}}</span>
-	<span class="item-damage">{{this.valueInGold}}</span>
+	<span class="item-damage treasure-bank-toggle rollable" data-action="toggleBanked" data-item-id="{{this.id}}" title="{{#if this.system.banked}}{{localize 'DOLMEN.Item.MarkUnawarded'}}{{else}}{{localize 'DOLMEN.Item.MarkAwarded'}}{{/if}}">{{#if this.system.banked}}<i class="fas fa-check"></i>{{else}}{{this.valueInGold}}{{/if}}</span>
 	{{#if this.hasEffects}}<span class="item-notes"><i class="fas fa-memo tooltip"><span class="tooltiptext">{{this.tooltipEffects}}</span></i></span>
 	{{else}}<span class="item-notes">-</span>
 	{{/if}}

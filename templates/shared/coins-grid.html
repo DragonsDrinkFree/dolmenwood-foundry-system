@@ -27,4 +27,7 @@
 			<input type="number" name="system.coins.pellucidium" value="{{system.coins.pellucidium}}" min="0">
 		</div>
 	</div>
+	{{#if @root.showBankButton}}
+	<i class="fa-solid fa-vault rollable coins-bank-btn" title="{{localize 'DOLMEN.Coins.BankTitle'}}"></i>
+	{{/if}}
 </div>

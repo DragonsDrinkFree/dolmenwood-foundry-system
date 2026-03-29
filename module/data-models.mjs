@@ -444,6 +444,9 @@ export class AdventurerDataModel extends ActorDataModel {
 				nextLevel: new NumberField({ required: true, integer: true, min: 0, initial: 2000 })
 			}),
 
+			// Banked gold value (coins already awarded XP)
+			bankedGold: new NumberField({ required: true, min: 0, initial: 0 }),
+
 			// Magic Resistance (computed from WIS mod + kindred bonus + adjustments)
 			magicResistance: new NumberField({ required: true, integer: true, initial: 0 }),
 
@@ -1061,7 +1064,8 @@ export class TreasureDataModel extends GearDataModel {
 			charges: new SchemaField({
 				max: new NumberField({ required: true, integer: true, min: 0, initial: 0 }),
 				value: new NumberField({ required: true, integer: true, min: 0, initial: 0 })
-			})
+			}),
+			banked: new BooleanField({ required: true, initial: false })
 		}
 	}
 }

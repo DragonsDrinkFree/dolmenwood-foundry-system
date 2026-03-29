@@ -28,7 +28,7 @@
 				{{/unless}}
 				{{/if}}
 				<div class="encumbrance-stat">
-					<label>{{localize "DOLMEN.Encumbrance.Treasure"}}</label>
+					<label>{{localize "DOLMEN.Encumbrance.NewTreasure"}}</label>
 					<span class="encumbrance-value"><i class="fa-duotone fa-light fa-coin coin-icon coin-gold"></i> {{totalTreasureGold}}</span>
 				</div>
 				<div class="encumbrance-stat exhaustion-stat">
@@ -44,7 +44,7 @@
 
 		<!-- Coins Section -->
 		<section class="coins boxed-section">
-			<h2><i class="fas fa-coins"></i>{{localize "DOLMEN.Coins.Title"}} {{#if (or coinsWeight coinsGold)}}<span class="container-capacity">({{#if coinsWeight}}<i class="fas fa-weight-hanging"></i> {{coinsWeight}}{{/if}}{{#if coinsGold}}<i class="fa-duotone fa-light fa-coin capacity-gold coin-icon coin-gold"></i> {{coinsGold}}{{/if}})</span>{{/if}}<button type="button" class="coins-adjust-btn" title="{{localize 'DOLMEN.Coins.AdjustTitle'}}"><i class="fas fa-plus"></i></button></h2>
+			<h2><i class="fas fa-coins"></i>{{localize "DOLMEN.Coins.Title"}} {{#if (or coinsWeight newCoinsGold)}}<span class="container-capacity">({{#if coinsWeight}}<i class="fas fa-weight-hanging"></i> {{coinsWeight}}{{/if}}{{#if newCoinsGold}}<i class="fa-duotone fa-light fa-coin capacity-gold coin-icon coin-gold"></i> {{newCoinsGold}}{{/if}})</span>{{/if}}<button type="button" class="coins-adjust-btn" title="{{localize 'DOLMEN.Coins.AdjustTitle'}}"><i class="fas fa-plus"></i></button></h2>
 			{{> "systems/dolmenwood/templates/shared/coins-grid.html" gridClass="coins-grid"}}
 		</section>
 	</section>

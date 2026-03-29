@@ -119,8 +119,16 @@
 
 .sheet.dolmen .tab-content .coins-grid {
 	display: grid;
-	grid-template-columns: repeat(4, 1fr);
+	grid-template-columns: repeat(4, 1fr) 0.35fr;
 	gap: 0;
+}
+
+.sheet.dolmen .tab-content .coins-grid .coins-bank-btn {
+	font-size: 1.1rem;
+	margin-top: 1.25rem;
+	display: inline-block;
+	width: 100%;
+	text-align: center;
 }
 
 
@@ -392,6 +400,16 @@
 	text-align: center;
 	font-weight: bold;
 	font-size: 0.85rem;
+}
+
+.sheet.dolmen .tab-content .item-row .treasure-bank-toggle {
+	height: auto;
+	line-height: normal;
+	color: var(--dolmen-color-text);
+}
+
+.sheet.dolmen .tab-content .item-row .treasure-bank-toggle:hover {
+	color: var(--dolmen-color-h1);
 }
 
 .sheet.dolmen .tab-content .item-row .item-quantity {

@@ -24,7 +24,7 @@ import {
 	setupBackgroundRollListener, setupNameRollListener,
 	setupTraitListeners, setupAdjustableInputListeners,
 	setupRuneUsageListeners, setupKnackUsageListeners,
-	setupChargesListeners
+	setupChargesListeners, setupTreasureBankToggle
 } from './sheet/listeners.js'
 import { openAddSkillDialog, removeSkill } from './sheet/dialogs.js'
 import { createContextMenu } from './sheet/context-menu.js'
@@ -423,19 +423,20 @@ class DolmenSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 		const encDisabled = context.encumbranceMethod === 'disabled'
 		const weightKey = isSlots ? 'weightSlots' : 'weightCoins'
 		const toGold = { cp: 0.01, sp: 0.1, gp: 1, pp: 10 }
-		const treasureGold = items => items
-			.filter(i => i.type === 'Treasure')
-			.reduce((sum, i) => {
-				const cost = i.system.cost || 0
-				const qty = i.system.quantity || 1
-				return sum + cost * qty * (toGold[i.system.costDenomination || 'gp'] || 1)
-			}, 0)
+		const treasureItemGold = (i) => {
+			const cost = i.system.cost || 0
+			const qty = i.system.quantity || 1
+			return cost * qty * (toGold[i.system.costDenomination || 'gp'] || 1)
+		}
+		const treasureGold = (items, excludeBanked = false) => items
+			.filter(i => i.type === 'Treasure' && (!excludeBanked || !i.system.banked))
+			.reduce((sum, i) => sum + treasureItemGold(i), 0)
 		const formatGold = v => v % 1 === 0 ? v : parseFloat(v.toFixed(2))
 		context.containers = containerItems.map(c => {
 			const prepared = prepareItemData(c)
 			const contents = allStowedItems.filter(i => i.system.containerId === c.id)
 			const rawCoinsUsed = contents.reduce((sum, i) => sum + calcItemWeight(i, weightKey), 0)
-			const containerGold = treasureGold(contents)
+			const containerGold = treasureGold(contents, true)
 			return {
 				...prepared,
 				contents: groupItemsByType(contents),
@@ -460,7 +461,7 @@ class DolmenSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 		context.hasLooseStowedItems = looseStowedItems.length > 0
 		const rawUnsortedWeight = looseStowedItems.reduce((sum, i) => sum + calcItemWeight(i, weightKey), 0)
 		context.unsortedWeight = !encDisabled && rawUnsortedWeight ? rawUnsortedWeight : null
-		const unsortedGold = treasureGold(looseStowedItems)
+		const unsortedGold = treasureGold(looseStowedItems, true)
 		context.unsortedTreasureGold = unsortedGold ? formatGold(unsortedGold) : null
 		context.hasStowedItems = context.hasLooseStowedItems || context.hasContainers
 		const rawEquippedWeight = equippedItems.reduce((sum, i) => sum + calcItemWeight(i, weightKey), 0)
@@ -472,18 +473,22 @@ class DolmenSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 		context.stowedWeight = !encDisabled && rawStowedWeight ? rawStowedWeight : null
 		context.coinsWeight = !encDisabled && coinsWeight ? coinsWeight : null
 
-		// Compute treasure gold values per section
-		const equippedTreasureGold = treasureGold(equippedItems)
-		const stowedTreasureGold = treasureGold(allStowedItems)
+		// Compute treasure gold values per section (new/unbanked only for section headers)
+		const equippedTreasureGold = treasureGold(equippedItems, true)
+		const stowedTreasureGold = treasureGold(allStowedItems, true)
 		const coinsGold = (actor.system.coins.copper || 0) * 0.01
 			+ (actor.system.coins.silver || 0) * 0.1
 			+ (actor.system.coins.gold || 0)
 			+ (actor.system.coins.pellucidium || 0) * 10
+		const bankedGold = actor.system.bankedGold || 0
+		const newCoinsGold = Math.max(0, coinsGold - bankedGold)
 		context.equippedTreasureGold = equippedTreasureGold ? formatGold(equippedTreasureGold) : null
 		context.stowedTreasureGold = stowedTreasureGold ? formatGold(stowedTreasureGold) : null
 		context.coinsGold = coinsGold ? formatGold(coinsGold) : null
-		const totalTreasure = equippedTreasureGold + stowedTreasureGold + coinsGold
-		context.totalTreasureGold = totalTreasure ? formatGold(totalTreasure) : 0
+		context.newCoinsGold = newCoinsGold ? formatGold(newCoinsGold) : null
+		const totalNewTreasure = equippedTreasureGold + stowedTreasureGold + newCoinsGold
+		context.totalTreasureGold = totalNewTreasure ? formatGold(totalNewTreasure) : 0
+		context.showBankButton = true
 
 		// Prepare magic tab data
 		context.knackTypeChoices = buildChoices('DOLMEN.Magic.Knacks.Types', CHOICE_KEYS.knackTypes)
@@ -688,6 +693,7 @@ class DolmenSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 		setupRuneUsageListeners(this)
 		setupKnackUsageListeners(this)
 		setupChargesListeners(this)
+		setupTreasureBankToggle(this)
 		setupAdjustableInputListeners(this)
 
 		// Setup kindred and class select listeners

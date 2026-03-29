@@ -174,6 +174,68 @@ export function setupCoinListener(sheet) {
 			openCoinDialog(sheet)
 		})
 	}
+
+	const bankBtn = sheet.element.querySelector('.coins-bank-btn')
+	if (bankBtn) {
+		bankBtn.addEventListener('click', async (event) => {
+			event.preventDefault()
+			const actor = sheet.actor
+			const coinsGold = (actor.system.coins.copper || 0) * 0.01
+				+ (actor.system.coins.silver || 0) * 0.1
+				+ (actor.system.coins.gold || 0)
+				+ (actor.system.coins.pellucidium || 0) * 10
+			const bankedGold = actor.system.bankedGold || 0
+			const newGold = Math.max(0, coinsGold - bankedGold)
+			const fmt = v => v % 1 === 0 ? v : parseFloat(v.toFixed(2))
+			const confirmed = await foundry.applications.api.DialogV2.confirm({
+				window: { title: game.i18n.localize('DOLMEN.Coins.BankTitle') },
+				content: `<p>${game.i18n.format('DOLMEN.Coins.BankConfirm', { value: fmt(newGold) })}</p>`,
+				yes: { default: true }
+			})
+			if (confirmed) {
+				await actor.update({ 'system.bankedGold': coinsGold })
+				ui.notifications.info(game.i18n.format('DOLMEN.Coins.BankSuccess', { value: fmt(newGold) }))
+			}
+		})
+
+		bankBtn.addEventListener('contextmenu', (event) => {
+			event.preventDefault()
+			const actor = sheet.actor
+			const html = `
+				<div class="weapon-menu-item" data-action="resetBank"><span class="weapon-name">${game.i18n.localize('DOLMEN.Coins.BankReset')}</span></div>
+				<div class="weapon-menu-item" data-action="modifyBank"><span class="weapon-name">${game.i18n.localize('DOLMEN.Coins.BankModify')}</span></div>
+			`
+			createContextMenu(sheet, {
+				html,
+				position: { top: event.clientY, left: event.clientX },
+				onItemClick: async (item, menu) => {
+					menu.remove()
+					const action = item.dataset.action
+					if (action === 'resetBank') {
+						await actor.update({ 'system.bankedGold': 0 })
+						ui.notifications.info(game.i18n.localize('DOLMEN.Coins.BankResetDone'))
+					} else if (action === 'modifyBank') {
+						const current = actor.system.bankedGold || 0
+						const fmt = v => v % 1 === 0 ? v : parseFloat(v.toFixed(2))
+						const result = await foundry.applications.api.DialogV2.prompt({
+							window: { title: game.i18n.localize('DOLMEN.Coins.BankModify') },
+							content: `<div class="form-group"><label>${game.i18n.localize('DOLMEN.Coins.BankModifyLabel')}</label><input type="number" name="bankedGold" value="${fmt(current)}" min="0" step="0.01" autofocus></div>`,
+							ok: {
+								label: game.i18n.localize('DOLMEN.Coins.AdjustUpdate'),
+								callback: (event, button) => {
+									const val = parseFloat(button.form.elements.bankedGold.value)
+									return isNaN(val) ? current : Math.max(0, val)
+								}
+							}
+						})
+						if (result !== null && result !== undefined) {
+							await actor.update({ 'system.bankedGold': result })
+						}
+					}
+				}
+			})
+		})
+	}
 }
 
 /**
@@ -1037,6 +1099,23 @@ export function setupKnackUsageListeners(sheet) {
 			usage[usageKey] = { used: event.currentTarget.checked ? 1 : 0 }
 
 			await sheet.actor.update({ 'system.knackUsage': usage })
+		})
+	})
+}
+
+/**
+ * Set up treasure banked toggle listeners.
+ * Click toggles the XP-awarded (banked) state of a treasure item.
+ * @param {DolmenSheet} sheet - The sheet instance
+ */
+export function setupTreasureBankToggle(sheet) {
+	sheet.element.querySelectorAll('.treasure-bank-toggle').forEach(el => {
+		el.addEventListener('click', async (event) => {
+			event.preventDefault()
+			event.stopPropagation()
+			const item = sheet.actor.items.get(el.dataset.itemId)
+			if (!item) return
+			await item.update({ 'system.banked': !item.system.banked })
 		})
 	})
 }
