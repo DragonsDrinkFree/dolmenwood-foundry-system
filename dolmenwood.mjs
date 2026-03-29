@@ -118,6 +118,13 @@ Hooks.once('init', async function () {
 		onChange: onPartyMembersChanged
 	})
 
+	game.settings.register('dolmenwood', 'defeatedCreatures', {
+		scope: 'world',
+		config: false,
+		type: Array,
+		default: []
+	})
+
 	game.settings.register('dolmenwood', 'encounterChance', {
 		scope: 'world',
 		config: false,
@@ -530,6 +537,45 @@ Hooks.on('createToken', async (tokenDoc) => {
 		'delta.system.hp.value': hp,
 		'delta.system.hp.max': hp
 	})
+})
+
+// Track defeated creatures for XP distribution
+function recordDefeatedCreature(actor) {
+	const list = game.settings.get('dolmenwood', 'defeatedCreatures').slice()
+	const existing = list.find(e => e.name === actor.name)
+	if (existing) {
+		existing.qty += 1
+	} else {
+		list.push({
+			name: actor.name,
+			xp: actor.system.xpAward || 0,
+			img: actor.img,
+			qty: 1
+		})
+	}
+	game.settings.set('dolmenwood', 'defeatedCreatures', list)
+	ui.notifications.info(game.i18n.format('DOLMEN.PartyViewer.XPCreatureRecorded', {
+		name: actor.name,
+		xp: actor.system.xpAward || 0
+	}))
+}
+
+Hooks.on('preUpdateActor', (actor, changes) => {
+	if (!game.user.isGM || actor.type !== 'Creature') return
+	const newHP = changes?.system?.hp?.value
+	if (newHP === undefined || newHP > 0) return
+	if (actor.system.hp.value <= 0) return
+	recordDefeatedCreature(actor)
+})
+
+Hooks.on('preUpdateToken', (tokenDoc, changes) => {
+	if (!game.user.isGM) return
+	if (tokenDoc.actorLink) return
+	if (tokenDoc.actor?.type !== 'Creature') return
+	const newHP = changes?.delta?.system?.hp?.value
+	if (newHP === undefined || newHP > 0) return
+	if (tokenDoc.actor.system.hp.value <= 0) return
+	recordDefeatedCreature(tokenDoc.actor)
 })
 
 // Refresh rune usage on day change (x/day, x/week, x/year)

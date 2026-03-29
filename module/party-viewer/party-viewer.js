@@ -1,4 +1,4 @@
-/* global game, foundry, canvas, ui, Hooks, ChatMessage, Actor */
+/* global game, foundry, canvas, ui, Hooks, ChatMessage, Actor, TextEditor */
 
 import { computeXPModifier } from '../sheet/data-context.js'
 
@@ -255,23 +255,60 @@ function resolveAdventurers() {
 }
 
 /**
- * Attach a live-updating preview to a distribute dialog.
- * @param {DialogV2} dialog
- * @param {Function} updatePreview  (form) => void — reads inputs and updates preview DOM
+ * Compute the new (unbanked) treasure gold value for an actor.
+ * Includes unbanked treasure items + unbanked coin value.
  */
-function attachPreviewListener(dialog, updatePreview) {
-	const el = dialog.element
-	const inputs = el.querySelectorAll('input[type="number"]')
-	const update = () => updatePreview(el.querySelector('form'))
-	for (const input of inputs) {
-		input.addEventListener('input', update)
-	}
+function computeNewTreasureGold(actor) {
+	const toGold = { cp: 0.01, sp: 0.1, gp: 1, pp: 10 }
+	const itemGold = actor.items.contents
+		.filter(i => i.type === 'Treasure' && !i.system.banked)
+		.reduce((sum, i) => {
+			const cost = i.system.cost || 0
+			const qty = i.system.quantity || 1
+			return sum + cost * qty * (toGold[i.system.costDenomination || 'gp'] || 1)
+		}, 0)
+	const coinsGold = (actor.system.coins.copper || 0) * 0.01
+		+ (actor.system.coins.silver || 0) * 0.1
+		+ (actor.system.coins.gold || 0)
+		+ (actor.system.coins.pellucidium || 0) * 10
+	const bankedGold = actor.system.bankedGold || 0
+	const newCoinsGold = Math.max(0, coinsGold - bankedGold)
+	return itemGold + newCoinsGold
 }
 
 /**
- * Show a dialog to distribute XP among party members.
- * Retainers receive half a share.
+ * Mark all unbanked treasure items as banked and snapshot coin value.
  */
+async function bankAllTreasure(actor) {
+	// Bank treasure items
+	const updates = actor.items.contents
+		.filter(i => i.type === 'Treasure' && !i.system.banked)
+		.map(i => ({ _id: i.id, 'system.banked': true }))
+	if (updates.length > 0) {
+		await actor.updateEmbeddedDocuments('Item', updates)
+	}
+	// Bank coins
+	const coinsGold = (actor.system.coins.copper || 0) * 0.01
+		+ (actor.system.coins.silver || 0) * 0.1
+		+ (actor.system.coins.gold || 0)
+		+ (actor.system.coins.pellucidium || 0) * 10
+	await actor.update({ 'system.bankedGold': coinsGold })
+}
+
+/**
+ * Render the creature kill log HTML from an array of entries.
+ */
+function renderCreatureRows(creatures) {
+	if (creatures.length === 0) return ''
+	return creatures.map((c, i) => `<div class="xp-creature-row" data-index="${i}">
+		<img src="${c.img}" class="xp-creature-img">
+		<span class="xp-creature-name">${c.name}</span>
+		<span class="xp-creature-xp">${c.xp} XP</span>
+		<input type="number" class="xp-creature-qty" value="${c.qty}" min="1" data-index="${i}">
+		<a class="xp-creature-remove" data-index="${i}"><i class="fas fa-times"></i></a>
+	</div>`).join('')
+}
+
 async function addXP() {
 	if (!game.user.isGM) return
 	const validActors = resolveAdventurers()
@@ -287,16 +324,28 @@ async function addXP() {
 		const adjMod = a.system.adjustments.xpModifier || 0
 		const bonusPct = baseMod + adjMod
 		const basePct = isRetainer ? 50 : 100
-		return { actor: a, isRetainer, basePct, bonusPct }
+		const newTreasure = computeNewTreasureGold(a)
+		const treasureShare = getTreasureShare(a)
+		return { actor: a, isRetainer, basePct, bonusPct, newTreasure, treasureShare }
 	})
 	const headcount = members.length
+	const fmt = v => v % 1 === 0 ? v : parseFloat(v.toFixed(2))
+
+	// Compute auto-calculate total from party treasure
+	const autoTotal = Math.floor(members.reduce((sum, m) => sum + m.newTreasure * m.treasureShare, 0))
+
+	// Load defeated creatures for "from creatures" mode
+	const creatures = game.settings.get('dolmenwood', 'defeatedCreatures').map(c => ({ ...c }))
 
 	const previewRows = members.map((m, i) => {
 		const rawPct = m.basePct * (100 + m.bonusPct) / 100
 		const effectivePct = rawPct % 1 === 0 ? rawPct : rawPct.toFixed(1)
 		const pctLabel = ` <span class="xp-retainer-tag">(${effectivePct}%)</span>`
+		const treasureLabel = m.newTreasure > 0
+			? ` <span class="xp-retainer-tag">[${fmt(m.newTreasure)} gp]</span>`
+			: ''
 		return `<div class="preview-row" data-index="${i}">
-				<span class="preview-name">${m.actor.name}${pctLabel}</span>
+				<span class="preview-name">${m.actor.name}${pctLabel}${treasureLabel}</span>
 				<span class="preview-amount"></span>
 			</div>`
 	}).join('')
@@ -306,25 +355,129 @@ async function addXP() {
 		return Math.floor(base * (100 + m.bonusPct) / 100)
 	}
 
-	const label = game.i18n.localize('DOLMEN.PartyViewer.XPAmount')
+	const manualLabel = game.i18n.localize('DOLMEN.PartyViewer.XPAmount')
+	const autoLabel = game.i18n.localize('DOLMEN.PartyViewer.XPAutoLabel')
+	const modeManual = game.i18n.localize('DOLMEN.PartyViewer.XPModeManual')
+	const modeAuto = game.i18n.localize('DOLMEN.PartyViewer.XPModeAuto')
+	const modeCreatures = game.i18n.localize('DOLMEN.PartyViewer.XPModeCreatures')
+	const creatureDropHint = game.i18n.localize('DOLMEN.PartyViewer.XPCreatureDropHint')
+	const creatureTotalLabel = game.i18n.localize('DOLMEN.PartyViewer.XPCreatureTotal')
 
 	const hookId = Hooks.once('renderDialogV2', (dialog) => {
-		attachPreviewListener(dialog, (form) => {
-			const total = parseInt(form.elements.amount.value) || 0
+		const el = dialog.element
+		const amountInput = el.querySelector('input[name="amount"]')
+		const modeRadios = el.querySelectorAll('input[name="xpMode"]')
+		const autoTotalEl = el.querySelector('.xp-auto-total')
+		const creatureListEl = el.querySelector('.xp-creature-list')
+		const creatureRowsEl = el.querySelector('.xp-creature-rows')
+		const creatureTotalEl = el.querySelector('.xp-creature-total strong')
+
+		const computeCreatureTotal = () => creatures.reduce((sum, c) => sum + c.xp * c.qty, 0)
+
+		const refreshCreatureList = () => {
+			creatureRowsEl.innerHTML = renderCreatureRows(creatures)
+			const total = computeCreatureTotal()
+			creatureTotalEl.textContent = total
+			amountInput.value = total
+
+			// Wire up qty inputs
+			creatureRowsEl.querySelectorAll('.xp-creature-qty').forEach(input => {
+				input.addEventListener('input', () => {
+					const idx = parseInt(input.dataset.index)
+					creatures[idx].qty = Math.max(1, parseInt(input.value) || 1)
+					const newTotal = computeCreatureTotal()
+					creatureTotalEl.textContent = newTotal
+					amountInput.value = newTotal
+					updatePreview()
+				})
+			})
+
+			// Wire up remove buttons
+			creatureRowsEl.querySelectorAll('.xp-creature-remove').forEach(btn => {
+				btn.addEventListener('click', (e) => {
+					e.preventDefault()
+					creatures.splice(parseInt(btn.dataset.index), 1)
+					refreshCreatureList()
+					updatePreview()
+				})
+			})
+
+			updatePreview()
+		}
+
+		const updatePreview = () => {
+			const total = parseInt(amountInput.value) || 0
 			const perHead = headcount > 0 ? Math.floor(total / headcount) : 0
-			const rows = dialog.element.querySelectorAll('.preview-row')
+			const rows = el.querySelectorAll('.preview-row')
 			members.forEach((m, i) => {
 				const amountEl = rows[i]?.querySelector('.preview-amount')
 				if (amountEl) amountEl.textContent = computeShare(perHead, m)
 			})
+		}
+
+		const setMode = (mode) => {
+			autoTotalEl.style.display = mode === 'auto' ? '' : 'none'
+			creatureListEl.style.display = mode === 'creatures' ? '' : 'none'
+			if (mode === 'auto') {
+				amountInput.value = autoTotal
+				amountInput.disabled = true
+			} else if (mode === 'creatures') {
+				amountInput.value = computeCreatureTotal()
+				amountInput.disabled = true
+				refreshCreatureList()
+			} else {
+				amountInput.disabled = false
+			}
+			updatePreview()
+		}
+
+		amountInput.addEventListener('input', updatePreview)
+		modeRadios.forEach(r => r.addEventListener('change', () => setMode(r.value)))
+
+		// Drag-and-drop creatures into the list
+		creatureListEl.addEventListener('dragover', (e) => e.preventDefault())
+		creatureListEl.addEventListener('drop', async (e) => {
+			e.preventDefault()
+			const data = TextEditor.getDragEventData(e)
+			if (data.type !== 'Actor') return
+			const actor = await Actor.fromDropData(data)
+			if (actor.type !== 'Creature') return
+			const existing = creatures.find(c => c.name === actor.name)
+			if (existing) {
+				existing.qty += 1
+			} else {
+				creatures.push({
+					name: actor.name,
+					xp: actor.system.xpAward || 0,
+					img: actor.img,
+					qty: 1
+				})
+			}
+			refreshCreatureList()
 		})
+
+		// Initialize in manual mode
+		setMode('manual')
 	})
 
 	const result = await DialogV2.prompt({
 		window: { title: game.i18n.localize('DOLMEN.PartyViewer.DivideXP') },
 		content: `
+			<div class="xp-mode-toggle">
+				<label><input type="radio" name="xpMode" value="manual" checked> ${modeManual}</label>
+				<label><input type="radio" name="xpMode" value="auto"> ${modeAuto}</label>
+				<label><input type="radio" name="xpMode" value="creatures"> ${modeCreatures}</label>
+			</div>
+			<div class="xp-auto-total" style="display: none">
+				<span>${autoLabel}: <strong>${fmt(autoTotal)}</strong> gp</span>
+			</div>
+			<div class="xp-creature-list" style="display: none">
+				<div class="xp-creature-rows">${renderCreatureRows(creatures)}</div>
+				<div class="xp-creature-total">${creatureTotalLabel}: <strong>0</strong> XP</div>
+				<div class="xp-creature-drop-hint">${creatureDropHint}</div>
+			</div>
 			<div style="display: flex; align-items: center; gap: 0.5rem">
-				<label style="white-space: nowrap">${label}</label>
+				<label style="white-space: nowrap">${manualLabel}</label>
 				<input type="number" name="amount" placeholder="0" min="0" autofocus style="flex: 1">
 			</div>
 			<div class="distribute-preview">${previewRows}</div>`,
@@ -332,7 +485,9 @@ async function addXP() {
 			label: game.i18n.localize('DOLMEN.PartyViewer.DivideXP'),
 			icon: 'fa-solid fa-star',
 			callback: (event, button) => {
-				return parseInt(button.form.elements.amount.value) || 0
+				const mode = button.form.elements.xpMode.value
+				const amount = parseInt(button.form.elements.amount.value) || 0
+				return { amount, mode }
 			}
 		},
 		rejectClose: false
@@ -340,10 +495,10 @@ async function addXP() {
 
 	Hooks.off('renderDialogV2', hookId)
 
-	if (!result || result <= 0) return
+	if (!result || result.amount <= 0) return
 	if (headcount <= 0) return
 
-	const perHead = Math.floor(result / headcount)
+	const perHead = Math.floor(result.amount / headcount)
 	for (const m of members) {
 		const share = computeShare(perHead, m)
 		if (share > 0) {
@@ -351,8 +506,20 @@ async function addXP() {
 		}
 	}
 
+	// In auto mode, bank all treasure for all party members
+	if (result.mode === 'auto') {
+		for (const m of members) {
+			await bankAllTreasure(m.actor)
+		}
+	}
+
+	// In creatures mode, clear the defeated creatures log
+	if (result.mode === 'creatures') {
+		await game.settings.set('dolmenwood', 'defeatedCreatures', [])
+	}
+
 	ui.notifications.info(game.i18n.format('DOLMEN.PartyViewer.XPDistributed', {
-		amount: result,
+		amount: result.amount,
 		count: validActors.length
 	}))
 }
