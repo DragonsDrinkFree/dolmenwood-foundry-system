@@ -24,7 +24,9 @@ function getActorMagicResistance(actor) {
  */
 export function parseSaveLinks(text) {
 	if (!text) return text
-	return text.replace(/\[([^\]]+)\]\(save:(\w+)\)/g, '<a class="inline-save-link" data-save="$2">$1</a>')
+	return text
+		.replace(/\[([^\]]+)\]\(save:(\w+)\)/g, '<a class="inline-save-link" data-save="$2">$1</a>')
+		.replace(/\[([^\]]+)\]\(chance:(\d+)\)/g, '<a class="inline-chance-link" data-target="$2">$1</a>')
 }
 
 /**
@@ -241,5 +243,71 @@ export function openInlineSaveModifierPanel(saveKey, position) {
 	})
 
 	setTimeout(() => document.addEventListener('click', closePanel), 0)
+}
+
+/**
+ * TextEditor enricher callback for chance links.
+ * Syntax: [visible text](chance:target)
+ * @param {RegExpMatchArray} match - Regex match with [1]=label, [2]=target number
+ * @returns {HTMLElement} Anchor element with inline-chance-link class
+ */
+export function createChanceLinkEnricher(match) {
+	const label = match[1]
+	const target = match[2]
+	const a = document.createElement('a')
+	a.classList.add('inline-chance-link')
+	a.dataset.target = target
+	a.textContent = label
+	return a
+}
+
+/**
+ * Roll a chance check (1d6, target or less).
+ * Uses the selected token's actor as speaker if available, otherwise the current user.
+ * @param {number} target - The target number (roll this or less to succeed)
+ */
+export async function rollChance(target) {
+	const roll = new Roll('1d6')
+	await roll.evaluate()
+
+	const isSuccess = roll.total <= target
+	const resultClass = isSuccess ? 'success' : 'failure'
+	const resultLabel = isSuccess
+		? game.i18n.localize('DOLMEN.Roll.Success')
+		: game.i18n.localize('DOLMEN.Roll.Failure')
+
+	const anchor = await roll.toAnchor({ classes: ['chance-inline-roll'] })
+
+	const chatContent = `
+		<div class="dolmen save-roll">
+			<div class="roll-header save">
+				<i class="fa-solid fa-dice-d6"></i>
+				<div class="roll-info">
+					<h3>${game.i18n.localize('DOLMEN.Roll.ChanceRoll')}</h3>
+					<span class="roll-type">${target}-in-6</span>
+				</div>
+			</div>
+			<div class="roll-body">
+				<div class="roll-section ${resultClass}">
+					<div class="roll-result">
+						${anchor.outerHTML}
+					</div>
+					<span class="roll-target">${game.i18n.localize('DOLMEN.Roll.Target')}: ${target} ${game.i18n.localize('DOLMEN.Roll.OrLess')}</span>
+					<span class="roll-label ${resultClass}">${resultLabel}</span>
+				</div>
+			</div>
+		</div>
+	`
+
+	const speaker = canvas.tokens?.controlled?.[0]?.actor
+		? ChatMessage.getSpeaker({ actor: canvas.tokens.controlled[0].actor })
+		: ChatMessage.getSpeaker()
+
+	await ChatMessage.create({
+		speaker,
+		content: chatContent,
+		sound: CONFIG.sounds.dice,
+		style: CONST.CHAT_MESSAGE_STYLES.OTHER
+	})
 }
 

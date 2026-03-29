@@ -21,7 +21,7 @@
 
 .sheet.dolmen .tab-content .encumbrance-grid {
 	display: grid;
-	grid-template-columns: max-content auto auto max-content;
+	grid-template-columns: repeat(5, auto);
 	gap: 0.5rem;
 	margin: auto 0;
 	align-items: center;
@@ -32,6 +32,10 @@
 	font-size: 0.9rem;
 	text-align: center;
 	display: block;
+}
+
+.sheet.dolmen .tab-content .encumbrance-stat .encumbrance-value.adjusted {
+	color: var(--dolmen-color-adjusted);
 }
 
 .sheet.dolmen .tab-content .encumbrance-stat.encumbrance-load {
@@ -142,13 +146,15 @@
 /*  Inventory Tab - Item List Styles            */
 /* -------------------------------------------- */
 
-.sheet.dolmen .tab-content .inventory h2 {
+.sheet.dolmen .tab-content .inventory h2,
+.sheet.dolmen .tab-content .known-spells h2 {
 	margin-bottom: 0;
 	position: relative;
 }
 
-/* Add Item Button in inventory section headers */
-.sheet.dolmen .tab-content .inventory h2 .add-item-btn {
+/* Add Item Button in section headers */
+.sheet.dolmen .tab-content .inventory h2 .add-item-btn,
+.sheet.dolmen .tab-content .known-spells h2 .add-item-btn {
 	position: absolute;
 	right: 0;
 	top: 0;
@@ -168,7 +174,8 @@
 	margin: 0;
 }
 
-.sheet.dolmen .tab-content .inventory h2 .add-item-btn:hover {
+.sheet.dolmen .tab-content .inventory h2 .add-item-btn:hover,
+.sheet.dolmen .tab-content .known-spells h2 .add-item-btn:hover {
 	opacity: 1;
 }
 
@@ -513,6 +520,11 @@
 	font-size: 0.65rem;
 	opacity: 0.85;
 	text-align: left;
+}
+
+.sheet.dolmen .tab-content .container-capacity .fa-weight-hanging ~ .capacity-gold,
+.sheet.dolmen .tab-content h2 .container-capacity .fa-weight-hanging ~ .capacity-gold {
+	margin-left: 0.5rem;
 }
 
 .sheet.dolmen .tab-content .container-header .item-controls {

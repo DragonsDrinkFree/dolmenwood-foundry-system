@@ -298,8 +298,9 @@
 	display: inline-block;
 	font-size: 0.6rem;
 	font-weight: normal;
-	padding: 0.1rem 0.35rem;
+	padding: 0.2rem 0.35rem;
 	margin-left: 0.35rem;
+	margin-top: -0.25rem;
 	background-color: rgba(255, 255, 255, 0.25);
 	border-radius: 0.25rem;
 	vertical-align: middle;
@@ -374,6 +375,22 @@
 	color: var(--dolmen-color-h3);
 	padding: 0.25rem 0.5rem;
 	text-align: center;
+}
+
+.dolmen.trait-roll .trait-chat-usage {
+	display: block;
+	font-size: 0.65rem;
+	color: var(--dolmen-color-text-muted);
+	text-align: center;
+	padding: 0.25rem 0.5rem;
+}
+
+.dolmen.trait-roll .trait-chat-desc {
+	font-size: 0.75rem;
+	color: var(--dolmen-color-text-muted);
+	margin: 0;
+	padding: 0.5rem;
+	line-height: 1.4;
 }
 
 /* -------------------------------------------- */
@@ -747,8 +764,9 @@
 	color: var(--dolmen-color-success);
 }
 
-/* Inline Save Link */
-.inline-save-link {
+/* Inline Save / Chance Links */
+.inline-save-link,
+.inline-chance-link {
 	color: var(--dolmen-color-link);
 	text-decoration: underline;
 	cursor: pointer;
@@ -756,7 +774,8 @@
 	transition: color 0.2s ease;
 }
 
-.inline-save-link:hover {
+.inline-save-link:hover,
+.inline-chance-link:hover {
 	color: var(--dolmen-color-link-hover);
 	text-decoration: none;
 }

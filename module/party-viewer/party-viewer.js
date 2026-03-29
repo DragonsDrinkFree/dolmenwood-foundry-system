@@ -120,8 +120,27 @@ function renderParty() {
 		else if (hpRatio <= 0.25) hpClass = 'hp-critical'
 		else if (hpRatio <= 0.5) hpClass = 'hp-wounded'
 
+		// Speed: adjusted for adventurers, base for creatures
+		const speed = adjusted?.speed ?? actor.system.speed
+
+		// Encumbrance: only for adventurers with encumbrance enabled
+		let encHtml = ''
+		if (actor.type === 'Adventurer') {
+			const enc = actor.system.encumbranceResult
+			if (enc && enc.speed !== null) {
+				if (enc.equipped) {
+					// Slots mode: show equipped slots
+					encHtml = `<span class="party-enc"><i class="fa-solid fa-weight-hanging"></i> ${enc.equipped.current}/${enc.equipped.max}</span>`
+				} else {
+					encHtml = `<span class="party-enc"><i class="fa-solid fa-weight-hanging"></i> ${enc.current}/${enc.max}</span>`
+				}
+			}
+		}
+
 		stats.innerHTML = `<span class="party-hp ${hpClass}"><i class="fa-solid fa-heart"></i> ${hp.value}/${hpMax}</span>`
-			+ `<span class="party-ac"><i class="fa-solid fa-shield"></i> ${adjusted?.ac ?? actor.system.ac}</span>`
+			+ `<div class="party-stat-row"><span class="party-ac"><i class="fa-solid fa-shield"></i> ${adjusted?.ac ?? actor.system.ac}</span>`
+			+ `<span class="party-speed"><i class="fa-solid fa-person-running"></i> ${speed}</span></div>`
+			+ encHtml
 		body.appendChild(stats)
 		card.appendChild(body)
 

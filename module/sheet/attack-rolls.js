@@ -1023,6 +1023,96 @@ export function onAttackRollContextMenu(sheet, attackType, event) {
  * @param {string} attackType - Either 'melee' or 'missile'
  * @param {object} position - Position object with top and left properties
  */
+/**
+ * Handle right-click on a weapon item row in the inventory tab.
+ * Skips weapon selection and goes directly to attack type (melee) or range (missile).
+ * @param {DolmenSheet} sheet - The sheet instance
+ * @param {Event} event - The contextmenu event
+ */
+export function onWeaponInventoryAttack(sheet, event) {
+	event.preventDefault()
+	event.stopPropagation()
+
+	const row = event.currentTarget.closest('.item-row')
+	const weaponId = row?.dataset?.itemId
+	if (!weaponId) return
+
+	const weapon = sheet.actor.items.get(weaponId)
+	if (!weapon || weapon.type !== 'Weapon') return
+
+	const position = {
+		top: event.clientY,
+		left: event.clientX
+	}
+
+	const qualities = weapon.system.qualities || []
+	const isMelee = qualities.includes('melee')
+	const isMissile = qualities.includes('missile')
+	const proficient = isWeaponProficient(sheet, weapon)
+
+	if (isMelee && isMissile) {
+		// Dual-quality weapon: let user pick melee or missile
+		const html = `
+			<div class="weapon-menu-item" data-attack-quality="melee">
+				<i class="fas fa-swords"></i>
+				<span class="weapon-name">${game.i18n.localize('DOLMEN.Item.Quality.melee')}</span>
+			</div>
+			<div class="weapon-menu-item" data-attack-quality="missile">
+				<i class="fas fa-bow-arrow"></i>
+				<span class="weapon-name">${game.i18n.localize('DOLMEN.Item.Quality.missile')}</span>
+			</div>
+		`
+		createContextMenu(sheet, {
+			html,
+			position,
+			onItemClick: (item, menu) => {
+				const quality = item.dataset.attackQuality
+				menu.remove()
+				if (quality === 'melee') {
+					setTimeout(() => openMeleeAttackTypeForWeapon(sheet, weapon, proficient, position), 0)
+				} else {
+					setTimeout(() => openMissileRangeMenu(sheet, [weapon], position), 0)
+				}
+			}
+		})
+	} else if (isMelee) {
+		openMeleeAttackTypeForWeapon(sheet, weapon, proficient, position)
+	} else if (isMissile) {
+		openMissileRangeMenu(sheet, [weapon], position)
+	}
+}
+
+/**
+ * Open attack type menu for a pre-selected melee weapon, skipping weapon selection.
+ * @param {DolmenSheet} sheet - The sheet instance
+ * @param {object} weapon - The pre-selected weapon
+ * @param {boolean} proficient - Whether the character is proficient with this weapon
+ * @param {object} position - Position {top, left}
+ */
+function openMeleeAttackTypeForWeapon(sheet, weapon, proficient, position) {
+	const types = [
+		{ id: 'normal', icon: 'fa-sword', nameKey: 'DOLMEN.Attack.Type.Normal' },
+		{ id: 'charge', icon: 'fa-person-running-fast', nameKey: 'DOLMEN.Attack.Type.Charge' }
+	]
+
+	const html = types.map(t => `
+		<div class="weapon-menu-item" data-attack-mode="${t.id}">
+			<i class="fas ${t.icon}"></i>
+			<span class="weapon-name">${game.i18n.localize(t.nameKey)}</span>
+		</div>
+	`).join('')
+
+	createContextMenu(sheet, {
+		html,
+		position,
+		onItemClick: (item, menu) => {
+			const attackMode = item.dataset.attackMode
+			menu.remove()
+			setTimeout(() => openModifierPanel(sheet, weapon, attackMode, position, proficient), 0)
+		}
+	})
+}
+
 export function openRollTypeContextMenu(sheet, weapons, attackType, position) {
 	const attackOnlyLabel = game.i18n.localize('DOLMEN.Attack.RollAttackOnly')
 	const damageOnlyLabel = game.i18n.localize('DOLMEN.Attack.RollDamageOnly')

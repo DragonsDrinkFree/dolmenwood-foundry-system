@@ -171,6 +171,11 @@
 	margin-right: 0.125rem;
 }
 
+.party-stat-row {
+	display: flex;
+	gap: 0.5rem;
+}
+
 /* HP color states */
 .party-hp.hp-healthy {
 	color: rgba(100, 200, 100, 0.9);
@@ -211,6 +216,22 @@
 
 .party-ac i {
 	color: rgba(140, 180, 220, 0.85);
+}
+
+.party-speed {
+	color: rgba(180, 220, 140, 0.9);
+}
+
+.party-speed i {
+	color: rgba(180, 220, 140, 0.85);
+}
+
+.party-enc {
+	color: rgba(200, 170, 120, 0.9);
+}
+
+.party-enc i {
+	color: rgba(200, 170, 120, 0.85);
 }
 
 /* Name color coding by role */

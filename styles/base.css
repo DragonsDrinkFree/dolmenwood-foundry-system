@@ -176,3 +176,17 @@ span.proficiency-value {
 .sheet.dolmen prosemirror button.toggl {
 	color: var(--dolmen-color-text);
 }
+
+.sheet.dolmen .editor-menu {
+	background-color: var(--dolmen-color-inner-background);
+	color: var(--dolmen-color-text);
+	border-color: var(--dolmen-color-input-border);
+}
+
+.sheet.dolmen .editor-menu button {
+	color: var(--dolmen-color-text);
+}
+
+.sheet.dolmen .editor-menu button:hover {
+	color: var(--dolmen-color-accent);
+}

@@ -12,7 +12,7 @@ import DolmenActor from './module/dolmen-actor.js'
 import DolmenItem from './module/dolmen-item.js'
 import { AdventurerDataModel, CreatureDataModel, HorseDataModel, VehicleDataModel, GearDataModel, ContainerDataModel, TreasureDataModel, WeaponDataModel, SpellDataModel, HolySpellDataModel, ArmorDataModel, ForagedDataModel, GlamourDataModel, RuneDataModel, KindredDataModel, ClassDataModel } from './module/data-models.mjs'
 import { setupDamageContextMenu } from './module/chat-damage.js'
-import { createSaveLinkEnricher, openInlineSaveModifierPanel } from './module/chat-save.js'
+import { createSaveLinkEnricher, createChanceLinkEnricher, openInlineSaveModifierPanel, rollChance } from './module/chat-save.js'
 import WelcomeDialog from './module/welcome-dialog.js'
 import { initCalendarWidget, toggleWidget, handleCalendarSocket } from './module/calendar/calendar-widget.js'
 import { worldTimeToCalendar, dateKeyToEpochDay } from './module/calendar/calendar-time.js'
@@ -184,10 +184,14 @@ Hooks.once('init', async function () {
 	// Register combat system (group initiative, tracker, declarations)
 	registerCombatSystem()
 
-	// Register custom text enricher for save links: [text](save:saveKey)
+	// Register custom text enrichers for save links and chance links
 	CONFIG.TextEditor.enrichers.push({
 		pattern: /\[([^\]]+)\]\(save:(\w+)\)/g,
 		enricher: createSaveLinkEnricher
+	})
+	CONFIG.TextEditor.enrichers.push({
+		pattern: /\[([^\]]+)\]\(chance:(\d+)\)/g,
+		enricher: createChanceLinkEnricher
 	})
 
 	// Register Handlebars helpers
@@ -638,6 +642,17 @@ document.addEventListener('click', (event) => {
 	if (!saveKey) return
 	const position = { top: event.clientY, left: event.clientX }
 	openInlineSaveModifierPanel(saveKey, position)
+})
+
+// Global delegated listener for inline chance links
+document.addEventListener('click', (event) => {
+	const link = event.target.closest('.inline-chance-link')
+	if (!link) return
+	event.preventDefault()
+	event.stopPropagation()
+	const target = parseInt(link.dataset.target)
+	if (isNaN(target)) return
+	rollChance(target)
 })
 
 // Sync embedded Kindred/Class items when source items are updated (world or compendium)
