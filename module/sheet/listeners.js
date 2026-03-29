@@ -6,8 +6,8 @@
  */
 
 import { getFutureDateKey, getFutureDateKeyByYears } from '../calendar/calendar-time.js'
-import { onMeleeAttackRoll, onMissileAttackRoll, onAttackRollContextMenu } from './attack-rolls.js'
-import { onAbilityRoll, onSaveRoll, onSkillRoll, rollTrait } from './roll-handlers.js'
+import { onMeleeAttackRoll, onMissileAttackRoll, onAttackRollContextMenu, onWeaponInventoryAttack } from './attack-rolls.js'
+import { onAbilityRoll, onSaveRoll, onSkillRoll, rollTrait, useTrait } from './roll-handlers.js'
 import { openXPDialog, openXPEditDialog, openAddSkillDialog, openCoinDialog, removeSkill, levelUp, levelDown } from './dialogs.js'
 import { createContextMenu } from './context-menu.js'
 import { drawFromTable, drawFromTableRaw } from '../utils/roll-tables.js'
@@ -174,6 +174,68 @@ export function setupCoinListener(sheet) {
 			openCoinDialog(sheet)
 		})
 	}
+
+	const bankBtn = sheet.element.querySelector('.coins-bank-btn')
+	if (bankBtn) {
+		bankBtn.addEventListener('click', async (event) => {
+			event.preventDefault()
+			const actor = sheet.actor
+			const coinsGold = (actor.system.coins.copper || 0) * 0.01
+				+ (actor.system.coins.silver || 0) * 0.1
+				+ (actor.system.coins.gold || 0)
+				+ (actor.system.coins.pellucidium || 0) * 10
+			const bankedGold = actor.system.bankedGold || 0
+			const newGold = Math.max(0, coinsGold - bankedGold)
+			const fmt = v => v % 1 === 0 ? v : parseFloat(v.toFixed(2))
+			const confirmed = await foundry.applications.api.DialogV2.confirm({
+				window: { title: game.i18n.localize('DOLMEN.Coins.BankTitle') },
+				content: `<p>${game.i18n.format('DOLMEN.Coins.BankConfirm', { value: fmt(newGold) })}</p>`,
+				yes: { default: true }
+			})
+			if (confirmed) {
+				await actor.update({ 'system.bankedGold': coinsGold })
+				ui.notifications.info(game.i18n.format('DOLMEN.Coins.BankSuccess', { value: fmt(newGold) }))
+			}
+		})
+
+		bankBtn.addEventListener('contextmenu', (event) => {
+			event.preventDefault()
+			const actor = sheet.actor
+			const html = `
+				<div class="weapon-menu-item" data-action="resetBank"><span class="weapon-name">${game.i18n.localize('DOLMEN.Coins.BankReset')}</span></div>
+				<div class="weapon-menu-item" data-action="modifyBank"><span class="weapon-name">${game.i18n.localize('DOLMEN.Coins.BankModify')}</span></div>
+			`
+			createContextMenu(sheet, {
+				html,
+				position: { top: event.clientY, left: event.clientX },
+				onItemClick: async (item, menu) => {
+					menu.remove()
+					const action = item.dataset.action
+					if (action === 'resetBank') {
+						await actor.update({ 'system.bankedGold': 0 })
+						ui.notifications.info(game.i18n.localize('DOLMEN.Coins.BankResetDone'))
+					} else if (action === 'modifyBank') {
+						const current = actor.system.bankedGold || 0
+						const fmt = v => v % 1 === 0 ? v : parseFloat(v.toFixed(2))
+						const result = await foundry.applications.api.DialogV2.prompt({
+							window: { title: game.i18n.localize('DOLMEN.Coins.BankModify') },
+							content: `<div class="form-group"><label>${game.i18n.localize('DOLMEN.Coins.BankModifyLabel')}</label><input type="number" name="bankedGold" value="${fmt(current)}" min="0" step="0.01" autofocus></div>`,
+							ok: {
+								label: game.i18n.localize('DOLMEN.Coins.AdjustUpdate'),
+								callback: (event, button) => {
+									const val = parseFloat(button.form.elements.bankedGold.value)
+									return isNaN(val) ? current : Math.max(0, val)
+								}
+							}
+						})
+						if (result !== null && result !== undefined) {
+							await actor.update({ 'system.bankedGold': result })
+						}
+					}
+				}
+			})
+		})
+	}
 }
 
 /**
@@ -245,6 +307,19 @@ export function setupAttackListeners(sheet) {
 			onAttackRollContextMenu(sheet, 'missile', event)
 		})
 	}
+}
+
+/**
+ * Setup right-click attack on weapon items in the inventory tab.
+ * Right-clicking a weapon row opens the attack flow, skipping weapon selection.
+ * @param {DolmenSheet} sheet - The sheet instance
+ */
+export function setupInventoryWeaponAttackListeners(sheet) {
+	sheet.element.querySelectorAll('.tab-inventory .item-row.weapon').forEach(row => {
+		row.addEventListener('contextmenu', (event) => {
+			onWeaponInventoryAttack(sheet, event)
+		})
+	})
 }
 
 /**
@@ -785,6 +860,30 @@ export function setupNameRollListener(sheet) {
  * @param {DolmenSheet} sheet - The sheet instance
  */
 export function setupTraitListeners(sheet) {
+	// Share trait to chat (name + description only)
+	sheet.element.querySelectorAll('.trait-share-btn').forEach(btn => {
+		btn.addEventListener('click', async (event) => {
+			event.preventDefault()
+			event.stopPropagation()
+			const el = event.currentTarget
+			const opts = {
+				name: el.dataset.traitName,
+				desc: el.dataset.traitDesc,
+				value: el.dataset.traitValue || null,
+				mode: 'shared'
+			}
+			// Include usage info if trait has usage tracking
+			if (el.dataset.traitId && el.dataset.maxUses) {
+				const traitId = el.dataset.traitId
+				const maxUses = parseInt(el.dataset.maxUses)
+				const traitData = sheet.actor.system.traitUsage?.[traitId] || { used: 0 }
+				opts.usesRemaining = maxUses - (traitData.used || 0)
+				opts.usageFrequency = el.dataset.usageFrequency || null
+			}
+			await useTrait(sheet, opts)
+		})
+	})
+
 	// Rollable trait clicks
 	sheet.element.querySelectorAll('.trait .rollable').forEach(btn => {
 		btn.addEventListener('click', (event) => {
@@ -816,6 +915,52 @@ export function setupTraitListeners(sheet) {
 			usage[traitId] = traitData
 
 			await sheet.actor.update({ 'system.traitUsage': usage })
+		})
+	})
+
+	// Trait invoke buttons (sparkles icon next to usage checkboxes)
+	sheet.element.querySelectorAll('.trait-invoke-btn').forEach(btn => {
+		btn.addEventListener('click', async (event) => {
+			event.preventDefault()
+			event.stopPropagation()
+
+			const el = event.currentTarget
+			const traitId = el.dataset.traitId
+			const traitName = el.dataset.traitName
+			const traitDesc = el.dataset.traitDesc
+			const traitValue = el.dataset.traitValue || null
+			const maxUses = parseInt(el.dataset.maxUses)
+			const usageFrequency = el.dataset.usageFrequency || null
+			const formula = el.dataset.rollFormula || null
+			const rollTarget = el.dataset.rollTarget
+				? parseInt(el.dataset.rollTarget)
+				: null
+
+			// Check if any uses remain
+			const usage = foundry.utils.deepClone(sheet.actor.system.traitUsage || {})
+			const traitData = usage[traitId] || { used: 0, max: maxUses }
+			if (traitData.used >= maxUses) {
+				ui.notifications.warn(game.i18n.format('DOLMEN.Traits.NoUsesRemaining', { name: traitName }))
+				return
+			}
+
+			// Use a charge
+			traitData.used = traitData.used + 1
+			traitData.max = maxUses
+			usage[traitId] = traitData
+			await sheet.actor.update({ 'system.traitUsage': usage })
+
+			// Post to chat (with roll if rollable)
+			await useTrait(sheet, {
+				name: traitName,
+				desc: traitDesc,
+				value: traitValue,
+				mode: 'used',
+				formula,
+				rollTarget,
+				usesRemaining: maxUses - traitData.used,
+				usageFrequency
+			})
 		})
 	})
 
@@ -959,6 +1104,23 @@ export function setupKnackUsageListeners(sheet) {
 }
 
 /**
+ * Set up treasure banked toggle listeners.
+ * Click toggles the XP-awarded (banked) state of a treasure item.
+ * @param {DolmenSheet} sheet - The sheet instance
+ */
+export function setupTreasureBankToggle(sheet) {
+	sheet.element.querySelectorAll('.treasure-bank-toggle').forEach(el => {
+		el.addEventListener('click', async (event) => {
+			event.preventDefault()
+			event.stopPropagation()
+			const item = sheet.actor.items.get(el.dataset.itemId)
+			if (!item) return
+			await item.update({ 'system.banked': !item.system.banked })
+		})
+	})
+}
+
+/**
  * Set up item charges icon listeners.
  * Left-click uses a charge (decrements remaining), right-click restores one.
  * @param {DolmenSheet} sheet - The sheet instance
@@ -977,7 +1139,27 @@ export function setupChargesListeners(sheet) {
 
 			const used = charges.value || 0
 			if (used >= charges.max) return // all used up
-			await item.update({ 'system.charges.value': used + 1 })
+			const newUsed = used + 1
+			await item.update({ 'system.charges.value': newUsed })
+
+			// Post to chat
+			const desc = item.system.effects || item.system.notes || ''
+			const remaining = charges.max - newUsed
+			const usageInfo = `<span class="trait-chat-usage">${remaining}/${charges.max} ${game.i18n.localize('DOLMEN.Traits.Remaining')}</span>`
+			const descHtml = desc ? `<div class="trait-chat-desc">${desc}</div>` : ''
+			const content = `
+				<div class="dolmen trait-roll">
+					<div class="trait-header">
+						<h3>${item.name}</h3>
+					</div>
+					${descHtml}
+					${usageInfo}
+				</div>`
+			await ChatMessage.create({
+				speaker: ChatMessage.getSpeaker({ actor: sheet.actor }),
+				content,
+				style: CONST.CHAT_MESSAGE_STYLES.OTHER
+			})
 		})
 
 		// Right-click: restore a charge

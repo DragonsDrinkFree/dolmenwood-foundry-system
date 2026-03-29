@@ -119,7 +119,7 @@
 		<h2>{{localize "DOLMEN.Item.CommonDetails"}}</h2>
 		<div class="form-row">
 			<div class="form-field cost-field" style="flex: 2;">
-				<label>{{localize "DOLMEN.Item.Cost"}}</label>
+				<label>{{#if isTreasure}}{{localize "DOLMEN.Item.TreasureValue"}}{{else}}{{localize "DOLMEN.Item.Cost"}}{{/if}}</label>
 				<div class="flexrow">
 					<input type="number" name="system.cost" value="{{system.cost}}" min="0">
 					<select name="system.costDenomination" class="cost-denomination">
@@ -254,6 +254,10 @@
 	<!-- Treasure-specific fields -->
 	<section class="item-treasure">
 		<h2>{{localize "DOLMEN.Item.TreasureDetails"}}</h2>
+		<div class="form-group">
+			<label>{{localize "DOLMEN.Item.Banked"}}</label>
+			<input type="checkbox" name="system.banked" {{checked system.banked}}>
+		</div>
 		<div class="form-group">
 			<label>{{localize "DOLMEN.Item.EffectsSummary"}}</label>
 			<textarea name="system.effects" class="effects-input">{{system.effects}}</textarea>

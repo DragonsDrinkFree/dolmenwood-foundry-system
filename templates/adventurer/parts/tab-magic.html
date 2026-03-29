@@ -30,12 +30,12 @@
 					{{#each memorizedArcaneSlots}}
 					<div class="spell-rank-group">
 						<div class="spell-list-header">
-							<span class="rank-label">{{localize "DOLMEN.Magic.SpellRank"}}</span>
-							<i class="fas {{this.icon}}"></i>
+							{{#if this.label}}<span class="rank-label">{{this.label}}</span>{{else}}<span class="rank-label">{{localize "DOLMEN.Magic.SpellRank"}}</span>
+							<i class="fas {{this.icon}}"></i>{{/if}}
+							<span class="slot-usage-label">{{this.memorized}}/{{this.total}}</span>
 							<span class="spell-controls-header"></span>
 						</div>
-						{{#each this.slots}}
-						{{#if this.filled}}
+						{{#each this.filledSlots}}
 						<div class="spell-row memorized-slot filled" data-item-id="{{this.spell.id}}" data-action="openItem">
 							<img src="{{this.spell.img}}" class="spell-image">
 							<span class="spell-name">{{this.spell.name}}</span>
@@ -48,14 +48,14 @@
 								</a>
 							</span>
 						</div>
-						{{else}}
-						<div class="spell-row memorized-slot empty" data-action="memorizeToSlot" data-slot-index="{{this.index}}" data-rank-key="{{../key}}" data-rank="{{../rank}}" data-spell-type="arcane">
+						{{/each}}
+						{{#if this.hasEmpty}}
+						<div class="spell-row memorized-slot empty" data-action="memorizeToSlot" data-slot-index="{{this.firstEmptyIndex}}" data-rank-key="{{this.key}}" data-rank="{{this.rank}}" data-spell-type="arcane">
 							<div class="spell-image empty-slot-icon"><i class="fas fa-plus"></i></div>
 							<span class="spell-name empty-slot-label">{{localize "DOLMEN.Magic.EmptySlot"}}</span>
 							<span class="spell-controls"></span>
 						</div>
 						{{/if}}
-						{{/each}}
 					</div>
 					{{/each}}
 					{{else}}
@@ -66,14 +66,14 @@
 				</div>
 			</section>
 			<section class="known-spells boxed-section">
-				<h2><i class="fa-solid fa-brain"></i> {{localize "DOLMEN.Magic.Arcane.KnownSpells"}}</h2>
+				<h2><i class="fa-solid fa-brain"></i> {{localize "DOLMEN.Magic.Arcane.KnownSpells"}}<button type="button" class="add-item-btn" data-action="addSpell" data-spell-type="arcane"><i class="fas fa-plus"></i></button></h2>
 				<div class="spell-list" data-spell-list="arcane">
 					{{#if hasKnownArcaneSpells}}
 					{{#each knownArcaneSpellsByRank}}
 					<div class="spell-rank-group">
 						<div class="spell-list-header">
-							<span class="rank-label">{{localize "DOLMEN.Magic.SpellRank"}}</span>
-							<i class="fas {{this.icon}}"></i>
+							{{#if this.label}}<span class="rank-label">{{this.label}}</span>{{else}}<span class="rank-label">{{localize "DOLMEN.Magic.SpellRank"}}</span>
+							<i class="fas {{this.icon}}"></i>{{/if}}
 							<span class="spell-controls-header"></span>
 						</div>
 						{{#each this.spells}}
@@ -216,12 +216,12 @@
 					{{#each memorizedHolySlots}}
 					<div class="spell-rank-group">
 						<div class="spell-list-header">
-							<span class="rank-label">{{localize "DOLMEN.Magic.SpellRank"}}</span>
-							<i class="fas {{this.icon}}"></i>
+							{{#if this.label}}<span class="rank-label">{{this.label}}</span>{{else}}<span class="rank-label">{{localize "DOLMEN.Magic.SpellRank"}}</span>
+							<i class="fas {{this.icon}}"></i>{{/if}}
+							<span class="slot-usage-label">{{this.memorized}}/{{this.total}}</span>
 							<span class="spell-controls-header"></span>
 						</div>
-						{{#each this.slots}}
-						{{#if this.filled}}
+						{{#each this.filledSlots}}
 						<div class="spell-row memorized-slot filled" data-item-id="{{this.spell.id}}" data-action="openItem">
 							<img src="{{this.spell.img}}" class="spell-image">
 							<span class="spell-name">{{this.spell.name}}</span>
@@ -234,14 +234,14 @@
 								</a>
 							</span>
 						</div>
-						{{else}}
-						<div class="spell-row memorized-slot empty" data-action="memorizeToSlot" data-slot-index="{{this.index}}" data-rank-key="{{../key}}" data-rank="{{../rank}}" data-spell-type="holy">
+						{{/each}}
+						{{#if this.hasEmpty}}
+						<div class="spell-row memorized-slot empty" data-action="memorizeToSlot" data-slot-index="{{this.firstEmptyIndex}}" data-rank-key="{{this.key}}" data-rank="{{this.rank}}" data-spell-type="holy">
 							<div class="spell-image empty-slot-icon"><i class="fas fa-plus"></i></div>
 							<span class="spell-name empty-slot-label">{{localize "DOLMEN.Magic.EmptySlot"}}</span>
 							<span class="spell-controls"></span>
 						</div>
 						{{/if}}
-						{{/each}}
 					</div>
 					{{/each}}
 					{{else}}
@@ -252,14 +252,14 @@
 				</div>
 			</section>
 			<section class="known-spells boxed-section">
-				<h2><i class="fa-solid fa-book-open"></i> {{localize "DOLMEN.Magic.Holy.KnownSpells"}}</h2>
+				<h2><i class="fa-solid fa-book-open"></i> {{localize "DOLMEN.Magic.Holy.KnownSpells"}}<button type="button" class="add-item-btn" data-action="addSpell" data-spell-type="holy"><i class="fas fa-plus"></i></button></h2>
 				<div class="spell-list" data-spell-list="holy">
 					{{#if hasKnownHolySpells}}
 					{{#each knownHolySpellsByRank}}
 					<div class="spell-rank-group">
 						<div class="spell-list-header">
-							<span class="rank-label">{{localize "DOLMEN.Magic.SpellRank"}}</span>
-							<i class="fas {{this.icon}}"></i>
+							{{#if this.label}}<span class="rank-label">{{this.label}}</span>{{else}}<span class="rank-label">{{localize "DOLMEN.Magic.SpellRank"}}</span>
+							<i class="fas {{this.icon}}"></i>{{/if}}
 							<span class="spell-controls-header"></span>
 						</div>
 						{{#each this.spells}}

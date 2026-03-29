@@ -282,6 +282,11 @@
 			"Current": "Current",
 			"Max": "Max",
 			"Load": "Load",
+			"BaseSpeed": "Base Speed",
+			"Speed": "Speed",
+			"NewTreasure": "New Treasure",
+			"Normal": "normal",
+			"Encumbered": "encumbered",
 			"SignificantLoad": "Significant Load",
 			"SignificantLoadHint": "Percentage of max load at which treasure counts as significant (Weight Treasure method).",
 			"weight": "Weight (Full)",
@@ -301,7 +306,14 @@
 			"Gold": "Gold",
 			"Pellucidium": "Pellucidium",
 			"AdjustTitle": "Adjust Coins",
-			"AdjustUpdate": "Update"
+			"AdjustUpdate": "Update",
+			"BankTitle": "Bank coins (mark current value as XP-awarded)",
+			"BankConfirm": "Do you want to bank new coins? This marks new coins ({value} gp total value) as already awarded XP.",
+			"BankSuccess": "Banked {value} gp",
+			"BankReset": "Reset banked value",
+			"BankResetDone": "Banked coin value reset to 0",
+			"BankModify": "Modify banked value",
+			"BankModifyLabel": "Banked gold value"
 		},
 		"ExtraDetails": {
 			"Title": "Extra Details",
@@ -492,6 +504,7 @@
 		"Item": {
 			"Name": "Name",
 			"Cost": "Cost",
+			"TreasureValue": "Value",
 			"Type": "Type",
 			"CostUnit": "gp",
 			"StackSize": "Stack Size",
@@ -524,6 +537,9 @@
 			"Description": "Description",
 			"Effects": "Effects",
 			"EffectsSummary": "Effects Summary",
+			"Banked": "XP Awarded",
+			"MarkAwarded": "Mark as awarded XP",
+			"MarkUnawarded": "Mark as unawarded XP",
 			"TabStats": "Stats",
 			"TabDescription": "Description",
 			"CodexLink": "Journal Entry",
@@ -642,6 +658,11 @@
 			"Empty": "Empty"
 		},
 		"Attack": {
+			"Title": "Attack",
+			"SaveMacro": "Save as Macro",
+			"MacroNoToken": "No token selected. Select a token to use this attack macro.",
+			"MacroNoWeapon": "This character does not have a weapon named \"{name}\".",
+			"MacroCreated": "Attack macro saved: {name}",
 			"NoWeapon": "No equipped {type} weapon found.",
 			"SelectWeapon": "Select a weapon:",
 			"SelectWeaponTitle": "Choose Weapon",
@@ -682,7 +703,8 @@
 			"Success": "Success",
 			"Failure": "Failure",
 			"NormalRoll": "Normal Roll",
-			"Result": "Result"
+			"Result": "Result",
+			"OrLess": "or less"
 		},
 		"Edit": "Edit",
 		"Delete": "Delete",
@@ -703,13 +725,14 @@
 			"CodexLink": "View in Codex",
 			"Memorize": "Memorize",
 			"Forget": "Forget Spell",
-			"EmptySlot": "Empty Slot (click to memorize)",
+			"EmptySlot": "Memorize spell...",
 			"MemorizeSpell": "Memorize Spell",
 			"SelectSpellToMemorize": "Select a spell to memorize:",
 			"NoSlotsForRank": "No spell slots available for this rank.",
 			"AllSlotsFull": "All spell slots of this rank are full.",
 			"NoKnownSpellsForRank": "No known spells of this rank to memorize.",
 			"SpellRank": "Rank",
+			"Cantrips": "Cantrip",
 			"Arcane": {
 				"Title": "Arcane Magic",
 				"ForceTitle": "Enable Arcane",
@@ -862,7 +885,9 @@
 			"CustomSkills": "Custom Skills",
 			"CustomSkillsHint": "Comma-separated list of custom skill names available for all adventurers (e.g. Herbalism, Cooking, Diplomacy).",
 			"RandomizeCreatureHP": "Randomize Creature HP",
-			"RandomizeCreatureHPHint": "When placing an unlinked creature token on the canvas, roll the creature's HP dice to randomize its hit points."
+			"RandomizeCreatureHPHint": "When placing an unlinked creature token on the canvas, roll the creature's HP dice to randomize its hit points.",
+			"AutomatedKillLog": "Automated Kill Log",
+			"AutomatedKillLogHint": "Automatically record defeated creatures (HP drops to 0) in the kill log for XP distribution."
 		},
 		"Welcome": {
 			"Title": "Welcome to Dolmenwood VTT!",
@@ -886,6 +911,13 @@
 			"AlreadyInParty": "This character is already in the party.",
 			"NoMembers": "No party members to distribute to.",
 			"XPAmount": "Total XP to distribute",
+			"XPModeManual": "Manual",
+			"XPModeAuto": "From Treasure",
+			"XPModeCreatures": "From Creatures",
+			"XPAutoLabel": "Party new treasure total",
+			"XPCreatureTotal": "Total",
+			"XPCreatureDropHint": "Drop creatures here to add",
+			"XPCreatureRecorded": "{name} ({xp} XP) added to kill log.",
 			"DistributeHint": "Split evenly among {count} party members.",
 			"XPDistributed": "{amount} XP distributed among {count} party members.",
 			"CoinsDistributed": "{coins} each distributed to {count} party members.",

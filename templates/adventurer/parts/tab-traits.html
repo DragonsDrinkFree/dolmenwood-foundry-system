@@ -1,6 +1,7 @@
 <section class="tab-content tab-traits {{tab.cssClass}}" data-group="primary" data-tab="traits">
 	{{#if isKindredClass}}
 	<!-- Kindred-Class Traits (replaces both kindred and class traits) -->
+	{{#if hasKindredClassTraits}}
 	<section class="kindred-class-traits boxed-section">
 		<h2>{{kindredClassName}} {{localize "DOLMEN.Traits.Title"}}</h2>
 		<section class="two-columns traits-grid">
@@ -11,11 +12,12 @@
 					{{#if this.value}}
 					<span class="trait-value">{{this.value}}</span>
 					{{/if}}
-					{{#if this.rollable}}
+					{{#if this.rollable}}{{#unless this.hasUsageTracking}}
 					<i class="fa fa-dice-d20 rollable" data-trait-id="{{this.id}}" data-roll-formula="{{this.rollFormula}}" data-trait-name="{{this.name}}" data-roll-target="{{this.rollTarget}}"></i>
-					{{/if}}
+					{{/unless}}{{/if}}
+					<a class="trait-share-btn" data-trait-name="{{this.name}}" data-trait-desc="{{this.description}}" data-trait-value="{{this.value}}" {{#if this.hasUsageTracking}}data-trait-id="{{this.id}}" data-max-uses="{{this.maxUses}}" data-usage-frequency="{{this.usageFrequency}}"{{/if}}><i class="fa-solid fa-comment-dots"></i></a>
 				</h3>
-				<p>{{this.description}}</p>
+				<p>{{{this.description}}}</p>
 				{{#if this.hasUsageTracking}}
 				<div class="trait-usage">
 					<span class="usage-label">{{this.usageFrequency}}:</span>
@@ -25,14 +27,17 @@
 						{{/each}}
 					</div>
 					<span class="uses-remaining">({{this.usesRemaining}} {{localize "DOLMEN.Traits.Remaining"}})</span>
+					<a class="trait-invoke-btn" data-trait-id="{{this.id}}" data-trait-name="{{this.name}}" data-trait-desc="{{this.description}}" data-trait-value="{{this.value}}" data-max-uses="{{this.maxUses}}" data-usage-frequency="{{this.usageFrequency}}" {{#if this.rollable}}data-roll-formula="{{this.rollFormula}}" data-roll-target="{{this.rollTarget}}"{{/if}} title="{{this.name}}"><i class="fas fa-sparkles"></i></a>
 				</div>
 				{{/if}}
 			</section>
 			{{/each}}
 		</section>
 	</section>
+	{{/if}}
 	{{else}}
 	<!-- Kindred Traits -->
+	{{#if hasKindredTraits}}
 	<section class="kindred-traits boxed-section">
 		<h2>{{kindredName}} {{localize "DOLMEN.Traits.Title"}}</h2>
 		<section class="two-columns traits-grid">
@@ -43,11 +48,12 @@
 					{{#if this.value}}
 					<span class="trait-value">{{this.value}}</span>
 					{{/if}}
-					{{#if this.rollable}}
+					{{#if this.rollable}}{{#unless this.hasUsageTracking}}
 					<i class="fa fa-dice-d20 rollable" data-trait-id="{{this.id}}" data-roll-formula="{{this.rollFormula}}" data-trait-name="{{this.name}}" data-roll-target="{{this.rollTarget}}"></i>
-					{{/if}}
+					{{/unless}}{{/if}}
+					<a class="trait-share-btn" data-trait-name="{{this.name}}" data-trait-desc="{{this.description}}" data-trait-value="{{this.value}}" {{#if this.hasUsageTracking}}data-trait-id="{{this.id}}" data-max-uses="{{this.maxUses}}" data-usage-frequency="{{this.usageFrequency}}"{{/if}}><i class="fa-solid fa-comment-dots"></i></a>
 				</h3>
-				<p>{{this.description}}</p>
+				<p>{{{this.description}}}</p>
 				{{#if this.hasUsageTracking}}
 				<div class="trait-usage">
 					<span class="usage-label">{{this.usageFrequency}}:</span>
@@ -57,14 +63,17 @@
 						{{/each}}
 					</div>
 					<span class="uses-remaining">({{this.usesRemaining}} {{localize "DOLMEN.Traits.Remaining"}})</span>
+					<a class="trait-invoke-btn" data-trait-id="{{this.id}}" data-trait-name="{{this.name}}" data-trait-desc="{{this.description}}" data-trait-value="{{this.value}}" data-max-uses="{{this.maxUses}}" data-usage-frequency="{{this.usageFrequency}}" {{#if this.rollable}}data-roll-formula="{{this.rollFormula}}" data-roll-target="{{this.rollTarget}}"{{/if}} title="{{this.name}}"><i class="fas fa-sparkles"></i></a>
 				</div>
 				{{/if}}
 			</section>
 			{{/each}}
 		</section>
 	</section>
+	{{/if}}
 
 	<!-- Class Traits -->
+	{{#if hasClassTraits}}
 	<section class="class-traits boxed-section">
 		<h2>{{className}} {{localize "DOLMEN.Traits.Title"}}</h2>
 		<section class="two-columns traits-grid">
@@ -75,11 +84,12 @@
 					{{#if this.value}}
 					<span class="trait-value">{{this.value}}</span>
 					{{/if}}
-					{{#if this.rollable}}
+					{{#if this.rollable}}{{#unless this.hasUsageTracking}}
 					<i class="fa fa-dice-d20 rollable" data-trait-id="{{this.id}}" data-roll-formula="{{this.rollFormula}}" data-trait-name="{{this.name}}" data-roll-target="{{this.rollTarget}}"></i>
-					{{/if}}
+					{{/unless}}{{/if}}
+					<a class="trait-share-btn" data-trait-name="{{this.name}}" data-trait-desc="{{this.description}}" data-trait-value="{{this.value}}" {{#if this.hasUsageTracking}}data-trait-id="{{this.id}}" data-max-uses="{{this.maxUses}}" data-usage-frequency="{{this.usageFrequency}}"{{/if}}><i class="fa-solid fa-comment-dots"></i></a>
 				</h3>
-				<p>{{this.description}}</p>
+				<p>{{{this.description}}}</p>
 				{{#if this.hasUsageTracking}}
 				<div class="trait-usage">
 					<span class="usage-label">{{this.usageFrequency}}:</span>
@@ -89,12 +99,14 @@
 						{{/each}}
 					</div>
 					<span class="uses-remaining">({{this.usesRemaining}} {{localize "DOLMEN.Traits.Remaining"}})</span>
+					<a class="trait-invoke-btn" data-trait-id="{{this.id}}" data-trait-name="{{this.name}}" data-trait-desc="{{this.description}}" data-trait-value="{{this.value}}" data-max-uses="{{this.maxUses}}" data-usage-frequency="{{this.usageFrequency}}" {{#if this.rollable}}data-roll-formula="{{this.rollFormula}}" data-roll-target="{{this.rollTarget}}"{{/if}} title="{{this.name}}"><i class="fas fa-sparkles"></i></a>
 				</div>
 				{{/if}}
 			</section>
 			{{/each}}
 		</section>
 	</section>
+	{{/if}}
 	{{/if}}
 
 	<!-- Custom Sections (Combat Talents, Holy Orders, etc.) -->
@@ -111,7 +123,7 @@
 					</select>
 				</div>
 				{{#if this.description}}
-				<p>{{this.description}}</p>
+				<p>{{{this.description}}}</p>
 				{{/if}}
 			</section>
 			{{/each}}

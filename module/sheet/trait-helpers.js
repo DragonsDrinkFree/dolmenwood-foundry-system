@@ -5,6 +5,8 @@
  * All functions receive the actor as a parameter.
  */
 
+import { parseSaveLinks } from '../chat-save.js'
+
 /**
  * Resolve damage from a damageProgression array for a given level.
  * The array should contain { minLevel, damage } entries sorted by minLevel ascending.
@@ -250,7 +252,7 @@ function prepareTrait(actor, trait, level) {
 	const prepared = {
 		id: trait.id,
 		name: game.i18n.localize(trait.nameKey),
-		description: game.i18n.localize(trait.descKey),
+		description: parseSaveLinks(game.i18n.localize(trait.descKey)),
 		rollable: trait.rollable || false,
 		rollFormula: trait.rollFormula || null,
 		rollTarget: trait.rollTarget || null,
@@ -443,7 +445,7 @@ export function buildCustomSections(actor) {
 				slots.push({
 					index: i,
 					selected: selectedId,
-					description: child ? game.i18n.localize(child.descKey) : ''
+					description: child ? parseSaveLinks(game.i18n.localize(child.descKey)) : ''
 				})
 			}
 		} else {
@@ -451,7 +453,7 @@ export function buildCustomSections(actor) {
 			const child = childTraits.find(t => t.id === selectedId)
 			slots.push({
 				selected: selectedId,
-				description: child ? game.i18n.localize(child.descKey) : ''
+				description: child ? parseSaveLinks(game.i18n.localize(child.descKey)) : ''
 			})
 		}
 

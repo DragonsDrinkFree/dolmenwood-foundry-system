@@ -164,11 +164,23 @@
 	line-height: 1rem;
 	align-items: center;
 	background-color: var(--dolmen-color-header-magic);
+	position: relative;
 }
 
 .sheet.dolmen .tab-magic .spell-list-header .rank-label {
 	text-align: left;
 }
+
+.sheet.dolmen .tab-magic .spell-list-header .slot-usage-label {
+	position: absolute;
+	right: 0.5rem;
+	top: 50%;
+	transform: translateY(-50%);
+	font-size: 0.65rem;
+	font-weight: normal;
+	color: var(--dolmen-color-text-muted);
+}
+
 
 /* Spell Rows */
 .sheet.dolmen .tab-magic .spell-row {

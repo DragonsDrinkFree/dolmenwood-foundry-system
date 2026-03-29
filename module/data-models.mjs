@@ -140,11 +140,11 @@ function createMovementAdjustmentsSchema() {
  */
 function createMagicAdjustmentsSchema() {
 	const arcaneSlots = {}
-	for (let i = 1; i <= 6; i++) {
+	for (let i = 0; i <= 6; i++) {
 		arcaneSlots[`rank${i}`] = createAdjustmentField()
 	}
 	const holySlots = {}
-	for (let i = 1; i <= 5; i++) {
+	for (let i = 0; i <= 5; i++) {
 		holySlots[`rank${i}`] = createAdjustmentField()
 	}
 	return new SchemaField({
@@ -193,18 +193,18 @@ function createAdjustmentsSchema() {
 function createSpellSlotField() {
 	return new SchemaField({
 		max: new NumberField({ required: true, integer: true, min: 0, initial: 0 }),
-		used: new NumberField({ required: true, integer: true, min: 0, initial: 0 }),
 		// Array of spell item IDs that are memorized in these slots
 		memorized: new ArrayField(new StringField({ blank: false }), { initial: [] })
 	})
 }
 
 /**
- * Create arcane magic spell slots schema (ranks 1-6).
+ * Create arcane magic spell slots schema (ranks 0-6).
  * @returns {SchemaField} Schema containing all arcane spell slot ranks
  */
 function createArcaneSpellSlotsSchema() {
 	return new SchemaField({
+		rank0: createSpellSlotField(),
 		rank1: createSpellSlotField(),
 		rank2: createSpellSlotField(),
 		rank3: createSpellSlotField(),
@@ -215,11 +215,12 @@ function createArcaneSpellSlotsSchema() {
 }
 
 /**
- * Create holy magic spell slots schema (ranks 1-5).
+ * Create holy magic spell slots schema (ranks 0-5).
  * @returns {SchemaField} Schema containing all holy spell slot ranks
  */
 function createHolySpellSlotsSchema() {
 	return new SchemaField({
+		rank0: createSpellSlotField(),
 		rank1: createSpellSlotField(),
 		rank2: createSpellSlotField(),
 		rank3: createSpellSlotField(),
@@ -386,14 +387,14 @@ export class AdventurerDataModel extends ActorDataModel {
 
 		// Apply magic slot adjustments
 		if (this.arcaneMagic.enabled) {
-			for (let i = 1; i <= 6; i++) {
+			for (let i = 0; i <= 6; i++) {
 				const key = `rank${i}`
 				this.arcaneMagic.spellSlots[key].max = Math.max(0,
 					this.arcaneMagic.spellSlots[key].max + (magicAdj.arcaneSlots[key] || 0))
 			}
 		}
 		if (this.holyMagic.enabled) {
-			for (let i = 1; i <= 5; i++) {
+			for (let i = 0; i <= 5; i++) {
 				const key = `rank${i}`
 				this.holyMagic.spellSlots[key].max = Math.max(0,
 					this.holyMagic.spellSlots[key].max + (magicAdj.holySlots[key] || 0))
@@ -442,6 +443,9 @@ export class AdventurerDataModel extends ActorDataModel {
 				value: new NumberField({ required: true, integer: true, min: 0, initial: 0 }),
 				nextLevel: new NumberField({ required: true, integer: true, min: 0, initial: 2000 })
 			}),
+
+			// Banked gold value (coins already awarded XP)
+			bankedGold: new NumberField({ required: true, min: 0, initial: 0 }),
 
 			// Magic Resistance (computed from WIS mod + kindred bonus + adjustments)
 			magicResistance: new NumberField({ required: true, integer: true, initial: 0 }),
@@ -1060,7 +1064,8 @@ export class TreasureDataModel extends GearDataModel {
 			charges: new SchemaField({
 				max: new NumberField({ required: true, integer: true, min: 0, initial: 0 }),
 				value: new NumberField({ required: true, integer: true, min: 0, initial: 0 })
-			})
+			}),
+			banked: new BooleanField({ required: true, initial: false })
 		}
 	}
 }
@@ -1192,7 +1197,7 @@ export class SpellDataModel extends ItemDataModel {
 			rank: new NumberField({
 				required: true,
 				integer: true,
-				min: 1,
+				min: 0,
 				max: 6,
 				initial: 1
 			}),
@@ -1207,11 +1212,11 @@ export class HolySpellDataModel extends SpellDataModel {
 	static defineSchema() {
 		return {
 			...super.defineSchema(),
-			// Holy spell rank (1-5)
+			// Holy spell rank (0-5)
 			rank: new NumberField({
 				required: true,
 				integer: true,
-				min: 1,
+				min: 0,
 				max: 5,
 				initial: 1
 			}),

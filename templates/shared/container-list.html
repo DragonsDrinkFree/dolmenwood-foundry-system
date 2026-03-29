@@ -4,7 +4,7 @@
 	<div class="container-header" data-action="toggleContainer" data-container-id="{{this.id}}">
 		<i class="fas fa-chevron-down container-toggle"></i>
 		<img src="{{this.img}}" class="item-image">
-		<span class="container-name">{{this.name}} {{#unless (eq @root.encumbranceMethod "disabled")}}<span class="container-capacity">(<i class="fas fa-weight-hanging"></i> {{#if this.infiniteCapacity}}{{this.coinsUsed}}{{else}}{{this.coinsUsed}}/{{this.coinsMax}}{{/if}})</span>{{/unless}}</span>
+		<span class="container-name">{{this.name}} {{#if (or this.coinsUsed this.treasureGold)}}<span class="container-capacity">({{#if this.coinsUsed}}<i class="fas fa-weight-hanging"></i> {{#if this.infiniteCapacity}}{{this.coinsUsed}}{{else}}{{this.coinsUsed}}/{{this.coinsMax}}{{/if}}{{/if}}{{#if this.treasureGold}}<i class="fa-duotone fa-light fa-coin capacity-gold coin-icon coin-gold"></i> {{this.treasureGold}}{{/if}})</span>{{/if}}</span>
 		<span class="item-controls">
 			<a class="item-control" data-action="openItem" data-item-id="{{this.id}}" title="{{localize 'DOLMEN.Edit'}}">
 				<i class="fas fa-pen-to-square"></i>
@@ -35,7 +35,7 @@
 	<div class="container-header" data-action="toggleContainer">
 		<i class="fas fa-chevron-down container-toggle"></i>
 		<i class="fa-solid fa-ellipsis"></i>
-		<span class="container-name">{{localize "DOLMEN.Inventory.Unsorted"}} {{#unless (eq @root.encumbranceMethod "disabled")}}<span class="container-capacity">(<i class="fas fa-weight-hanging"></i> {{unsortedWeight}})</span>{{/unless}}</span>
+		<span class="container-name">{{localize "DOLMEN.Inventory.Unsorted"}} {{#if (or unsortedWeight unsortedTreasureGold)}}<span class="container-capacity">({{#if unsortedWeight}}<i class="fas fa-weight-hanging"></i> {{unsortedWeight}}{{/if}}{{#if unsortedTreasureGold}}<i class="fa-duotone fa-light fa-coin capacity-gold coin-icon coin-gold"></i> {{unsortedTreasureGold}}{{/if}})</span>{{/if}}</span>
 		<span class="item-controls"></span>
 	</div>
 	<div class="container-contents">

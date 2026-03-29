@@ -17,14 +17,14 @@ import {
 } from './sheet/trait-helpers.js'
 import {
 	setupTabListeners, setupXPListener, setupLevelListeners, setupCoinListener,
-	setupPortraitPicker, setupSkillListeners, setupAttackListeners,
+	setupPortraitPicker, setupSkillListeners, setupAttackListeners, setupInventoryWeaponAttackListeners,
 	setupAbilityRollListeners, setupSaveRollListeners,
 	setupSkillRollListeners, setupUnitConversionListeners, setupLanguagesListener,
 	setupDetailsRollListeners, setupExtraDetailsRollListeners,
 	setupBackgroundRollListener, setupNameRollListener,
 	setupTraitListeners, setupAdjustableInputListeners,
 	setupRuneUsageListeners, setupKnackUsageListeners,
-	setupChargesListeners
+	setupChargesListeners, setupTreasureBankToggle
 } from './sheet/listeners.js'
 import { openAddSkillDialog, removeSkill } from './sheet/dialogs.js'
 import { createContextMenu } from './sheet/context-menu.js'
@@ -111,7 +111,8 @@ class DolmenSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 			setExhaustion: DolmenSheet._onSetExhaustion,
 			toggleContainer: onToggleContainer,
 			removeFromContainer: onRemoveFromContainer,
-			addInventoryItem: DolmenSheet._onAddInventoryItem
+			addInventoryItem: DolmenSheet._onAddInventoryItem,
+			addSpell: DolmenSheet._onAddSpell
 		}
 	}
 
@@ -302,7 +303,6 @@ class DolmenSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 		context.encumbranceMethod = game.settings.get('dolmenwood', 'encumbranceMethod')
 		context.encumbranceMethodLabel = game.i18n.localize(`DOLMEN.Encumbrance.${context.encumbranceMethod}`)
 		context.inventoryShowEquip = true
-		context.showCoinAdjust = true
 		context.exhaustionValues = [0, -1, -2, -3, -4].map(v => ({
 			value: v,
 			label: v === 0 ? '0' : String(v),
@@ -420,19 +420,32 @@ class DolmenSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 		// Separate containers and build container data for stowed section
 		const containerItems = items.filter(i => i.type === 'Container')
 		const isSlots = context.encumbranceMethod === 'slots'
+		const encDisabled = context.encumbranceMethod === 'disabled'
 		const weightKey = isSlots ? 'weightSlots' : 'weightCoins'
+		const toGold = { cp: 0.01, sp: 0.1, gp: 1, pp: 10 }
+		const treasureItemGold = (i) => {
+			const cost = i.system.cost || 0
+			const qty = i.system.quantity || 1
+			return cost * qty * (toGold[i.system.costDenomination || 'gp'] || 1)
+		}
+		const treasureGold = (items, excludeBanked = false) => items
+			.filter(i => i.type === 'Treasure' && (!excludeBanked || !i.system.banked))
+			.reduce((sum, i) => sum + treasureItemGold(i), 0)
+		const formatGold = v => v % 1 === 0 ? v : parseFloat(v.toFixed(2))
 		context.containers = containerItems.map(c => {
 			const prepared = prepareItemData(c)
 			const contents = allStowedItems.filter(i => i.system.containerId === c.id)
-			const coinsUsed = contents.reduce((sum, i) => sum + calcItemWeight(i, weightKey), 0)
+			const rawCoinsUsed = contents.reduce((sum, i) => sum + calcItemWeight(i, weightKey), 0)
+			const containerGold = treasureGold(contents, true)
 			return {
 				...prepared,
 				contents: groupItemsByType(contents),
 				hasContents: contents.length > 0,
-				coinsUsed,
+				coinsUsed: !encDisabled && rawCoinsUsed ? rawCoinsUsed : null,
 				coinsMax: isSlots ? c.system.capacitySlots : c.system.capacityCoins,
 				infiniteCapacity: c.system.infiniteCapacity,
-				ignoreEncumbrance: c.system.ignoreEncumbrance
+				ignoreEncumbrance: c.system.ignoreEncumbrance,
+				treasureGold: containerGold ? formatGold(containerGold) : null
 			}
 		})
 		context.hasContainers = context.containers.length > 0
@@ -446,13 +459,36 @@ class DolmenSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 		context.stowedByType = groupItemsByType(looseStowedItems)
 		context.hasEquippedItems = equippedItems.length > 0
 		context.hasLooseStowedItems = looseStowedItems.length > 0
-		context.unsortedWeight = looseStowedItems.reduce((sum, i) => sum + calcItemWeight(i, weightKey), 0)
+		const rawUnsortedWeight = looseStowedItems.reduce((sum, i) => sum + calcItemWeight(i, weightKey), 0)
+		context.unsortedWeight = !encDisabled && rawUnsortedWeight ? rawUnsortedWeight : null
+		const unsortedGold = treasureGold(looseStowedItems, true)
+		context.unsortedTreasureGold = unsortedGold ? formatGold(unsortedGold) : null
 		context.hasStowedItems = context.hasLooseStowedItems || context.hasContainers
-		context.equippedWeight = equippedItems.reduce((sum, i) => sum + calcItemWeight(i, weightKey), 0)
+		const rawEquippedWeight = equippedItems.reduce((sum, i) => sum + calcItemWeight(i, weightKey), 0)
+		context.equippedWeight = !encDisabled && rawEquippedWeight ? rawEquippedWeight : null
 		const totalCoins = (actor.system.coins.copper || 0) + (actor.system.coins.silver || 0)
 			+ (actor.system.coins.gold || 0) + (actor.system.coins.pellucidium || 0)
 		const coinsWeight = isSlots ? Math.ceil(totalCoins / 100) : totalCoins
-		context.stowedWeight = allStowedItems.reduce((sum, i) => sum + calcItemWeight(i, weightKey), 0) + coinsWeight
+		const rawStowedWeight = allStowedItems.reduce((sum, i) => sum + calcItemWeight(i, weightKey), 0)
+		context.stowedWeight = !encDisabled && rawStowedWeight ? rawStowedWeight : null
+		context.coinsWeight = !encDisabled && coinsWeight ? coinsWeight : null
+
+		// Compute treasure gold values per section (new/unbanked only for section headers)
+		const equippedTreasureGold = treasureGold(equippedItems, true)
+		const stowedTreasureGold = treasureGold(allStowedItems, true)
+		const coinsGold = (actor.system.coins.copper || 0) * 0.01
+			+ (actor.system.coins.silver || 0) * 0.1
+			+ (actor.system.coins.gold || 0)
+			+ (actor.system.coins.pellucidium || 0) * 10
+		const bankedGold = actor.system.bankedGold || 0
+		const newCoinsGold = Math.max(0, coinsGold - bankedGold)
+		context.equippedTreasureGold = equippedTreasureGold ? formatGold(equippedTreasureGold) : null
+		context.stowedTreasureGold = stowedTreasureGold ? formatGold(stowedTreasureGold) : null
+		context.coinsGold = coinsGold ? formatGold(coinsGold) : null
+		context.newCoinsGold = newCoinsGold ? formatGold(newCoinsGold) : null
+		const totalNewTreasure = equippedTreasureGold + stowedTreasureGold + newCoinsGold
+		context.totalTreasureGold = totalNewTreasure ? formatGold(totalNewTreasure) : 0
+		context.showBankButton = true
 
 		// Prepare magic tab data
 		context.knackTypeChoices = buildChoices('DOLMEN.Magic.Knacks.Types', CHOICE_KEYS.knackTypes)
@@ -477,7 +513,7 @@ class DolmenSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 			6
 		)
 		context.hasKnownArcaneSpells = arcaneSpells.length > 0
-		context.hasMemorizedSlots = context.memorizedArcaneSlots.some(r => r.slots.length > 0)
+		context.hasMemorizedSlots = context.memorizedArcaneSlots.some(r => r.total > 0)
 
 		// Holy magic: known spells and memorized slots
 		context.knownHolySpellsByRank = groupSpellsByRank(holySpells, 5)
@@ -487,7 +523,7 @@ class DolmenSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 			5
 		)
 		context.hasKnownHolySpells = holySpells.length > 0
-		context.hasMemorizedHolySlots = context.memorizedHolySlots.some(r => r.slots.length > 0)
+		context.hasMemorizedHolySlots = context.memorizedHolySlots.some(r => r.total > 0)
 
 		// Fairy magic
 		context.glamourSpells = glamourSpells.map(s => prepareSpellData(s))
@@ -509,6 +545,7 @@ class DolmenSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 		context.isKindredClass = isKindredClass(actor)
 		if (context.isKindredClass) {
 			context.kindredClassTraits = prepareKindredClassTraits(actor)
+			context.hasKindredClassTraits = context.kindredClassTraits.length > 0
 			// For kindred-classes, use the localized class name (e.g., "Elf", "Grimalkin")
 			const kcClassItem = actor.getClassItem()
 			const kcClassId = kcClassItem?.system?.classId
@@ -516,6 +553,8 @@ class DolmenSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 		} else {
 			context.kindredTraits = prepareKindredTraits(actor)
 			context.classTraits = prepareClassTraits(actor)
+			context.hasKindredTraits = context.kindredTraits.length > 0
+			context.hasClassTraits = context.classTraits.length > 0
 			// kindredName and className are already set earlier from embedded items
 		}
 
@@ -525,6 +564,10 @@ class DolmenSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 		// Read precomputed final values from prepareDerivedData
 		context.encumbrance = actor.system.encumbranceResult || { current: 0, max: 0, speed: null }
 		context.adjusted = actor.system.final || {}
+		const encSpeed = context.encumbrance.speed
+		const encSpeedVal = encSpeed !== null && encSpeed !== undefined ? encSpeed : 40
+		context.encumbranceSpeed = encSpeedVal
+		context.isEncumbered = encSpeedVal < 40
 
 		// Compute XP modifier from prime abilities + custom adjustment
 		const baseXPMod = computeXPModifier(actor, context.adjusted.abilities)
@@ -636,6 +679,7 @@ class DolmenSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 		setupPortraitPicker(this)
 		setupSkillListeners(this)
 		setupAttackListeners(this)
+		setupInventoryWeaponAttackListeners(this)
 		setupAbilityRollListeners(this)
 		setupSaveRollListeners(this)
 		setupSkillRollListeners(this)
@@ -649,6 +693,7 @@ class DolmenSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 		setupRuneUsageListeners(this)
 		setupKnackUsageListeners(this)
 		setupChargesListeners(this)
+		setupTreasureBankToggle(this)
 		setupAdjustableInputListeners(this)
 
 		// Setup kindred and class select listeners
@@ -848,14 +893,14 @@ class DolmenSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 		const rankKey = target.dataset.rankKey
 
 		// For arcane/holy memorized spells: remove from slot and increment used
-		if (spellType && !isNaN(slotIndex) && rankKey) {
+		// Rank 0 spells (cantrips) are not removed from slots on use
+		if (spellType && !isNaN(slotIndex) && rankKey && rankKey !== 'rank0') {
 			const magicPath = spellType === 'holy' ? 'holyMagic' : 'arcaneMagic'
 			const slotData = this.actor.system[magicPath].spellSlots[rankKey]
 			const memorized = [...(slotData.memorized || [])]
 			memorized[slotIndex] = null
 			await this.actor.update({
-				[`system.${magicPath}.spellSlots.${rankKey}.memorized`]: memorized,
-				[`system.${magicPath}.spellSlots.${rankKey}.used`]: slotData.used + 1
+				[`system.${magicPath}.spellSlots.${rankKey}.memorized`]: memorized
 			})
 		}
 
@@ -977,6 +1022,42 @@ class DolmenSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 			}
 		})
 		// Reposition: align right edge of menu with right edge of button
+		const menuRect = menu.getBoundingClientRect()
+		menu.style.left = `${rect.right - menuRect.width}px`
+	}
+
+	static _onAddSpell(event, target) {
+		const spellType = target.dataset.spellType
+		const isHoly = spellType === 'holy'
+		const maxRank = isHoly ? 5 : 6
+		const itemType = isHoly ? 'HolySpell' : 'Spell'
+		const cantripLabel = game.i18n.localize('DOLMEN.Magic.Cantrips')
+
+		const ranks = []
+		for (let i = 0; i <= maxRank; i++) {
+			const label = i === 0 ? cantripLabel : `${game.i18n.localize('DOLMEN.Magic.SpellRank')} ${i}`
+			ranks.push({ rank: i, label })
+		}
+
+		const html = ranks.map(r =>
+			`<div class="weapon-menu-item" data-rank="${r.rank}"><span class="weapon-name">${r.label}</span></div>`
+		).join('')
+
+		const rect = target.getBoundingClientRect()
+		const menu = createContextMenu(this, {
+			html,
+			position: { top: rect.bottom, left: rect.right },
+			menuClass: 'dolmen-add-item-menu',
+			itemSelector: '.weapon-menu-item',
+			onItemClick: async (menuItem, m) => {
+				const rank = parseInt(menuItem.dataset.rank)
+				const name = game.i18n.localize(`TYPES.Item.${itemType}`)
+				const itemData = { name, type: itemType, system: { rank } }
+				const created = await this.actor.createEmbeddedDocuments('Item', [itemData])
+				m.remove()
+				if (created?.[0]) created[0].sheet.render(true)
+			}
+		})
 		const menuRect = menu.getBoundingClientRect()
 		menu.style.left = `${rect.right - menuRect.width}px`
 	}

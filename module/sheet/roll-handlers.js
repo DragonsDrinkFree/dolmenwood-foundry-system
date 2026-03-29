@@ -529,3 +529,69 @@ export async function rollTrait(sheet, traitId, traitName, formula, rollTarget =
 		style: CONST.CHAT_MESSAGE_STYLES.OTHER
 	})
 }
+
+/**
+ * Post a trait to chat (name + description), optionally with a roll.
+ * @param {DolmenSheet} sheet - The sheet instance
+ * @param {object} options - Trait options
+ * @param {string} options.name - Display name of the trait
+ * @param {string} options.desc - Description text of the trait
+ * @param {string} [options.value] - Trait value badge (e.g. "1d6")
+ * @param {string} [options.mode='shared'] - 'shared' or 'used'
+ * @param {string|null} [options.formula] - Dice formula to roll
+ * @param {number|null} [options.rollTarget] - Success target for chance rolls
+ * @param {number|null} [options.usesRemaining] - Remaining uses after this use
+ * @param {string|null} [options.usageFrequency] - Usage frequency label (e.g. "1/day")
+ */
+export async function useTrait(sheet, { name, desc, value = null, mode = 'shared', formula = null, rollTarget = null, usesRemaining = null, usageFrequency = null } = {}) {
+	let rollSection = ''
+	let sound = null
+
+	if (formula) {
+		const roll = new Roll(formula)
+		await roll.evaluate()
+
+		let resultHtml = ''
+		if (rollTarget !== null && !isNaN(rollTarget)) {
+			const isSuccess = roll.total <= rollTarget
+			const resultClass = isSuccess ? 'success' : 'failure'
+			const resultLabel = isSuccess
+				? game.i18n.localize('DOLMEN.Roll.Success')
+				: game.i18n.localize('DOLMEN.Roll.Failure')
+			resultHtml = `<span class="roll-label ${resultClass}">${resultLabel}</span>`
+		}
+
+		const diceIconClass = getDieIconFromFormula(formula)
+		rollSection = `
+			<div class="roll-result ${diceIconClass}">
+				${(await roll.toAnchor({ classes: ['trait-inline-roll'] })).outerHTML}
+				${resultHtml}
+			</div>
+			<span class="roll-breakdown">${formula}${rollTarget !== null ? ` (${rollTarget} ${game.i18n.localize('DOLMEN.Roll.OrLess')})` : ''}</span>
+		`
+		sound = CONFIG.sounds.dice
+	}
+
+	const valueBadge = value ? `<span class="trait-badge">${value}</span>` : ''
+	const usageHtml = usesRemaining !== null
+		? `<span class="trait-chat-usage">${usageFrequency || ''} (${usesRemaining} ${game.i18n.localize('DOLMEN.Traits.Remaining')})</span>`
+		: ''
+
+	const chatContent = `
+		<div class="dolmen trait-roll">
+			<div class="trait-header">
+				<h3>${name}${valueBadge}</h3>
+			</div>
+			<p class="trait-chat-desc">${desc}</p>
+			${rollSection}
+			${usageHtml}
+		</div>
+	`
+
+	await ChatMessage.create({
+		speaker: ChatMessage.getSpeaker({ actor: sheet.actor }),
+		content: chatContent,
+		sound,
+		style: mode === 'shared' ? CONST.CHAT_MESSAGE_STYLES.OOC : CONST.CHAT_MESSAGE_STYLES.OTHER
+	})
+}

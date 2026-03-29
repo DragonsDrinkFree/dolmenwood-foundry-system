@@ -208,7 +208,7 @@
 						<div class="adj-subgroup-row">
 							{{#each system.adjustments.magic.arcaneSlots}}
 							<div class="adj-row">
-								<span class="adj-label">{{add @index 1}}</span>
+								<span class="adj-label">{{@index}}</span>
 								<input type="number" name="system.adjustments.magic.arcaneSlots.{{@key}}" value="{{this}}" placeholder="0">
 							</div>
 							{{/each}}
@@ -219,7 +219,7 @@
 						<div class="adj-subgroup-row">
 							{{#each system.adjustments.magic.holySlots}}
 							<div class="adj-row">
-								<span class="adj-label">{{add @index 1}}</span>
+								<span class="adj-label">{{@index}}</span>
 								<input type="number" name="system.adjustments.magic.holySlots.{{@key}}" value="{{this}}" placeholder="0">
 							</div>
 							{{/each}}

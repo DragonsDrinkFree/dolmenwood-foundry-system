@@ -12,7 +12,7 @@ import DolmenActor from './module/dolmen-actor.js'
 import DolmenItem from './module/dolmen-item.js'
 import { AdventurerDataModel, CreatureDataModel, HorseDataModel, VehicleDataModel, GearDataModel, ContainerDataModel, TreasureDataModel, WeaponDataModel, SpellDataModel, HolySpellDataModel, ArmorDataModel, ForagedDataModel, GlamourDataModel, RuneDataModel, KindredDataModel, ClassDataModel } from './module/data-models.mjs'
 import { setupDamageContextMenu } from './module/chat-damage.js'
-import { createSaveLinkEnricher, openInlineSaveModifierPanel } from './module/chat-save.js'
+import { createSaveLinkEnricher, createChanceLinkEnricher, openInlineSaveModifierPanel, rollChance } from './module/chat-save.js'
 import WelcomeDialog from './module/welcome-dialog.js'
 import { initCalendarWidget, toggleWidget, handleCalendarSocket } from './module/calendar/calendar-widget.js'
 import { worldTimeToCalendar, dateKeyToEpochDay } from './module/calendar/calendar-time.js'
@@ -21,6 +21,7 @@ import { registerCombatSystem } from './module/combat/combat.js'
 import { initDungeonTracker, toggleDungeonTracker, onLightSourcesChanged, onTrackerPausedChanged, onTurnCounterChanged } from './module/dungeon-tracker/dungeon-tracker.js'
 import { initPartyViewer, togglePartyViewer, onPartyMembersChanged } from './module/party-viewer/party-viewer.js'
 import { openCreatureImportDialog } from './module/creature-importer.js'
+import { executeMacroAttack } from './module/attack-macros.js'
 
 const { Actors, Items } = foundry.documents.collections
 
@@ -57,6 +58,7 @@ Hooks.on('initializeDynamicTokenRingConfig', ringConfig => {
 
 Hooks.once('init', async function () {
 	CONFIG.DOLMENWOOD = DOLMENWOOD
+	game.dolmenwood = { executeMacroAttack }
 
 	game.settings.register('dolmenwood', 'colorTheme', {
 		name: 'DOLMEN.Settings.ColorTheme',
@@ -114,6 +116,22 @@ Hooks.once('init', async function () {
 		type: Array,
 		default: [],
 		onChange: onPartyMembersChanged
+	})
+
+	game.settings.register('dolmenwood', 'defeatedCreatures', {
+		scope: 'world',
+		config: false,
+		type: Array,
+		default: []
+	})
+
+	game.settings.register('dolmenwood', 'automatedKillLog', {
+		name: 'DOLMEN.Settings.AutomatedKillLog',
+		hint: 'DOLMEN.Settings.AutomatedKillLogHint',
+		scope: 'world',
+		config: true,
+		type: Boolean,
+		default: true
 	})
 
 	game.settings.register('dolmenwood', 'encounterChance', {
@@ -184,10 +202,14 @@ Hooks.once('init', async function () {
 	// Register combat system (group initiative, tracker, declarations)
 	registerCombatSystem()
 
-	// Register custom text enricher for save links: [text](save:saveKey)
+	// Register custom text enrichers for save links and chance links
 	CONFIG.TextEditor.enrichers.push({
 		pattern: /\[([^\]]+)\]\(save:(\w+)\)/g,
 		enricher: createSaveLinkEnricher
+	})
+	CONFIG.TextEditor.enrichers.push({
+		pattern: /\[([^\]]+)\]\(chance:(\d+)\)/g,
+		enricher: createChanceLinkEnricher
 	})
 
 	// Register Handlebars helpers
@@ -526,6 +548,47 @@ Hooks.on('createToken', async (tokenDoc) => {
 	})
 })
 
+// Track defeated creatures for XP distribution
+function recordDefeatedCreature(actor) {
+	const list = game.settings.get('dolmenwood', 'defeatedCreatures').slice()
+	const existing = list.find(e => e.name === actor.name)
+	if (existing) {
+		existing.qty += 1
+	} else {
+		list.push({
+			name: actor.name,
+			xp: actor.system.xpAward || 0,
+			img: actor.img,
+			qty: 1
+		})
+	}
+	game.settings.set('dolmenwood', 'defeatedCreatures', list)
+	ui.notifications.info(game.i18n.format('DOLMEN.PartyViewer.XPCreatureRecorded', {
+		name: actor.name,
+		xp: actor.system.xpAward || 0
+	}))
+}
+
+Hooks.on('preUpdateActor', (actor, changes) => {
+	if (!game.user.isGM || actor.type !== 'Creature') return
+	if (!game.settings.get('dolmenwood', 'automatedKillLog')) return
+	const newHP = changes?.system?.hp?.value
+	if (newHP === undefined || newHP > 0) return
+	if (actor.system.hp.value <= 0) return
+	recordDefeatedCreature(actor)
+})
+
+Hooks.on('preUpdateToken', (tokenDoc, changes) => {
+	if (!game.user.isGM) return
+	if (!game.settings.get('dolmenwood', 'automatedKillLog')) return
+	if (tokenDoc.actorLink) return
+	if (tokenDoc.actor?.type !== 'Creature') return
+	const newHP = changes?.delta?.system?.hp?.value
+	if (newHP === undefined || newHP > 0) return
+	if (tokenDoc.actor.system.hp.value <= 0) return
+	recordDefeatedCreature(tokenDoc.actor)
+})
+
 // Refresh rune usage on day change (x/day, x/week, x/year)
 Hooks.on('updateWorldTime', async () => {
 	if (game.user !== game.users.activeGM) return
@@ -638,6 +701,17 @@ document.addEventListener('click', (event) => {
 	if (!saveKey) return
 	const position = { top: event.clientY, left: event.clientX }
 	openInlineSaveModifierPanel(saveKey, position)
+})
+
+// Global delegated listener for inline chance links
+document.addEventListener('click', (event) => {
+	const link = event.target.closest('.inline-chance-link')
+	if (!link) return
+	event.preventDefault()
+	event.stopPropagation()
+	const target = parseInt(link.dataset.target)
+	if (isNaN(target)) return
+	rollChance(target)
 })
 
 // Sync embedded Kindred/Class items when source items are updated (world or compendium)

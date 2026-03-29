@@ -309,13 +309,12 @@ export function computeAdjustedValues(actor, encumbranceSpeed = null) {
  */
 export function prepareSpellSlots(slots, maxRanks) {
 	const result = []
-	for (let i = 1; i <= maxRanks; i++) {
+	for (let i = 0; i <= maxRanks; i++) {
 		const key = `rank${i}`
 		result.push({
 			key,
-			label: game.i18n.localize(`DOLMEN.Magic.SpellRank`)+` ${i}`,
-			max: slots[key]?.max || 0,
-			used: slots[key]?.used || 0
+			label: i === 0 ? game.i18n.localize('DOLMEN.Magic.Cantrips') : game.i18n.localize('DOLMEN.Magic.SpellRank') + ` ${i}`,
+			max: slots[key]?.max || 0
 		})
 	}
 	return result
@@ -385,7 +384,7 @@ export function prepareSpellData(spell) {
 export function groupSpellsByRank(spells, maxRank) {
 	const groups = []
 
-	for (let rank = 1; rank <= maxRank; rank++) {
+	for (let rank = 0; rank <= maxRank; rank++) {
 		const rankSpells = spells
 			.filter(s => s.system.rank === rank)
 			.map(s => prepareSpellData(s))
@@ -394,7 +393,8 @@ export function groupSpellsByRank(spells, maxRank) {
 		if (rankSpells.length > 0) {
 			groups.push({
 				rank,
-				icon: 'fa-'+rank,
+				icon: rank === 0 ? null : 'fa-' + rank,
+				label: rank === 0 ? game.i18n.localize('DOLMEN.Magic.Cantrips') : null,
 				spells: rankSpells
 			})
 		}
@@ -413,7 +413,7 @@ export function groupSpellsByRank(spells, maxRank) {
 export function prepareMemorizedSlots(slotsData, knownSpells, maxRank) {
 	const result = []
 
-	for (let rank = 1; rank <= maxRank; rank++) {
+	for (let rank = 0; rank <= maxRank; rank++) {
 		const key = `rank${rank}`
 		const slotData = slotsData[key] || { max: 0, memorized: [] }
 		const maxSlots = slotData.max || 0
@@ -451,11 +451,18 @@ export function prepareMemorizedSlots(slotsData, knownSpells, maxRank) {
 			}
 		}
 
+		const filledSlots = slots.filter(s => s.filled)
+		const firstEmpty = slots.find(s => !s.filled)
 		result.push({
 			rank,
 			key,
-			icon: 'fa-' + rank,
-			slots
+			icon: rank === 0 ? null : 'fa-' + rank,
+			label: rank === 0 ? game.i18n.localize('DOLMEN.Magic.Cantrips') : null,
+			filledSlots,
+			hasEmpty: !!firstEmpty,
+			firstEmptyIndex: firstEmpty?.index ?? 0,
+			memorized: filledSlots.length,
+			total: maxSlots
 		})
 	}
 
@@ -665,7 +672,8 @@ export function prepareItemData(item) {
 		const cost = item.system.cost || 0
 		const denom = item.system.costDenomination || 'gp'
 		const toGold = { cp: 0.01, sp: 0.1, gp: 1, pp: 10 }
-		const raw = cost * (toGold[denom] || 1)
+		const qty = item.system.quantity || 1
+		const raw = cost * qty * (toGold[denom] || 1)
 		data.valueInGold = raw % 1 === 0 ? raw : parseFloat(raw.toFixed(2))
 	}
 

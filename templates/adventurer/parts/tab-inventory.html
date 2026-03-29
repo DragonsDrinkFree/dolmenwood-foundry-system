@@ -4,12 +4,13 @@
 		<section class="encumbrance boxed-section">
 			<h2><i class="fas fa-weight-hanging"></i> {{localize "DOLMEN.Encumbrance.TitleFull"}}</h2>
 			<div class="encumbrance-grid">
+				{{#unless (eq encumbranceMethod "disabled")}}
 				<div class="encumbrance-stat">
-					<label>{{localize "DOLMEN.Encumbrance.Method"}}</label>
-					<span class="encumbrance-value">{{encumbranceMethodLabel}}</span>
+					<label>{{localize "DOLMEN.Encumbrance.Speed"}}</label>
+					<span class="encumbrance-value {{#if isEncumbered}}adjusted{{/if}}">{{encumbranceSpeed}}</span>
 				</div>
-				{{#if (eq encumbranceMethod "disabled")}}
-				{{else if (eq encumbranceMethod "slots")}}
+				{{/unless}}
+				{{#if (eq encumbranceMethod "slots")}}
 				<div class="encumbrance-stat">
 					<label>{{localize "DOLMEN.Inventory.Equipped"}}</label>
 					<span class="encumbrance-value">{{encumbrance.equipped.current}} / {{encumbrance.equipped.max}}</span>
@@ -19,11 +20,17 @@
 					<span class="encumbrance-value">{{encumbrance.stowed.current}} / {{encumbrance.stowed.max}}</span>
 				</div>
 				{{else}}
+				{{#unless (eq encumbranceMethod "disabled")}}
 				<div class="encumbrance-stat encumbrance-load">
 					<label>{{localize "DOLMEN.Encumbrance.Load"}}</label>
 					<span class="encumbrance-value">{{encumbrance.current}} / {{encumbrance.max}}</span>
 				</div>
+				{{/unless}}
 				{{/if}}
+				<div class="encumbrance-stat">
+					<label>{{localize "DOLMEN.Encumbrance.NewTreasure"}}</label>
+					<span class="encumbrance-value"><i class="fa-duotone fa-light fa-coin coin-icon coin-gold"></i> {{totalTreasureGold}}</span>
+				</div>
 				<div class="encumbrance-stat exhaustion-stat">
 					<label>{{localize "DOLMEN.Exhaustion"}}</label>
 					<div class="exhaustion-buttons">
@@ -37,14 +44,14 @@
 
 		<!-- Coins Section -->
 		<section class="coins boxed-section">
-			<h2><i class="fas fa-coins"></i>{{localize "DOLMEN.Coins.Title"}}</h2>
+			<h2><i class="fas fa-coins"></i>{{localize "DOLMEN.Coins.Title"}} {{#if (or coinsWeight newCoinsGold)}}<span class="container-capacity">({{#if coinsWeight}}<i class="fas fa-weight-hanging"></i> {{coinsWeight}}{{/if}}{{#if newCoinsGold}}<i class="fa-duotone fa-light fa-coin capacity-gold coin-icon coin-gold"></i> {{newCoinsGold}}{{/if}})</span>{{/if}}<button type="button" class="coins-adjust-btn" title="{{localize 'DOLMEN.Coins.AdjustTitle'}}"><i class="fas fa-plus"></i></button></h2>
 			{{> "systems/dolmenwood/templates/shared/coins-grid.html" gridClass="coins-grid"}}
 		</section>
 	</section>
 	<section class="inventory two-columns">
 		<!-- Equipped Items Section -->
 		<section class="equipped-items boxed-section" data-item-list="equipped">
-			<h2><i class="fas fa-person"></i> {{localize "DOLMEN.Inventory.Equipped"}} {{#unless (eq @root.encumbranceMethod "disabled")}}<span class="container-capacity">(<i class="fas fa-weight-hanging"></i> {{equippedWeight}})</span>{{/unless}}<button type="button" class="add-item-btn" data-slot="equipped" data-action="addInventoryItem"><i class="fas fa-plus"></i></button></h2>
+			<h2><i class="fas fa-person"></i> {{localize "DOLMEN.Inventory.Equipped"}} {{#if (or equippedWeight equippedTreasureGold)}}<span class="container-capacity">({{#if equippedWeight}}<i class="fas fa-weight-hanging"></i> {{equippedWeight}}{{/if}}{{#if equippedTreasureGold}}<i class="fa-duotone fa-light fa-coin capacity-gold coin-icon coin-gold"></i> {{equippedTreasureGold}}{{/if}})</span>{{/if}}<button type="button" class="add-item-btn" data-slot="equipped" data-action="addInventoryItem"><i class="fas fa-plus"></i></button></h2>
 			<div class="item-list equipped-list" data-item-list="equipped">
 				{{#if hasEquippedItems}}
 				{{#each equippedByType}}
@@ -62,7 +69,7 @@
 
 		<!-- Stowed Items Section -->
 		<section class="stowed-items boxed-section" data-item-list="stowed">
-			<h2><i class="fas fa-box"></i> {{localize "DOLMEN.Inventory.Stowed"}} {{#unless (eq @root.encumbranceMethod "disabled")}}<span class="container-capacity">(<i class="fas fa-weight-hanging"></i> {{stowedWeight}})</span>{{/unless}}<button type="button" class="add-item-btn" data-slot="stowed" data-action="addInventoryItem"><i class="fas fa-plus"></i></button></h2>
+			<h2><i class="fas fa-box"></i> {{localize "DOLMEN.Inventory.Stowed"}} {{#if (or stowedWeight stowedTreasureGold)}}<span class="container-capacity">({{#if stowedWeight}}<i class="fas fa-weight-hanging"></i> {{stowedWeight}}{{/if}}{{#if stowedTreasureGold}}<i class="fa-duotone fa-light fa-coin capacity-gold coin-icon coin-gold"></i> {{stowedTreasureGold}}{{/if}})</span>{{/if}}<button type="button" class="add-item-btn" data-slot="stowed" data-action="addInventoryItem"><i class="fas fa-plus"></i></button></h2>
 			<div class="item-list stowed-list" data-item-list="stowed">
 				{{> "systems/dolmenwood/templates/shared/container-list.html"}}
 			</div>
