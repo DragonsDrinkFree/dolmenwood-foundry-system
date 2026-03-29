@@ -9,6 +9,7 @@ import { createContextMenu } from './context-menu.js'
 import { getAllActiveTraits, resolveDamageProgression } from './trait-helpers.js'
 import { parseSaveLinks } from '../chat-save.js'
 import { getWeaponTypesForGroup, WEAPON_PROF_GROUPS } from '../utils/choices.js'
+import { createAttackMacro } from '../attack-macros.js'
 
 /* -------------------------------------------- */
 /*  Weapon Helpers                              */
@@ -239,7 +240,7 @@ export function buildAttackChatHtml({ weapon, attackType, attack, damage }) {
  * @param {string} attackType - Either 'melee' or 'missile'
  * @param {object} [options] - Roll options
  */
-async function performAttackRoll(sheet, weapon, attackType, {
+export async function performAttackRoll(sheet, weapon, attackType, {
 	attackOnly = false, damageOnly = false,
 	traitBonus = 0, traitName = null,
 	totalAttackMod = null, damageFormula = null,
@@ -496,7 +497,8 @@ export function openModifierPanel(sheet, weapon, attackMode, position, proficien
 	const rollLabel = game.i18n.localize('DOLMEN.Attack.Roll')
 
 	// Build HTML
-	let html = `<div class="roll-btn"><i class="fas fa-dice-d20"></i> ${rollLabel}</div>`
+	const saveMacroTitle = game.i18n.localize('DOLMEN.Attack.SaveMacro')
+	let html = `<div class="roll-btn-row"><div class="roll-btn"><i class="fas fa-dice-d20"></i> ${rollLabel}</div><div class="save-macro-btn" title="${saveMacroTitle}"><i class="fas fa-bookmark"></i></div></div>`
 
 	// Modifier toggles (if any exist)
 	if (modifiers.length > 0) {
@@ -586,6 +588,32 @@ export function openModifierPanel(sheet, weapon, attackMode, position, proficien
 		panel.remove()
 		document.removeEventListener('click', closePanel)
 		executeMeleeAttack(sheet, weapon, attackMode, selectedModifiers, numericMod, proficient, rollType)
+	})
+
+	// Save as macro button
+	panel.querySelector('.save-macro-btn')?.addEventListener('click', (e) => {
+		e.stopPropagation()
+		const selectedIds = []
+		panel.querySelectorAll('.modifier-item.selected').forEach(item => {
+			selectedIds.push(item.dataset.modId)
+		})
+		const selectedNumBtn = panel.querySelector('.numeric-btn.selected')
+		const numericMod = selectedNumBtn ? parseInt(selectedNumBtn.dataset.numMod) : 0
+		panel.remove()
+		document.removeEventListener('click', closePanel)
+		createAttackMacro({
+			actorId: sheet.actor.id,
+			weaponName: weapon.name,
+			weaponId: weapon.id,
+			weaponImg: weapon.img,
+			attackType: 'melee',
+			attackMode,
+			modifierIds: selectedIds,
+			numericMod,
+			rollType,
+			rangeMod: null,
+			rangeName: null
+		})
 	})
 
 	setTimeout(() => document.addEventListener('click', closePanel), 0)
@@ -833,7 +861,8 @@ export function openMissileModifierPanel(sheet, weapon, position, proficient = t
 	const rollLabel = game.i18n.localize('DOLMEN.Attack.Roll')
 
 	// Build HTML
-	let html = `<div class="roll-btn"><i class="fas fa-dice-d20"></i> ${rollLabel}</div>`
+	const saveMacroTitle = game.i18n.localize('DOLMEN.Attack.SaveMacro')
+	let html = `<div class="roll-btn-row"><div class="roll-btn"><i class="fas fa-dice-d20"></i> ${rollLabel}</div><div class="save-macro-btn" title="${saveMacroTitle}"><i class="fas fa-bookmark"></i></div></div>`
 
 	// Modifier toggles
 	if (modifiers.length > 0) {
@@ -921,6 +950,32 @@ export function openMissileModifierPanel(sheet, weapon, position, proficient = t
 		panel.remove()
 		document.removeEventListener('click', closePanel)
 		executeMissileAttack(sheet, weapon, selectedModifiers, numericMod, proficient, rollType, rangeMod, rangeName)
+	})
+
+	// Save as macro button
+	panel.querySelector('.save-macro-btn')?.addEventListener('click', (e) => {
+		e.stopPropagation()
+		const selectedIds = []
+		panel.querySelectorAll('.modifier-item.selected').forEach(item => {
+			selectedIds.push(item.dataset.modId)
+		})
+		const selectedNumBtn = panel.querySelector('.numeric-btn.selected')
+		const numericMod = selectedNumBtn ? parseInt(selectedNumBtn.dataset.numMod) : 0
+		panel.remove()
+		document.removeEventListener('click', closePanel)
+		createAttackMacro({
+			actorId: sheet.actor.id,
+			weaponName: weapon.name,
+			weaponId: weapon.id,
+			weaponImg: weapon.img,
+			attackType: 'missile',
+			attackMode: null,
+			modifierIds: selectedIds,
+			numericMod,
+			rollType,
+			rangeMod,
+			rangeName
+		})
 	})
 
 	setTimeout(() => document.addEventListener('click', closePanel), 0)

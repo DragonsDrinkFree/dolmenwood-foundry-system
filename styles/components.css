@@ -316,6 +316,15 @@
 	min-width: 220px;
 }
 
+.modifier-panel .roll-btn-row {
+	display: flex;
+	align-items: stretch;
+}
+
+.modifier-panel .roll-btn-row .roll-btn {
+	flex: 1;
+}
+
 .modifier-panel .roll-btn {
 	display: flex;
 	align-items: center;
@@ -334,6 +343,25 @@
 
 .modifier-panel .roll-btn:hover {
 	opacity: 0.85;
+}
+
+.modifier-panel .save-macro-btn {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 32px;
+	cursor: pointer;
+	background-color: var(--dolmen-color-title-background);
+	color: var(--dolmen-color-title);
+	opacity: 0.5;
+	transition: opacity 0.1s;
+	border: none;
+	border-left: 1px solid rgba(255, 255, 255, 0.2);
+	font-size: 0.8rem;
+}
+
+.modifier-panel .save-macro-btn:hover {
+	opacity: 1;
 }
 
 .modifier-panel .menu-separator {

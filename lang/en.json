@@ -648,6 +648,11 @@
 			"Empty": "Empty"
 		},
 		"Attack": {
+			"Title": "Attack",
+			"SaveMacro": "Save as Macro",
+			"MacroNoToken": "No token selected. Select a token to use this attack macro.",
+			"MacroNoWeapon": "This character does not have a weapon named \"{name}\".",
+			"MacroCreated": "Attack macro saved: {name}",
 			"NoWeapon": "No equipped {type} weapon found.",
 			"SelectWeapon": "Select a weapon:",
 			"SelectWeaponTitle": "Choose Weapon",

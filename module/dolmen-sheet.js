@@ -303,7 +303,6 @@ class DolmenSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 		context.encumbranceMethod = game.settings.get('dolmenwood', 'encumbranceMethod')
 		context.encumbranceMethodLabel = game.i18n.localize(`DOLMEN.Encumbrance.${context.encumbranceMethod}`)
 		context.inventoryShowEquip = true
-		context.showCoinAdjust = true
 		context.exhaustionValues = [0, -1, -2, -3, -4].map(v => ({
 			value: v,
 			label: v === 0 ? '0' : String(v),

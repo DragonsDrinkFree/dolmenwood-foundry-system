@@ -21,6 +21,7 @@ import { registerCombatSystem } from './module/combat/combat.js'
 import { initDungeonTracker, toggleDungeonTracker, onLightSourcesChanged, onTrackerPausedChanged, onTurnCounterChanged } from './module/dungeon-tracker/dungeon-tracker.js'
 import { initPartyViewer, togglePartyViewer, onPartyMembersChanged } from './module/party-viewer/party-viewer.js'
 import { openCreatureImportDialog } from './module/creature-importer.js'
+import { executeMacroAttack } from './module/attack-macros.js'
 
 const { Actors, Items } = foundry.documents.collections
 
@@ -57,6 +58,7 @@ Hooks.on('initializeDynamicTokenRingConfig', ringConfig => {
 
 Hooks.once('init', async function () {
 	CONFIG.DOLMENWOOD = DOLMENWOOD
+	game.dolmenwood = { executeMacroAttack }
 
 	game.settings.register('dolmenwood', 'colorTheme', {
 		name: 'DOLMEN.Settings.ColorTheme',
