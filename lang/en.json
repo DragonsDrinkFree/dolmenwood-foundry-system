@@ -885,7 +885,9 @@
 			"CustomSkills": "Custom Skills",
 			"CustomSkillsHint": "Comma-separated list of custom skill names available for all adventurers (e.g. Herbalism, Cooking, Diplomacy).",
 			"RandomizeCreatureHP": "Randomize Creature HP",
-			"RandomizeCreatureHPHint": "When placing an unlinked creature token on the canvas, roll the creature's HP dice to randomize its hit points."
+			"RandomizeCreatureHPHint": "When placing an unlinked creature token on the canvas, roll the creature's HP dice to randomize its hit points.",
+			"AutomatedKillLog": "Automated Kill Log",
+			"AutomatedKillLogHint": "Automatically record defeated creatures (HP drops to 0) in the kill log for XP distribution."
 		},
 		"Welcome": {
 			"Title": "Welcome to Dolmenwood VTT!",

@@ -125,6 +125,15 @@ Hooks.once('init', async function () {
 		default: []
 	})
 
+	game.settings.register('dolmenwood', 'automatedKillLog', {
+		name: 'DOLMEN.Settings.AutomatedKillLog',
+		hint: 'DOLMEN.Settings.AutomatedKillLogHint',
+		scope: 'world',
+		config: true,
+		type: Boolean,
+		default: true
+	})
+
 	game.settings.register('dolmenwood', 'encounterChance', {
 		scope: 'world',
 		config: false,
@@ -562,6 +571,7 @@ function recordDefeatedCreature(actor) {
 
 Hooks.on('preUpdateActor', (actor, changes) => {
 	if (!game.user.isGM || actor.type !== 'Creature') return
+	if (!game.settings.get('dolmenwood', 'automatedKillLog')) return
 	const newHP = changes?.system?.hp?.value
 	if (newHP === undefined || newHP > 0) return
 	if (actor.system.hp.value <= 0) return
@@ -570,6 +580,7 @@ Hooks.on('preUpdateActor', (actor, changes) => {
 
 Hooks.on('preUpdateToken', (tokenDoc, changes) => {
 	if (!game.user.isGM) return
+	if (!game.settings.get('dolmenwood', 'automatedKillLog')) return
 	if (tokenDoc.actorLink) return
 	if (tokenDoc.actor?.type !== 'Creature') return
 	const newHP = changes?.delta?.system?.hp?.value
