@@ -4,25 +4,42 @@ import { computeXPModifier } from '../sheet/data-context.js'
 
 const { DialogV2 } = foundry.applications.api
 
-const RETAINER_SHARES = { quarter: 0.25, half: 0.5, full: 1 }
+const SHARE_VALUES = {
+	none: 0, '1/5': 0.2, '1/4': 0.25, '1/3': 1/3, '2/5': 0.4, '1/2': 0.5,
+	'3/5': 0.6, '2/3': 2/3, '3/4': 0.75, '4/5': 0.8, full: 1
+}
+
 
 /**
- * Get the treasure share weight for an actor.
- * PCs get 1, retainers get their configured share (0.25, 0.5, or 1).
+ * Get the numeric share value for a share key string.
  */
-function getTreasureShare(actor) {
-	const r = actor.system.retainer
-	return r ? (RETAINER_SHARES[r] ?? 0.5) : 1
+function getShareWeight(key) {
+	return SHARE_VALUES[key] ?? 1
 }
 
 /**
- * Get a display label for a retainer's share (e.g. "½ share").
+ * Get the treasure share weight for an actor.
+ * PCs always get full share; retainers use their configured lootShare.
+ */
+function getTreasureShare(actor) {
+	return actor.system.retainer ? getShareWeight(actor.system.lootShare) : 1
+}
+
+/**
+ * Get display label for a retainer's loot share as percentage (e.g. "50%").
  */
 function getRetainerLabel(actor) {
-	const r = actor.system.retainer
-	if (!r) return null
-	const labels = { quarter: '¼', half: '½', full: '1' }
-	return `${labels[r] ?? '½'} share`
+	if (!actor.system.retainer) return null
+	const pct = Math.round(getShareWeight(actor.system.lootShare) * 100)
+	return `${pct}%`
+}
+
+/**
+ * Get the XP share weight for an actor.
+ * PCs always get full share; retainers use their configured xpShare.
+ */
+function getXPShare(actor) {
+	return actor.system.retainer ? getShareWeight(actor.system.xpShare) : 1
 }
 
 let widgetEl = null
@@ -323,7 +340,7 @@ async function addXP() {
 		const baseMod = computeXPModifier(a, adjusted.abilities)
 		const adjMod = a.system.adjustments.xpModifier || 0
 		const bonusPct = baseMod + adjMod
-		const basePct = isRetainer ? 50 : 100
+		const basePct = getXPShare(a) * 100
 		const newTreasure = computeNewTreasureGold(a)
 		const treasureShare = getTreasureShare(a)
 		return { actor: a, isRetainer, basePct, bonusPct, newTreasure, treasureShare }
@@ -331,8 +348,8 @@ async function addXP() {
 	const headcount = members.length
 	const fmt = v => v % 1 === 0 ? v : parseFloat(v.toFixed(2))
 
-	// Compute auto-calculate total from party treasure
-	const autoTotal = Math.floor(members.reduce((sum, m) => sum + m.newTreasure * m.treasureShare, 0))
+	// Compute auto-calculate total from party treasure (full value, loot share only affects coin division)
+	const autoTotal = Math.floor(members.reduce((sum, m) => sum + m.newTreasure, 0))
 
 	// Load defeated creatures for "from creatures" mode
 	const creatures = game.settings.get('dolmenwood', 'defeatedCreatures').map(c => ({ ...c }))

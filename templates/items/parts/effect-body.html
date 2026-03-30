@@ -1,0 +1,95 @@
+<section class="tab-content item-body active" data-group="primary" data-tab="body">
+	<!-- Header: Details + Portrait -->
+	<div class="two-columns header">
+		<section class="details boxed-section">
+			<h2>{{localize "DOLMEN.NameType"}}</h2>
+			<div class="header-details">
+				<div class="header-field">
+					<label>{{localize "DOLMEN.Item.Name"}}</label>
+					<input type="text" name="name" value="{{item.name}}" placeholder="{{localize 'DOLMEN.Effects.NewEffect'}}">
+				</div>
+				<div class="header-field">
+					<label>{{localize "DOLMEN.Item.Type"}}</label>
+					<span class="proficiency-value">{{localize "TYPES.Item.Effect"}}</span>
+				</div>
+			</div>
+		</section>
+		<section class="portrait-section boxed-section">
+			<div class="portrait-container">
+				<img src="{{item.img}}" alt="{{item.name}}" class="portrait-image" data-edit="img">
+			</div>
+		</section>
+	</div>
+
+	<!-- Simple / Advanced mode tabs -->
+	<nav class="effect-mode-tabs sub-tabs">
+		<a class="item {{#unless advancedMode}}active{{/unless}}" data-mode="simple">
+			<i class="fas fa-list"></i>
+			<span>{{localize "DOLMEN.Effects.ModeSimple"}}</span>
+		</a>
+		<a class="item {{#if advancedMode}}active{{/if}}" data-mode="advanced">
+			<i class="fas fa-code"></i>
+			<span>{{localize "DOLMEN.Effects.ModeAdvanced"}}</span>
+		</a>
+	</nav>
+
+	<!-- Effect Configuration -->
+	<section class="boxed-section effect-config">
+		<h2 class="effect-details-heading">{{#if advancedMode}}{{localize "DOLMEN.Effects.DetailsAdvanced"}}{{else}}{{localize "DOLMEN.Effects.DetailsSimple"}}{{/if}}</h2>
+
+		<div class="form-row">
+			<div class="form-field">
+				<label>{{localize "DOLMEN.Effects.Enabled"}}</label>
+				<input type="checkbox" name="system.enabled" {{checked system.enabled}} />
+			</div>
+		</div>
+
+		<div class="effect-simple-mode" {{#if advancedMode}}style="display:none"{{/if}}>
+			<div class="form-row">
+				<div class="form-field">
+					<label>{{localize "DOLMEN.Effects.Group"}}</label>
+					<select class="effect-group-select">
+						{{#each groupChoices}}
+						<option value="{{@key}}" {{#if (eq @key ../currentGroup)}}selected{{/if}}>{{this}}</option>
+						{{/each}}
+					</select>
+				</div>
+				<div class="form-field">
+					<label>{{localize "DOLMEN.Effects.Target"}}</label>
+					<select class="effect-field-select" {{#unless advancedMode}}name="system.target"{{/unless}}>
+						{{#each fieldChoices}}
+						<option value="{{@key}}" {{#if (eq @key ../currentField)}}selected{{/if}}>{{this}}</option>
+						{{/each}}
+					</select>
+				</div>
+			</div>
+		</div>
+
+		<div class="effect-advanced-mode" {{#unless advancedMode}}style="display:none"{{/unless}}>
+			<div class="form-row">
+				<div class="form-field">
+					<label>{{localize "DOLMEN.Effects.TargetPath"}}</label>
+					<input type="text" class="effect-target-input" {{#if advancedMode}}name="system.target"{{/if}} value="{{system.target}}" placeholder="abilities.strength.score" />
+				</div>
+				<div class="form-field">
+					<label>{{localize "DOLMEN.Effects.EffectType"}}</label>
+					<select name="system.effectType">
+						<option value="numeric" {{#if (eq system.effectType "numeric")}}selected{{/if}}>{{localize "DOLMEN.Effects.TypeNumeric"}}</option>
+						<option value="boolean" {{#if (eq system.effectType "boolean")}}selected{{/if}}>{{localize "DOLMEN.Effects.TypeBoolean"}}</option>
+					</select>
+				</div>
+			</div>
+		</div>
+
+		<div class="effect-value-row" {{#if isBoolean}}style="display:none"{{/if}}>
+			<div class="form-row">
+				<div class="form-field">
+					<label>{{localize "DOLMEN.Effects.Value"}}</label>
+					<input type="number" name="system.value" value="{{system.value}}" step="1" />
+				</div>
+			</div>
+		</div>
+
+		<input type="hidden" name="system.effectType" value="{{system.effectType}}" />
+	</section>
+</section>

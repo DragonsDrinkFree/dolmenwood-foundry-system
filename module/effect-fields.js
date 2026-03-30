@@ -1,0 +1,158 @@
+/* global game */
+
+/**
+ * Effect field mapping configuration.
+ * Maps group keys to their available fields for the effects system.
+ * Each group+field resolves to a path under system.adjustments.*
+ */
+
+const EFFECT_FIELDS = {
+	abilities: {
+		label: 'DOLMEN.Effects.Groups.Abilities',
+		fields: {
+			'abilities.strength.score': 'DOLMEN.Effects.Fields.StrengthScore',
+			'abilities.strength.mod': 'DOLMEN.Effects.Fields.StrengthMod',
+			'abilities.intelligence.score': 'DOLMEN.Effects.Fields.IntelligenceScore',
+			'abilities.intelligence.mod': 'DOLMEN.Effects.Fields.IntelligenceMod',
+			'abilities.wisdom.score': 'DOLMEN.Effects.Fields.WisdomScore',
+			'abilities.wisdom.mod': 'DOLMEN.Effects.Fields.WisdomMod',
+			'abilities.dexterity.score': 'DOLMEN.Effects.Fields.DexterityScore',
+			'abilities.dexterity.mod': 'DOLMEN.Effects.Fields.DexterityMod',
+			'abilities.constitution.score': 'DOLMEN.Effects.Fields.ConstitutionScore',
+			'abilities.constitution.mod': 'DOLMEN.Effects.Fields.ConstitutionMod',
+			'abilities.charisma.score': 'DOLMEN.Effects.Fields.CharismaScore',
+			'abilities.charisma.mod': 'DOLMEN.Effects.Fields.CharismaMod'
+		}
+	},
+	saves: {
+		label: 'DOLMEN.Effects.Groups.Saves',
+		fields: {
+			'saves.doom': 'DOLMEN.Effects.Fields.SaveDoom',
+			'saves.ray': 'DOLMEN.Effects.Fields.SaveRay',
+			'saves.hold': 'DOLMEN.Effects.Fields.SaveHold',
+			'saves.blast': 'DOLMEN.Effects.Fields.SaveBlast',
+			'saves.spell': 'DOLMEN.Effects.Fields.SaveSpell',
+			'magicResistance': 'DOLMEN.Effects.Fields.MagicResistance'
+		}
+	},
+	combat: {
+		label: 'DOLMEN.Effects.Groups.Combat',
+		fields: {
+			'hp.max': 'DOLMEN.Effects.Fields.HPMax',
+			'ac': 'DOLMEN.Effects.Fields.AC',
+			'attack': 'DOLMEN.Effects.Fields.Attack'
+		}
+	},
+	movement: {
+		label: 'DOLMEN.Effects.Groups.Movement',
+		fields: {
+			'speed': 'DOLMEN.Effects.Fields.Speed',
+			'movement.exploring': 'DOLMEN.Effects.Fields.MovementExploring',
+			'movement.overland': 'DOLMEN.Effects.Fields.MovementOverland'
+		}
+	},
+	skills: {
+		label: 'DOLMEN.Effects.Groups.Skills',
+		fields: {
+			'skills.listen': 'DOLMEN.Effects.Fields.SkillListen',
+			'skills.search': 'DOLMEN.Effects.Fields.SkillSearch',
+			'skills.survival': 'DOLMEN.Effects.Fields.SkillSurvival',
+			'skills.detectMagic': 'DOLMEN.Effects.Fields.SkillDetectMagic',
+			'skills.alertness': 'DOLMEN.Effects.Fields.SkillAlertness',
+			'skills.stalking': 'DOLMEN.Effects.Fields.SkillStalking',
+			'skills.tracking': 'DOLMEN.Effects.Fields.SkillTracking',
+			'skills.pickLock': 'DOLMEN.Effects.Fields.SkillPickLock',
+			'skills.stealth': 'DOLMEN.Effects.Fields.SkillStealth',
+			'skills.decipherDocument': 'DOLMEN.Effects.Fields.SkillDecipherDocument',
+			'skills.climbWall': 'DOLMEN.Effects.Fields.SkillClimbWall',
+			'skills.disarmMechanism': 'DOLMEN.Effects.Fields.SkillDisarmMechanism',
+			'skills.legerdemain': 'DOLMEN.Effects.Fields.SkillLegerdemain',
+			'skills.monsterLore': 'DOLMEN.Effects.Fields.SkillMonsterLore'
+		}
+	},
+	magic: {
+		label: 'DOLMEN.Effects.Groups.Magic',
+		fields: {
+			'magic.arcane': 'DOLMEN.Effects.Fields.MagicArcane',
+			'magic.holy': 'DOLMEN.Effects.Fields.MagicHoly',
+			'magic.fairy': 'DOLMEN.Effects.Fields.MagicFairy',
+			'magic.knacks': 'DOLMEN.Effects.Fields.MagicKnacks',
+			'magic.arcaneSlots.rank0': 'DOLMEN.Effects.Fields.ArcaneSlotRank0',
+			'magic.arcaneSlots.rank1': 'DOLMEN.Effects.Fields.ArcaneSlotRank1',
+			'magic.arcaneSlots.rank2': 'DOLMEN.Effects.Fields.ArcaneSlotRank2',
+			'magic.arcaneSlots.rank3': 'DOLMEN.Effects.Fields.ArcaneSlotRank3',
+			'magic.arcaneSlots.rank4': 'DOLMEN.Effects.Fields.ArcaneSlotRank4',
+			'magic.arcaneSlots.rank5': 'DOLMEN.Effects.Fields.ArcaneSlotRank5',
+			'magic.arcaneSlots.rank6': 'DOLMEN.Effects.Fields.ArcaneSlotRank6',
+			'magic.holySlots.rank0': 'DOLMEN.Effects.Fields.HolySlotRank0',
+			'magic.holySlots.rank1': 'DOLMEN.Effects.Fields.HolySlotRank1',
+			'magic.holySlots.rank2': 'DOLMEN.Effects.Fields.HolySlotRank2',
+			'magic.holySlots.rank3': 'DOLMEN.Effects.Fields.HolySlotRank3',
+			'magic.holySlots.rank4': 'DOLMEN.Effects.Fields.HolySlotRank4',
+			'magic.holySlots.rank5': 'DOLMEN.Effects.Fields.HolySlotRank5',
+			'magic.glamoursMax': 'DOLMEN.Effects.Fields.GlamoursMax'
+		}
+	},
+	encumbrance: {
+		label: 'DOLMEN.Effects.Groups.Encumbrance',
+		fields: {
+			'coinCapacity': 'DOLMEN.Effects.Fields.CoinCapacity',
+			'slotCapacity.equipped': 'DOLMEN.Effects.Fields.SlotCapacityEquipped',
+			'slotCapacity.stowed': 'DOLMEN.Effects.Fields.SlotCapacityStowed'
+		}
+	},
+	xp: {
+		label: 'DOLMEN.Effects.Groups.XP',
+		fields: {
+			'xpModifier': 'DOLMEN.Effects.Fields.XPModifier'
+		}
+	}
+}
+
+/**
+ * Set of all valid effect target paths.
+ */
+const VALID_EFFECT_TARGETS = new Set()
+for (const group of Object.values(EFFECT_FIELDS)) {
+	for (const fieldPath of Object.keys(group.fields)) {
+		VALID_EFFECT_TARGETS.add(fieldPath)
+	}
+}
+
+/**
+ * Set of boolean effect targets (magic enable flags).
+ */
+const BOOLEAN_TARGETS = new Set([
+	'magic.arcane',
+	'magic.holy',
+	'magic.fairy',
+	'magic.knacks'
+])
+
+/**
+ * Get the localized label for an effect target path.
+ * @param {string} target - The target path
+ * @returns {string} Localized label or the raw path if not found
+ */
+function getEffectTargetLabel(target) {
+	for (const group of Object.values(EFFECT_FIELDS)) {
+		if (target in group.fields) {
+			return game.i18n.localize(group.fields[target])
+		}
+	}
+	return target
+}
+
+/**
+ * Get the group key for a given target path.
+ * @param {string} target - The target path
+ * @returns {string|null} The group key or null if not found
+ */
+function getEffectGroupForTarget(target) {
+	for (const [groupKey, group] of Object.entries(EFFECT_FIELDS)) {
+		if (target in group.fields) return groupKey
+	}
+	return null
+}
+
+export { EFFECT_FIELDS, VALID_EFFECT_TARGETS, BOOLEAN_TARGETS, getEffectTargetLabel, getEffectGroupForTarget }

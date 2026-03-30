@@ -10,7 +10,7 @@ import DolmenKindredSheet from './module/dolmen-kindred-sheet.js'
 import DolmenClassSheet from './module/dolmen-class-sheet.js'
 import DolmenActor from './module/dolmen-actor.js'
 import DolmenItem from './module/dolmen-item.js'
-import { AdventurerDataModel, CreatureDataModel, HorseDataModel, VehicleDataModel, GearDataModel, ContainerDataModel, TreasureDataModel, WeaponDataModel, SpellDataModel, HolySpellDataModel, ArmorDataModel, ForagedDataModel, GlamourDataModel, RuneDataModel, KindredDataModel, ClassDataModel } from './module/data-models.mjs'
+import { AdventurerDataModel, CreatureDataModel, HorseDataModel, VehicleDataModel, GearDataModel, ContainerDataModel, TreasureDataModel, WeaponDataModel, SpellDataModel, HolySpellDataModel, ArmorDataModel, ForagedDataModel, GlamourDataModel, RuneDataModel, KindredDataModel, ClassDataModel, EffectDataModel } from './module/data-models.mjs'
 import { setupDamageContextMenu } from './module/chat-damage.js'
 import { createSaveLinkEnricher, createChanceLinkEnricher, openInlineSaveModifierPanel, rollChance } from './module/chat-save.js'
 import WelcomeDialog from './module/welcome-dialog.js'
@@ -22,6 +22,8 @@ import { initDungeonTracker, toggleDungeonTracker, onLightSourcesChanged, onTrac
 import { initPartyViewer, togglePartyViewer, onPartyMembersChanged } from './module/party-viewer/party-viewer.js'
 import { openCreatureImportDialog } from './module/creature-importer.js'
 import { executeMacroAttack } from './module/attack-macros.js'
+import DolmenEffectSheet from './module/dolmen-effect-sheet.js'
+import { EFFECT_FIELDS } from './module/effect-fields.js'
 
 const { Actors, Items } = foundry.documents.collections
 
@@ -58,6 +60,7 @@ Hooks.on('initializeDynamicTokenRingConfig', ringConfig => {
 
 Hooks.once('init', async function () {
 	CONFIG.DOLMENWOOD = DOLMENWOOD
+	CONFIG.DOLMENWOOD.effectFields = EFFECT_FIELDS
 	game.dolmenwood = { executeMacroAttack }
 
 	game.settings.register('dolmenwood', 'colorTheme', {
@@ -259,7 +262,8 @@ Hooks.once('init', async function () {
 		Glamour: GlamourDataModel,
 		Rune: RuneDataModel,
 		Kindred: KindredDataModel,
-		Class: ClassDataModel
+		Class: ClassDataModel,
+		Effect: EffectDataModel
 	}
 
 	game.settings.register('dolmenwood', 'encumbranceMethod', {
@@ -348,6 +352,13 @@ Hooks.once('init', async function () {
 		config: true,
 		type: Boolean,
 		default: true
+	})
+
+	game.settings.register('dolmenwood', 'effectsMigrationDone', {
+		scope: 'world',
+		config: false,
+		type: Boolean,
+		default: false
 	})
 
 	game.settings.register('dolmenwood', 'activeUnseason', {
@@ -485,6 +496,12 @@ Hooks.once('init', async function () {
 		makeDefault: true
 	})
 
+	Items.registerSheet('dolmen', DolmenEffectSheet, {
+		types: ['Effect'],
+		label: 'DOLMEN.EffectSheetTitle',
+		makeDefault: true
+	})
+
 	Items.registerSheet('dolmen', DolmenKindredSheet, {
 		types: ['Kindred'],
 		label: 'DOLMEN.KindredSheetTitle',
@@ -498,11 +515,88 @@ Hooks.once('init', async function () {
 	})
 })
 
+/**
+ * Migrate existing manual adjustments on Adventurer actors to Effect items.
+ * Walks the adjustments object tree, creates an Effect for each non-zero/non-false value,
+ * then zeroes out the source adjustments.
+ */
+async function migrateAdjustmentsToEffects() {
+	const MIGRATION_KEY = 'effectsMigrationDone'
+	if (game.settings.get('dolmenwood', MIGRATION_KEY)) return
+
+	console.log('Dolmenwood | Migrating manual adjustments to Effect items...')
+	const { BOOLEAN_TARGETS } = await import('./module/effect-fields.js')
+
+	// Recursively collect non-zero adjustment values as { path, value } entries
+	function collectAdjustments(obj, prefix = '') {
+		const entries = []
+		for (const [key, val] of Object.entries(obj)) {
+			const path = prefix ? `${prefix}.${key}` : key
+			if (val && typeof val === 'object' && !Array.isArray(val)) {
+				entries.push(...collectAdjustments(val, path))
+			} else if (typeof val === 'boolean' && val === true) {
+				entries.push({ path, value: 0, effectType: 'boolean' })
+			} else if (typeof val === 'number' && val !== 0) {
+				entries.push({ path, value: val, effectType: BOOLEAN_TARGETS.has(path) ? 'boolean' : 'numeric' })
+			}
+		}
+		return entries
+	}
+
+	let totalEffects = 0
+	for (const actor of game.actors.filter(a => a.type === 'Adventurer')) {
+		// Read from source data since prepareDerivedData may have already zeroed adjustments
+		const adj = actor._source?.system?.adjustments
+		if (!adj) continue
+
+		const entries = collectAdjustments(adj)
+		if (!entries.length) continue
+
+		// Create Effect items for each non-zero adjustment
+		const effectsData = entries.map(e => ({
+			name: `Migrated: ${e.path}`,
+			type: 'Effect',
+			system: {
+				enabled: true,
+				target: e.path,
+				value: e.value,
+				effectType: e.effectType
+			}
+		}))
+
+		await actor.createEmbeddedDocuments('Item', effectsData)
+
+		// Zero out the source adjustments so they don't double-apply if schema is ever read raw
+		const resetUpdates = {}
+		for (const e of entries) {
+			const fullPath = `system.adjustments.${e.path}`
+			resetUpdates[fullPath] = e.effectType === 'boolean' ? false : 0
+		}
+		await actor.update(resetUpdates)
+
+		totalEffects += effectsData.length
+		console.log(`Dolmenwood | Migrated ${effectsData.length} adjustments for "${actor.name}"`)
+	}
+
+	await game.settings.set('dolmenwood', MIGRATION_KEY, true)
+	if (totalEffects > 0) {
+		console.log(`Dolmenwood | Migration complete: created ${totalEffects} Effect items total`)
+		ui.notifications.info(`Dolmenwood: Migrated ${totalEffects} manual adjustment(s) to Effect items.`)
+	} else {
+		console.log('Dolmenwood | Migration complete: no adjustments to migrate')
+	}
+}
+
 Hooks.once('ready', async function () {
 	console.log(game.i18n.localize('DOLMEN.WelcomeMessage'))
 
 	if (game.user.isGM && game.settings.get('dolmenwood', 'showWelcomeDialog')) {
 		new WelcomeDialog().render(true)
+	}
+
+	// Run one-time migration of manual adjustments to Effect items
+	if (game.user.isGM) {
+		await migrateAdjustmentsToEffects()
 	}
 
 	initCalendarWidget()

@@ -309,12 +309,87 @@ export class AdventurerDataModel extends ActorDataModel {
 		return 'mortal'
 	}
 
+	/**
+	 * Zero out all adjustment fields and aggregate effects from Effect items
+	 * and gear statEffects into the adjustments schema.
+	 */
+	_aggregateEffects() {
+		const adj = this.adjustments
+		const items = this.parent?.items
+
+		// Zero out all numeric adjustments
+		for (const ability of Object.values(adj.abilities)) {
+			ability.score = 0
+			ability.mod = 0
+		}
+		for (const save of Object.keys(adj.saves)) adj.saves[save] = 0
+		adj.magicResistance = 0
+		adj.hp.max = 0
+		adj.ac = 0
+		adj.attack = 0
+		adj.speed = 0
+		adj.movement.exploring = 0
+		adj.movement.overland = 0
+		for (const skill of Object.keys(adj.skills)) adj.skills[skill] = 0
+		adj.xpModifier = 0
+		adj.coinCapacity = 0
+		adj.slotCapacity.equipped = 0
+		adj.slotCapacity.stowed = 0
+		// Zero out magic booleans and slots
+		adj.magic.arcane = false
+		adj.magic.holy = false
+		adj.magic.fairy = false
+		adj.magic.knacks = false
+		for (let i = 0; i <= 6; i++) adj.magic.arcaneSlots[`rank${i}`] = 0
+		for (let i = 0; i <= 5; i++) adj.magic.holySlots[`rank${i}`] = 0
+		adj.magic.glamoursMax = 0
+
+		if (!items) return
+
+		// Helper to apply a single effect to the adjustments
+		const applyEffect = (target, value, effectType) => {
+			if (effectType === 'boolean') {
+				foundry.utils.setProperty(adj, target, true)
+			} else {
+				const current = foundry.utils.getProperty(adj, target)
+				if (typeof current === 'number') {
+					foundry.utils.setProperty(adj, target, current + (value || 0))
+				}
+			}
+		}
+
+		// Aggregate Effect items on the actor
+		for (const item of items) {
+			if (item.type === 'Effect' && item.system.enabled) {
+				applyEffect(item.system.target, item.system.value, item.system.effectType)
+			}
+		}
+
+		// Aggregate gear statEffects
+		const gearTypes = ['Item', 'Weapon', 'Armor', 'Treasure', 'Foraged', 'Container']
+		for (const item of items) {
+			if (!gearTypes.includes(item.type)) continue
+			const effects = item.system.statEffects
+			if (!effects?.length) continue
+			for (const eff of effects) {
+				if (!eff.enabled) continue
+				const active = eff.condition === 'whenInPossession' || item.system.equipped
+				if (active) {
+					applyEffect(eff.target, eff.value, eff.effectType)
+				}
+			}
+		}
+	}
+
 	/** @override */
 	prepareDerivedData() {
 		// Calculate ability modifiers from scores
 		for (const ability of Object.values(this.abilities)) {
 			ability.mod = AdventurerDataModel.computeModifier(ability.score)
 		}
+
+		// Aggregate effects from Effect items and gear statEffects into adjustments
+		this._aggregateEffects()
 
 		// Get kindred and class from embedded items (with fallback to old string fields for backward compatibility)
 		const kindredItem = this.parent?.items?.find(i => i.type === 'Kindred')
@@ -524,8 +599,10 @@ export class AdventurerDataModel extends ActorDataModel {
 			// Exhaustion penalty (0 to -4)
 			exhaustion: new NumberField({ required: true, integer: true, min: -4, max: 0, initial: 0 }),
 
-			// Retainer treasure share: "" = not a retainer, "quarter" = 1/4, "half" = 1/2, "full" = full share
-			retainer: new StringField({ required: true, initial: '', blank: true }),
+			// Retainer flag and share configuration
+			retainer: new BooleanField({ required: true, initial: false }),
+			xpShare: new StringField({ required: true, initial: '1/2', blank: false }),
+			lootShare: new StringField({ required: true, initial: '1/2', blank: false }),
 
 			// Coins
 			coins: new SchemaField({
@@ -1025,7 +1102,14 @@ export class GearDataModel extends ItemDataModel {
 				required: false,
 				blank: true,
 				initial: ""
-			})
+			}),
+			statEffects: new ArrayField(new SchemaField({
+				enabled: new BooleanField({ required: true, initial: true }),
+				target: new StringField({ required: true, blank: false, initial: 'abilities.strength.score' }),
+				value: new NumberField({ required: true, integer: true, initial: 0 }),
+				effectType: new StringField({ required: true, blank: false, initial: 'numeric' }),
+				condition: new StringField({ required: true, blank: false, initial: 'whenEquipped' })
+			}), { initial: [] })
 		}
 	}
 }
@@ -1430,6 +1514,30 @@ export class ClassDataModel extends ItemDataModel {
 			skillPointsPerLevel: new NumberField({ required: true, initial: 0, integer: true, min: 0 }),
 			// Trait definitions stored as JSON object
 			traits: new ObjectField({ initial: {} })
+		}
+	}
+}
+
+export class EffectDataModel extends ItemDataModel {
+	static defineSchema() {
+		return {
+			...super.defineSchema(),
+			enabled: new BooleanField({ required: true, initial: true }),
+			target: new StringField({
+				required: true,
+				blank: false,
+				initial: 'abilities.strength.score'
+			}),
+			value: new NumberField({
+				required: true,
+				integer: true,
+				initial: 0
+			}),
+			effectType: new StringField({
+				required: true,
+				blank: false,
+				initial: 'numeric'
+			})
 		}
 	}
 }

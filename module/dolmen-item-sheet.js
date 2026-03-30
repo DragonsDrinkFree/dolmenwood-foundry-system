@@ -1,5 +1,6 @@
 /* global foundry, game, FilePicker, fromUuid */
 import { buildChoices, buildChoicesWithBlank, buildQualityOptions, CHOICE_KEYS } from './utils/choices.js'
+import { EFFECT_FIELDS, BOOLEAN_TARGETS, getEffectTargetLabel, getEffectGroupForTarget } from './effect-fields.js'
 
 const { HandlebarsApplicationMixin } = foundry.applications.api
 const { ItemSheetV2 } = foundry.applications.sheets
@@ -18,6 +19,11 @@ class DolmenItemSheet extends HandlebarsApplicationMixin(ItemSheetV2) {
 		},
 		window: {
 			resizable: true
+		},
+		actions: {
+			addStatEffect: DolmenItemSheet._onAddStatEffect,
+			removeStatEffect: DolmenItemSheet._onRemoveStatEffect,
+			toggleStatEffect: DolmenItemSheet._onToggleStatEffect
 		}
 	}
 
@@ -55,6 +61,10 @@ class DolmenItemSheet extends HandlebarsApplicationMixin(ItemSheetV2) {
 		description: {
 			template: 'systems/dolmenwood/templates/items/parts/item-description.html',
 			scrollable: ['']
+		},
+		effects: {
+			template: 'systems/dolmenwood/templates/items/parts/item-effects.html',
+			scrollable: ['']
 		}
 	}
 
@@ -62,7 +72,8 @@ class DolmenItemSheet extends HandlebarsApplicationMixin(ItemSheetV2) {
 		primary: {
 			tabs: [
 				{ id: 'body', icon: 'fas fa-list', label: 'DOLMEN.Item.TabStats' },
-				{ id: 'description', icon: 'fas fa-scroll', label: 'DOLMEN.Item.TabDescription' }
+				{ id: 'description', icon: 'fas fa-scroll', label: 'DOLMEN.Item.TabDescription' },
+				{ id: 'effects', icon: 'fas fa-bolt', label: 'DOLMEN.Tabs.Effects' }
 			],
 			initial: 'body'
 		}
@@ -72,11 +83,18 @@ class DolmenItemSheet extends HandlebarsApplicationMixin(ItemSheetV2) {
 		primary: 'body'
 	}
 
+	_isGearType() {
+		const gearTypes = ['Item', 'Weapon', 'Armor', 'Treasure', 'Foraged', 'Container']
+		return gearTypes.includes(this.item.type)
+	}
+
 	_getTabs() {
 		const tabs = {}
 		for (const [groupId, groupConfig] of Object.entries(DolmenItemSheet.TABS)) {
 			const group = {}
 			for (const t of groupConfig.tabs) {
+				// Only show effects tab for gear items
+				if (t.id === 'effects' && !this._isGearType()) continue
 				group[t.id] = {
 					id: t.id,
 					group: groupId,
@@ -157,12 +175,55 @@ class DolmenItemSheet extends HandlebarsApplicationMixin(ItemSheetV2) {
 			}))
 		}
 
+		// Prepare stat effects for gear items
+		if (context.isGear) {
+			const effects = this.item.system.statEffects || []
+			context.statEffects = effects.map((eff, idx) => {
+				const group = getEffectGroupForTarget(eff.target) || 'abilities'
+				const groupData = EFFECT_FIELDS[group]
+				const fieldChoices = Object.entries(groupData.fields).map(([key, labelKey]) => ({
+					key,
+					label: game.i18n.localize(labelKey),
+					selected: key === eff.target
+				}))
+				return {
+					idx,
+					enabled: eff.enabled,
+					target: eff.target,
+					value: eff.value,
+					effectType: eff.effectType,
+					condition: eff.condition,
+					targetLabel: getEffectTargetLabel(eff.target),
+					groupKey: group,
+					isBoolean: BOOLEAN_TARGETS.has(eff.target),
+					fieldChoices
+				}
+			})
+			// Build group choices for dropdowns
+			context.effectGroupChoices = {}
+			for (const [key, val] of Object.entries(EFFECT_FIELDS)) {
+				context.effectGroupChoices[key] = game.i18n.localize(val.label)
+			}
+			context.effectConditionChoices = {
+				whenEquipped: game.i18n.localize('DOLMEN.Effects.Condition.whenEquipped'),
+				whenInPossession: game.i18n.localize('DOLMEN.Effects.Condition.whenInPossession')
+			}
+			// Build localized field choices per group for template selectOptions
+			context.effectFieldsByGroup = {}
+			for (const [groupKey, group] of Object.entries(EFFECT_FIELDS)) {
+				context.effectFieldsByGroup[groupKey] = {}
+				for (const [fieldKey, labelKey] of Object.entries(group.fields)) {
+					context.effectFieldsByGroup[groupKey][fieldKey] = game.i18n.localize(labelKey)
+				}
+			}
+		}
+
 		return context
 	}
 
 	async _preparePartContext(partId, context) {
 		context = await super._preparePartContext(partId, context)
-		if (['body', 'description'].includes(partId)) {
+		if (['body', 'description', 'effects'].includes(partId)) {
 			context.tab = context.tabs?.primary?.[partId] || {
 				id: partId,
 				cssClass: this.tabGroups.primary === partId ? 'active' : ''
@@ -257,6 +318,66 @@ class DolmenItemSheet extends HandlebarsApplicationMixin(ItemSheetV2) {
 					this.item.update({ 'system.ac': 1 })
 				}
 			})
+		}
+
+		// Gear effects tab: group dropdown change → update field dropdown
+		const effectRows = this.element.querySelectorAll('.stat-effect-row')
+		for (const row of effectRows) {
+			const groupSelect = row.querySelector('.effect-group-select')
+			const fieldSelect = row.querySelector('.effect-field-select')
+			if (!groupSelect || !fieldSelect) continue
+			groupSelect.addEventListener('change', (e) => {
+				const groupKey = e.target.value
+				const group = EFFECT_FIELDS[groupKey]
+				if (!group) return
+				fieldSelect.innerHTML = ''
+				for (const [key, label] of Object.entries(group.fields)) {
+					const opt = document.createElement('option')
+					opt.value = key
+					opt.textContent = game.i18n.localize(label)
+					fieldSelect.appendChild(opt)
+				}
+				// Update the item with the first field of the new group
+				const idx = row.dataset.effectIdx
+				const firstField = Object.keys(group.fields)[0]
+				const isBoolean = BOOLEAN_TARGETS.has(firstField)
+				const updates = {}
+				updates[`system.statEffects.${idx}.target`] = firstField
+				updates[`system.statEffects.${idx}.effectType`] = isBoolean ? 'boolean' : 'numeric'
+				this.item.update(updates)
+			})
+		}
+	}
+
+	static async _onAddStatEffect() {
+		const effects = foundry.utils.deepClone(this.item.system.statEffects || [])
+		effects.push({
+			enabled: true,
+			target: 'abilities.strength.score',
+			value: 0,
+			effectType: 'numeric',
+			condition: 'whenEquipped'
+		})
+		await this.item.update({ 'system.statEffects': effects })
+	}
+
+	static async _onRemoveStatEffect(event, target) {
+		const row = target.closest('[data-effect-idx]')
+		const idx = parseInt(row?.dataset.effectIdx)
+		if (isNaN(idx)) return
+		const effects = foundry.utils.deepClone(this.item.system.statEffects || [])
+		effects.splice(idx, 1)
+		await this.item.update({ 'system.statEffects': effects })
+	}
+
+	static async _onToggleStatEffect(event, target) {
+		const row = target.closest('[data-effect-idx]')
+		const idx = parseInt(row?.dataset.effectIdx)
+		if (isNaN(idx)) return
+		const effects = foundry.utils.deepClone(this.item.system.statEffects || [])
+		if (effects[idx]) {
+			effects[idx].enabled = !effects[idx].enabled
+			await this.item.update({ 'system.statEffects': effects })
 		}
 	}
 }
