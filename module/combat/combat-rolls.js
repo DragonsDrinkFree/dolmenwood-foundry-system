@@ -1,4 +1,5 @@
-/* global game, Roll, ChatMessage, CONFIG */
+/* global game, Roll, CONFIG */
+import { createChatMessage } from '../sheet/chat-helpers.js'
 
 /**
  * Combat Roll Functions
@@ -49,10 +50,12 @@ export async function rollGroupInitiativeForCombat(combat) {
 	const results = {}
 	const updates = []
 	const chatParts = []
+	const allRolls = []
 
 	for (const [groupId, combatants] of groups) {
 		const roll = new Roll('1d6')
 		await roll.evaluate()
+		allRolls.push(roll)
 		results[groupId] = roll.total
 
 		const config = GROUP_CONFIG[groupId]
@@ -73,7 +76,7 @@ export async function rollGroupInitiativeForCombat(combat) {
 		await combat.update({ turn: 0 })
 	}
 
-	await ChatMessage.create({
+	await createChatMessage({
 		content: `
 		<div class="dolmen combat-roll">
 			<div class="roll-header">
@@ -86,6 +89,7 @@ export async function rollGroupInitiativeForCombat(combat) {
 				${chatParts.join('')}
 			</div>
 		</div>`,
+		rolls: allRolls,
 		sound: CONFIG.sounds.dice,
 		speaker: { alias: game.i18n.localize('DOLMEN.Combat.Encounter') }
 	})
@@ -117,7 +121,7 @@ export async function rollInitiativeForGroup(combat, groupId) {
 	const config = GROUP_CONFIG[groupId]
 	const label = game.i18n.localize(config?.labelKey || 'DOLMEN.Combat.Group.GroupA')
 
-	await ChatMessage.create({
+	await createChatMessage({
 		content: `
 		<div class="dolmen combat-roll">
 			<div class="roll-header">
@@ -130,6 +134,7 @@ export async function rollInitiativeForGroup(combat, groupId) {
 				<div class="group-row" style="border-left: 3px solid ${config?.color || '#999'};"><strong>${label}:</strong> ${roll.total}</div>
 			</div>
 		</div>`,
+		rolls: [roll],
 		sound: CONFIG.sounds.dice,
 		speaker: { alias: label }
 	})
@@ -155,9 +160,9 @@ export async function rollMoraleCheck(morale) {
 	const resultClass = passed ? 'success' : 'failure'
 	const resultLabel = game.i18n.localize(passed ? 'DOLMEN.Creature.MoraleHolds' : 'DOLMEN.Creature.MoraleFlees')
 
-	const anchor = await roll.toAnchor({ classes: ['morale-inline-roll'] })
+	const anchor = await roll.toAnchor({ classes: ['morale-inline-roll', 'inline-dsn-hidden'] })
 
-	await ChatMessage.create({
+	await createChatMessage({
 		content: `
 		<div class="dolmen combat-roll">
 			<div class="roll-header">
@@ -176,13 +181,13 @@ export async function rollMoraleCheck(morale) {
 				</div>
 			</div>
 		</div>`,
+		rolls: [roll],
 		sound: CONFIG.sounds.dice,
 		speaker: { alias: game.i18n.localize('DOLMEN.Combat.Encounter') }
 	})
 
 	return { roll, morale, passed }
 }
-
 /* -------------------------------------------- */
 /*  Reaction Roll                               */
 /* -------------------------------------------- */
@@ -198,10 +203,10 @@ export async function rollReaction(chaMod = 0) {
 	await roll.evaluate()
 
 	const category = getReactionCategory(roll.total)
-	const anchor = await roll.toAnchor({ classes: ['reaction-inline-roll'] })
+	const anchor = await roll.toAnchor({ classes: ['reaction-inline-roll', 'inline-dsn-hidden'] })
 	const breakdown = chaMod !== 0 ? `2d6 ${chaMod >= 0 ? '+' : ''}${chaMod}` : '2d6'
 
-	await ChatMessage.create({
+	await createChatMessage({
 		content: `
 		<div class="dolmen combat-roll">
 			<div class="roll-header">
@@ -220,6 +225,7 @@ export async function rollReaction(chaMod = 0) {
 				</div>
 			</div>
 		</div>`,
+		rolls: [roll],
 		sound: CONFIG.sounds.dice,
 		speaker: { alias: game.i18n.localize('DOLMEN.Combat.Encounter') }
 	})
@@ -249,10 +255,10 @@ export async function rollSurprise() {
 	const surprisedText = game.i18n.localize('DOLMEN.Combat.Surprised')
 	const notSurprisedText = game.i18n.localize('DOLMEN.Combat.NotSurprised')
 
-	const friendlyAnchor = await friendlyRoll.toAnchor({ classes: ['surprise-inline-roll'] })
-	const hostileAnchor = await hostileRoll.toAnchor({ classes: ['surprise-inline-roll'] })
+	const friendlyAnchor = await friendlyRoll.toAnchor({ classes: ['surprise-inline-roll', 'inline-dsn-hidden'] })
+	const hostileAnchor = await hostileRoll.toAnchor({ classes: ['surprise-inline-roll', 'inline-dsn-hidden'] })
 
-	await ChatMessage.create({
+	await createChatMessage({
 		content: `
 		<div class="dolmen combat-roll">
 			<div class="roll-header">
@@ -272,6 +278,7 @@ export async function rollSurprise() {
 				</div>
 			</div>
 		</div>`,
+		rolls: [friendlyRoll, hostileRoll],
 		sound: CONFIG.sounds.dice,
 		speaker: { alias: game.i18n.localize('DOLMEN.Combat.Encounter') }
 	})
@@ -304,9 +311,9 @@ export async function rollEncounterDistance(environment = 'dungeon') {
 			: 'DOLMEN.Combat.Distance.Dungeon'
 	)
 
-	const anchor = await roll.toAnchor({ classes: ['distance-inline-roll'] })
+	const anchor = await roll.toAnchor({ classes: ['distance-inline-roll', 'inline-dsn-hidden'] })
 
-	await ChatMessage.create({
+	await createChatMessage({
 		content: `
 		<div class="dolmen combat-roll">
 			<div class="roll-header">
@@ -326,6 +333,7 @@ export async function rollEncounterDistance(environment = 'dungeon') {
 				</div>
 			</div>
 		</div>`,
+		rolls: [roll],
 		sound: CONFIG.sounds.dice,
 		speaker: { alias: game.i18n.localize('DOLMEN.Combat.Encounter') }
 	})

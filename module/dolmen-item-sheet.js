@@ -320,6 +320,30 @@ class DolmenItemSheet extends HandlebarsApplicationMixin(ItemSheetV2) {
 			})
 		}
 
+		// Handle Effect item drops onto gear items
+		if (this._isGearType()) {
+			this.element.addEventListener('drop', async (ev) => {
+				let data
+				try {
+					data = JSON.parse(ev.dataTransfer.getData('text/plain')) 
+				} catch {
+					return 
+				}
+				if (data.type !== 'Item') return
+				const droppedItem = await fromUuid(data.uuid)
+				if (!droppedItem || droppedItem.type !== 'Effect') return
+				const effects = foundry.utils.deepClone(this.item.system.statEffects || [])
+				effects.push({
+					enabled: droppedItem.system.enabled,
+					target: droppedItem.system.target,
+					value: droppedItem.system.value,
+					effectType: droppedItem.system.effectType,
+					condition: 'whenEquipped'
+				})
+				await this.item.update({ 'system.statEffects': effects })
+			})
+		}
+
 		// Gear effects tab: group dropdown change → update field dropdown
 		const effectRows = this.element.querySelectorAll('.stat-effect-row')
 		for (const row of effectRows) {

@@ -1,11 +1,11 @@
-<div class="tab item-effects-tab" data-group="primary" data-tab="effects">
+<section class="tab-content item-effects-tab {{tab.cssClass}}" data-group="primary" data-tab="effects">
 	<section class="stat-effects-section">
-		<h3>
+		<h2>
 			{{localize "DOLMEN.Effects.StatEffects"}}
 			<button type="button" class="add-item-btn" data-action="addStatEffect">
 				<i class="fas fa-plus"></i>
 			</button>
-		</h3>
+		</h2>
 
 		{{#if statEffects.length}}
 		<div class="stat-effects-list">
@@ -30,6 +30,11 @@
 					</span>
 				</div>
 				<div class="effect-row-bottom">
+					<select name="system.statEffects.{{this.idx}}.condition">
+						{{#each ../effectConditionChoices}}
+						<option value="{{@key}}" {{#if (eq @key ../condition)}}selected{{/if}}>{{this}}</option>
+						{{/each}}
+					</select>
 					<select class="effect-group-select">
 						{{#each ../effectGroupChoices}}
 						<option value="{{@key}}" {{#if (eq @key ../groupKey)}}selected{{/if}}>{{this}}</option>
@@ -38,11 +43,6 @@
 					<select class="effect-field-select" name="system.statEffects.{{this.idx}}.target">
 						{{#each this.fieldChoices}}
 						<option value="{{this.key}}" {{#if this.selected}}selected{{/if}}>{{this.label}}</option>
-						{{/each}}
-					</select>
-					<select name="system.statEffects.{{this.idx}}.condition">
-						{{#each ../effectConditionChoices}}
-						<option value="{{@key}}" {{#if (eq @key ../condition)}}selected{{/if}}>{{this}}</option>
 						{{/each}}
 					</select>
 				</div>
@@ -55,4 +55,4 @@
 		</div>
 		{{/if}}
 	</section>
-</div>
+</section>

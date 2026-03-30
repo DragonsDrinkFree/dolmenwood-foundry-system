@@ -1,4 +1,5 @@
 /* global CONFIG, FilePicker, Roll, ChatMessage, CONST, game, foundry, ui */
+import { createChatMessage } from './chat-helpers.js'
 /**
  * Listener Setup
  * All _setup* methods that wire up DOM event listeners on the sheet.
@@ -573,10 +574,11 @@ export function setupDetailsRollListeners(sheet) {
 		const roll = await new Roll(formula).evaluate()
 		sheet.actor.update({ 'system.physical.age': roll.total })
 		const label = game.i18n.localize('DOLMEN.KindredDetails.CurrentAge')
-		const rollAnchor = (await roll.toAnchor()).outerHTML
-		await ChatMessage.create({
+		const rollAnchor = (await roll.toAnchor({ classes: ['inline-dsn-hidden'] })).outerHTML
+		await createChatMessage({
 			speaker: ChatMessage.getSpeaker({ actor: sheet.actor }),
 			content: `<strong>${label}:</strong> ${rollAnchor}`,
+			rolls: [roll],
 			style: CONST.CHAT_MESSAGE_STYLES.OTHER
 		})
 	})
@@ -589,10 +591,11 @@ export function setupDetailsRollListeners(sheet) {
 		const roll = await new Roll(formula).evaluate()
 		sheet.actor.update({ 'system.physical.lifespan': roll.total })
 		const label = game.i18n.localize('DOLMEN.KindredDetails.Lifespan')
-		const rollAnchor = (await roll.toAnchor()).outerHTML
-		await ChatMessage.create({
+		const rollAnchor = (await roll.toAnchor({ classes: ['inline-dsn-hidden'] })).outerHTML
+		await createChatMessage({
 			speaker: ChatMessage.getSpeaker({ actor: sheet.actor }),
 			content: `<strong>${label}:</strong> ${rollAnchor}`,
+			rolls: [roll],
 			style: CONST.CHAT_MESSAGE_STYLES.OTHER
 		})
 	})
@@ -620,10 +623,11 @@ export function setupDetailsRollListeners(sheet) {
 		})
 		const label = game.i18n.localize('DOLMEN.Birthday')
 		const monthLabel = game.i18n.localize(`DOLMEN.Months.${birthMonth}`)
-		const rollAnchor = (await roll.toAnchor()).outerHTML
-		await ChatMessage.create({
+		const rollAnchor = (await roll.toAnchor({ classes: ['inline-dsn-hidden'] })).outerHTML
+		await createChatMessage({
 			speaker: ChatMessage.getSpeaker({ actor: sheet.actor }),
 			content: `<strong>${label}:</strong> ${rollAnchor} — ${birthDay} ${monthLabel}`,
+			rolls: [roll],
 			style: CONST.CHAT_MESSAGE_STYLES.OTHER
 		})
 	})
@@ -644,10 +648,11 @@ export function setupDetailsRollListeners(sheet) {
 			'system.physical.heightCm': heightCm
 		})
 		const label = game.i18n.localize('DOLMEN.KindredDetails.Height')
-		const rollAnchor = (await roll.toAnchor()).outerHTML
-		await ChatMessage.create({
+		const rollAnchor = (await roll.toAnchor({ classes: ['inline-dsn-hidden'] })).outerHTML
+		await createChatMessage({
 			speaker: ChatMessage.getSpeaker({ actor: sheet.actor }),
 			content: `<strong>${label}:</strong> ${rollAnchor} — ${heightFeet} / ${heightCm} cm`,
+			rolls: [roll],
 			style: CONST.CHAT_MESSAGE_STYLES.OTHER
 		})
 	})
@@ -665,10 +670,11 @@ export function setupDetailsRollListeners(sheet) {
 			'system.physical.weightKg': weightKg
 		})
 		const label = game.i18n.localize('DOLMEN.KindredDetails.Weight')
-		const rollAnchor = (await roll.toAnchor()).outerHTML
-		await ChatMessage.create({
+		const rollAnchor = (await roll.toAnchor({ classes: ['inline-dsn-hidden'] })).outerHTML
+		await createChatMessage({
 			speaker: ChatMessage.getSpeaker({ actor: sheet.actor }),
 			content: `<strong>${label}:</strong> ${rollAnchor} — ${weightLbs} lbs / ${weightKg} kg`,
+			rolls: [roll],
 			style: CONST.CHAT_MESSAGE_STYLES.OTHER
 		})
 	})
@@ -797,14 +803,15 @@ async function rollNameGroup(sheet, tableName, group) {
 
 	const anchors = []
 	for (const { draw, value } of draws) {
-		const anchor = (await draw.roll.toAnchor()).outerHTML
+		const anchor = (await draw.roll.toAnchor({ classes: ['inline-dsn-hidden'] })).outerHTML
 		anchors.push(`${anchor}: ${value}`)
 	}
 
 	const labelSuffix = group.label ? ` (${game.i18n.localize(group.label)})` : ''
-	await ChatMessage.create({
+	await createChatMessage({
 		speaker: ChatMessage.getSpeaker({ actor: sheet.actor }),
 		content: `<strong>${tableName}</strong>${labelSuffix}<br>${anchors.join('<br>')}`,
+		rolls: draws.map(d => d.draw.roll),
 		style: CONST.CHAT_MESSAGE_STYLES.OTHER
 	})
 }
@@ -1155,7 +1162,7 @@ export function setupChargesListeners(sheet) {
 					${descHtml}
 					${usageInfo}
 				</div>`
-			await ChatMessage.create({
+			await createChatMessage({
 				speaker: ChatMessage.getSpeaker({ actor: sheet.actor }),
 				content,
 				style: CONST.CHAT_MESSAGE_STYLES.OTHER

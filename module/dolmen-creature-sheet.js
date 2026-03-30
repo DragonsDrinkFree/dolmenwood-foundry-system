@@ -3,6 +3,7 @@
 const { DialogV2 } = foundry.applications.api
 import { buildChoices, CHOICE_KEYS } from './utils/choices.js'
 import { onSaveRoll } from './sheet/roll-handlers.js'
+import { createChatMessage } from './sheet/chat-helpers.js'
 import { createContextMenu } from './sheet/context-menu.js'
 import { getDieIconFromFormula } from './sheet/attack-rolls.js'
 import { parseSaveLinks } from './chat-save.js'
@@ -541,7 +542,7 @@ class DolmenCreatureSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 			? game.i18n.localize('DOLMEN.Creature.MoraleHolds')
 			: game.i18n.localize('DOLMEN.Creature.MoraleFlees')
 
-		const anchor = await roll.toAnchor({ classes: ['morale-inline-roll'] })
+		const anchor = await roll.toAnchor({ classes: ['morale-inline-roll', 'inline-dsn-hidden'] })
 
 		const chatContent = `
 			<div class="dolmen skill-roll">
@@ -564,9 +565,10 @@ class DolmenCreatureSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 			</div>
 		`
 
-		await ChatMessage.create({
+		await createChatMessage({
 			speaker: ChatMessage.getSpeaker({ actor }),
 			content: chatContent,
+			rolls: [roll],
 			sound: CONFIG.sounds.dice,
 			style: CONST.CHAT_MESSAGE_STYLES.OTHER
 		})
@@ -719,7 +721,7 @@ class DolmenCreatureSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 					</div>
 				</div>
 			`
-			await ChatMessage.create({
+			await createChatMessage({
 				speaker: ChatMessage.getSpeaker({ actor: this.actor }),
 				content,
 				style: CONST.CHAT_MESSAGE_STYLES.OTHER
@@ -738,8 +740,8 @@ class DolmenCreatureSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 		await dmgRoll.evaluate()
 		if (dmgRoll.total < 1) dmgRoll._total = 1
 
-		const atkAnchor = await atkRoll.toAnchor({ classes: ['attack-inline-roll'] })
-		const dmgAnchor = await dmgRoll.toAnchor({ classes: ['damage-inline-roll'] })
+		const atkAnchor = await atkRoll.toAnchor({ classes: ['attack-inline-roll', 'inline-dsn-hidden'] })
+		const dmgAnchor = await dmgRoll.toAnchor({ classes: ['damage-inline-roll', 'inline-dsn-hidden'] })
 
 		const diceIcon = getDieIconFromFormula(attack.attackDamage)
 
@@ -766,9 +768,10 @@ class DolmenCreatureSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 			</div>
 		`
 
-		await ChatMessage.create({
+		await createChatMessage({
 			speaker: ChatMessage.getSpeaker({ actor: this.actor }),
 			content,
+			rolls: [atkRoll, dmgRoll],
 			sound: CONFIG.sounds.dice,
 			style: CONST.CHAT_MESSAGE_STYLES.OTHER
 		})

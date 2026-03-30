@@ -1,4 +1,5 @@
 /* global game, ui, Roll, ChatMessage, CONST, CONFIG */
+import { createChatMessage } from './chat-helpers.js'
 /**
  * Attack Roll Handlers
  * All melee/missile attack flows, context menu attacks, and roll utilities.
@@ -248,6 +249,7 @@ export async function performAttackRoll(sheet, weapon, attackType, {
 } = {}) {
 	let attackData = null
 	let damageData = null
+	const rolls = []
 
 	// Handle attack roll
 	if (!damageOnly) {
@@ -261,10 +263,10 @@ export async function performAttackRoll(sheet, weapon, attackType, {
 		const formula = buildAttackFormula(finalMod)
 		const roll = new Roll(formula)
 		await roll.evaluate()
-
+		rolls.push(roll)
 
 		attackData = {
-			anchor: await roll.toAnchor({ classes: ['attack-inline-roll'] }),
+			anchor: await roll.toAnchor({ classes: ['attack-inline-roll', 'inline-dsn-hidden'] }),
 			formula,
 			traitName,
 			modifierNames,
@@ -280,10 +282,10 @@ export async function performAttackRoll(sheet, weapon, attackType, {
 		await roll.evaluate()
 		// Enforce minimum 1 damage
 		if (roll.total < 1) roll._total = 1
-
+		rolls.push(roll)
 
 		damageData = {
-			anchor: await roll.toAnchor({ classes: ['damage-inline-roll'] }),
+			anchor: await roll.toAnchor({ classes: ['damage-inline-roll', 'inline-dsn-hidden'] }),
 			formula
 		}
 	}
@@ -296,9 +298,10 @@ export async function performAttackRoll(sheet, weapon, attackType, {
 		damage: damageData
 	})
 
-	await ChatMessage.create({
+	await createChatMessage({
 		speaker: ChatMessage.getSpeaker({ actor: sheet.actor }),
 		content: chatContent,
+		rolls,
 		sound: CONFIG.sounds.dice,
 		style: CONST.CHAT_MESSAGE_STYLES.OTHER
 	})

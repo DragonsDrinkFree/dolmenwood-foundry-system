@@ -30,6 +30,7 @@ import { openAddSkillDialog, removeSkill } from './sheet/dialogs.js'
 import { createContextMenu } from './sheet/context-menu.js'
 import { onOpenItem, onIncreaseQty, onDecreaseQty, onToggleContainer, createDeleteItemHandler, onEquipItem, onStowItem, onRemoveFromContainer } from './sheet/inventory-actions.js'
 import { getEffectTargetLabel } from './effect-fields.js'
+import { createChatMessage } from './sheet/chat-helpers.js'
 
 const TextEditor = foundry.applications.ux.TextEditor.implementation
 const { HandlebarsApplicationMixin } = foundry.applications.api
@@ -116,7 +117,9 @@ class DolmenSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 			addSpell: DolmenSheet._onAddSpell,
 			addEffect: DolmenSheet._onAddEffect,
 			deleteEffect: DolmenSheet._onDeleteEffect,
-			toggleEffect: DolmenSheet._onToggleEffect
+			toggleEffect: DolmenSheet._onToggleEffect,
+			toggleGearEffect: DolmenSheet._onToggleGearEffect,
+			openItemEffects: DolmenSheet._onOpenItemEffects
 		}
 	}
 
@@ -654,7 +657,10 @@ class DolmenSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 		const gearTypes = ['Item', 'Weapon', 'Armor', 'Treasure', 'Foraged', 'Container']
 		context.gearEffects = actor.items
 			.filter(i => gearTypes.includes(i.type) && i.system.statEffects?.length > 0)
-			.flatMap(item => item.system.statEffects.map(eff => ({
+			.flatMap(item => item.system.statEffects.map((eff, idx) => ({
+				itemId: item.id,
+				effectIdx: idx,
+				itemImg: item.img,
 				itemName: item.name,
 				enabled: eff.enabled,
 				equipped: item.system.equipped,
@@ -982,9 +988,10 @@ class DolmenSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 		const slotIndex = parseInt(target.dataset.slotIndex)
 		const rankKey = target.dataset.rankKey
 
-		// For arcane/holy memorized spells: remove from slot and increment used
-		// Rank 0 spells (cantrips) are not removed from slots on use
-		if (spellType && !isNaN(slotIndex) && rankKey && rankKey !== 'rank0') {
+		// For arcane/holy memorized spells: remove from slot on use
+		// Cantrips (rank0) are only persistent if the world setting is enabled
+		const persistCantrips = rankKey === 'rank0' && game.settings.get('dolmenwood', 'persistentCantrips')
+		if (spellType && !isNaN(slotIndex) && rankKey && !persistCantrips) {
 			const magicPath = spellType === 'holy' ? 'holyMagic' : 'arcaneMagic'
 			const slotData = this.actor.system[magicPath].spellSlots[rankKey]
 			const memorized = [...(slotData.memorized || [])]
@@ -1070,7 +1077,7 @@ class DolmenSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 				<div class="spell-body">${fields}</div>
 			</div>`
 
-		await ChatMessage.create({
+		await createChatMessage({
 			speaker: ChatMessage.getSpeaker({ actor: this.actor }),
 			content,
 			style: CONST.CHAT_MESSAGE_STYLES.OTHER
@@ -1192,6 +1199,29 @@ class DolmenSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 		if (!itemId) return
 		const item = this.actor.items.get(itemId)
 		if (item) await item.update({ 'system.enabled': !item.system.enabled })
+	}
+
+	static async _onToggleGearEffect(event, target) {
+		const row = target.closest('[data-item-id]')
+		const itemId = row?.dataset.itemId
+		const idx = parseInt(row?.dataset.effectIdx)
+		if (!itemId || isNaN(idx)) return
+		const item = this.actor.items.get(itemId)
+		if (!item) return
+		const effects = foundry.utils.deepClone(item.system.statEffects || [])
+		if (effects[idx]) {
+			effects[idx].enabled = !effects[idx].enabled
+			await item.update({ 'system.statEffects': effects })
+		}
+	}
+
+	static _onOpenItemEffects(event, target) {
+		const itemId = target.closest('[data-item-id]')?.dataset.itemId
+		if (!itemId) return
+		const item = this.actor.items.get(itemId)
+		if (!item) return
+		item.sheet.tabGroups = { primary: 'effects' }
+		item.sheet.render(true)
 	}
 
 	async _onDrop(event) {

@@ -42,12 +42,12 @@
 /* Effect list header and row grid */
 .sheet.dolmen .tab-effects .effect-header,
 .sheet.dolmen .tab-effects .item-row.effect {
-	grid-template-columns: 22px 20px 1fr 1fr 50px 24px;
+	grid-template-columns: 22px 20px 1fr 15rem 50px 24px;
 }
 
 .sheet.dolmen .tab-effects .gear-effect-header,
 .sheet.dolmen .tab-effects .item-row.gear-effect {
-	grid-template-columns: 22px 1fr 1fr 50px 1fr;
+	grid-template-columns: 22px 20px 1fr 1fr 15rem 50px 24px;
 }
 
 /* Column alignment */
@@ -65,6 +65,7 @@
 	white-space: nowrap;
 	color: var(--dolmen-color-text-muted);
 	font-size: 0.75rem;
+	text-align: center;
 }
 
 .sheet.dolmen .tab-effects .effect-col-value {
@@ -75,6 +76,7 @@
 .sheet.dolmen .tab-effects .effect-col-condition {
 	font-size: 0.7rem;
 	color: var(--dolmen-color-text-muted);
+	text-align: center;
 }
 
 .sheet.dolmen .tab-effects .effect-col-name {
@@ -82,7 +84,7 @@
 }
 
 /* Disabled/inactive effect rows */
-.sheet.dolmen .tab-effects .item-row.disabled,
+.sheet.dolmen .tab-effects .item-row.effect-off,
 .sheet.dolmen .tab-effects .item-row.inactive {
 	opacity: 0.5;
 }
@@ -99,43 +101,6 @@
 /*  Effect Item Sheet                           */
 /* -------------------------------------------- */
 
-.sheet.dolmen.effect .effect-mode-tabs {
-	display: grid;
-	grid-auto-flow: column;
-	flex-shrink: 0;
-	margin-bottom: 0.5rem;
-}
-
-.sheet.dolmen.effect .effect-mode-tabs .item {
-	padding: 0.5rem 0.75rem;
-	cursor: pointer;
-	background-color: var(--dolmen-color-title-background);
-	color: var(--dolmen-color-title);
-	line-height: 1;
-	font-size: 0.85rem;
-	text-align: center;
-	border: 2px solid var(--dolmen-color-title-background);
-}
-
-.sheet.dolmen.effect .effect-mode-tabs .item > * {
-	opacity: 0.7;
-}
-
-.sheet.dolmen.effect .effect-mode-tabs .item:hover > *,
-.sheet.dolmen.effect .effect-mode-tabs .item.active > * {
-	opacity: 1;
-}
-
-.sheet.dolmen.effect .effect-mode-tabs .item.active {
-	color: var(--dolmen-color-h1);
-	background-color: var(--dolmen-color-background);
-	text-shadow: none;
-	opacity: 1;
-}
-
-.sheet.dolmen.effect .effect-mode-tabs .item i {
-	font-size: 0.9rem;
-}
 
 /* -------------------------------------------- */
 /*  Gear Item Effects Tab                       */
@@ -145,7 +110,7 @@
 	padding: 0.5rem;
 }
 
-.item-effects-tab h3 {
+.item-effects-tab h2 {
 	display: flex;
 	align-items: center;
 	gap: 0.5rem;
@@ -154,7 +119,7 @@
 	position: relative;
 }
 
-.item-effects-tab h3 .add-item-btn {
+.item-effects-tab h2 .add-item-btn {
 	position: absolute;
 	right: 0;
 	top: 0;
@@ -167,13 +132,14 @@
 	border: none;
 	cursor: pointer;
 	font-size: 0.7rem;
+	color: var(--dolmen-color-title);
 	opacity: 0.7;
 	transition: opacity 0.15s;
 	padding: 0;
 	margin: 0;
 }
 
-.item-effects-tab h3 .add-item-btn:hover {
+.item-effects-tab h2 .add-item-btn:hover {
 	opacity: 1;
 }
 

@@ -1,4 +1,5 @@
 /* global game, Roll, ChatMessage, CONST, CONFIG */
+import { createChatMessage } from './chat-helpers.js'
 /**
  * Roll Handlers
  * Ability check, saving throw, skill check, and trait roll functions.
@@ -130,7 +131,7 @@ async function performAbilityCheck(sheet, abilityKey, traitScoreBonus = 0, trait
 		resultLabel = game.i18n.localize('DOLMEN.Roll.Failure')
 	}
 
-	const anchor = await roll.toAnchor({ classes: ['ability-inline-roll'] })
+	const anchor = await roll.toAnchor({ classes: ['ability-inline-roll', 'inline-dsn-hidden'] })
 
 	// Build breakdown string showing components
 	let breakdownParts = [`1d6`]
@@ -165,9 +166,10 @@ async function performAbilityCheck(sheet, abilityKey, traitScoreBonus = 0, trait
 		</div>
 	`
 
-	await ChatMessage.create({
+	await createChatMessage({
 		speaker: ChatMessage.getSpeaker({ actor: sheet.actor }),
 		content: chatContent,
+		rolls: [roll],
 		sound: CONFIG.sounds.dice,
 		style: CONST.CHAT_MESSAGE_STYLES.OTHER
 	})
@@ -344,7 +346,7 @@ async function performSavingThrow(sheet, saveKey, traitBonus = 0, modifierNames 
 		? game.i18n.localize('DOLMEN.Roll.Success')
 		: game.i18n.localize('DOLMEN.Roll.Failure')
 
-	const anchor = await roll.toAnchor({ classes: ['save-inline-roll'] })
+	const anchor = await roll.toAnchor({ classes: ['save-inline-roll', 'inline-dsn-hidden'] })
 
 	const traitBadges = modifierNames.map(n => `<span class="trait-badge">${n}</span>`).join(' ')
 	const targetDisplay = `${baseSaveTarget}+`
@@ -370,9 +372,10 @@ async function performSavingThrow(sheet, saveKey, traitBonus = 0, modifierNames 
 		</div>
 	`
 
-	await ChatMessage.create({
+	await createChatMessage({
 		speaker: ChatMessage.getSpeaker({ actor: sheet.actor }),
 		content: chatContent,
+		rolls: [roll],
 		sound: CONFIG.sounds.dice,
 		style: CONST.CHAT_MESSAGE_STYLES.OTHER
 	})
@@ -444,7 +447,7 @@ async function performSkillCheck(sheet, skillKey, targetOverride = null, traitBo
 		resultLabel = game.i18n.localize('DOLMEN.Roll.Failure')
 	}
 
-	const anchor = await roll.toAnchor({ classes: ['skill-inline-roll'] })
+	const anchor = await roll.toAnchor({ classes: ['skill-inline-roll', 'inline-dsn-hidden'] })
 
 	const traitBadge = traitName ? `<span class="trait-badge">${traitName}</span>` : ''
 	const targetDisplay = traitBonus !== 0
@@ -472,9 +475,10 @@ async function performSkillCheck(sheet, skillKey, targetOverride = null, traitBo
 		</div>
 	`
 
-	await ChatMessage.create({
+	await createChatMessage({
 		speaker: ChatMessage.getSpeaker({ actor: sheet.actor }),
 		content: chatContent,
+		rolls: [roll],
 		sound: CONFIG.sounds.dice,
 		style: CONST.CHAT_MESSAGE_STYLES.OTHER
 	})
@@ -515,16 +519,17 @@ export async function rollTrait(sheet, traitId, traitName, formula, rollTarget =
 				<h3>${traitName}</h3>
 			</div>
 			<div class="roll-result ${diceIconClass}">
-				${(await roll.toAnchor({ classes: ['trait-inline-roll'] })).outerHTML}
+				${(await roll.toAnchor({ classes: ['trait-inline-roll', 'inline-dsn-hidden'] })).outerHTML}
 				${resultSection}
 			</div>
 			<span class="roll-breakdown">${formula}${rollTarget !== null ? ` (${rollTarget} ${game.i18n.localize('DOLMEN.Roll.OrLess')})` : ''}</span>
 		</div>
 	`
 
-	await ChatMessage.create({
+	await createChatMessage({
 		speaker: ChatMessage.getSpeaker({ actor: sheet.actor }),
 		content: chatContent,
+		rolls: [roll],
 		sound: CONFIG.sounds.dice,
 		style: CONST.CHAT_MESSAGE_STYLES.OTHER
 	})
@@ -546,10 +551,12 @@ export async function rollTrait(sheet, traitId, traitName, formula, rollTarget =
 export async function useTrait(sheet, { name, desc, value = null, mode = 'shared', formula = null, rollTarget = null, usesRemaining = null, usageFrequency = null } = {}) {
 	let rollSection = ''
 	let sound = null
+	let traitRoll = null
 
 	if (formula) {
-		const roll = new Roll(formula)
-		await roll.evaluate()
+		traitRoll = new Roll(formula)
+		await traitRoll.evaluate()
+		const roll = traitRoll
 
 		let resultHtml = ''
 		if (rollTarget !== null && !isNaN(rollTarget)) {
@@ -564,7 +571,7 @@ export async function useTrait(sheet, { name, desc, value = null, mode = 'shared
 		const diceIconClass = getDieIconFromFormula(formula)
 		rollSection = `
 			<div class="roll-result ${diceIconClass}">
-				${(await roll.toAnchor({ classes: ['trait-inline-roll'] })).outerHTML}
+				${(await roll.toAnchor({ classes: ['trait-inline-roll', 'inline-dsn-hidden'] })).outerHTML}
 				${resultHtml}
 			</div>
 			<span class="roll-breakdown">${formula}${rollTarget !== null ? ` (${rollTarget} ${game.i18n.localize('DOLMEN.Roll.OrLess')})` : ''}</span>
@@ -588,9 +595,10 @@ export async function useTrait(sheet, { name, desc, value = null, mode = 'shared
 		</div>
 	`
 
-	await ChatMessage.create({
+	await createChatMessage({
 		speaker: ChatMessage.getSpeaker({ actor: sheet.actor }),
 		content: chatContent,
+		rolls: traitRoll ? [traitRoll] : [],
 		sound,
 		style: mode === 'shared' ? CONST.CHAT_MESSAGE_STYLES.OOC : CONST.CHAT_MESSAGE_STYLES.OTHER
 	})
