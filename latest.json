@@ -171,7 +171,8 @@
         "htmlFields": ["description"]
       },
       "Kindred": {},
-      "Class": {}
+      "Class": {},
+      "Effect": {}
     }
   }
 }
