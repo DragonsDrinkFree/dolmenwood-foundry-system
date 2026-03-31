@@ -1,5 +1,5 @@
 /* global foundry, game */
-import { EFFECT_FIELDS, BOOLEAN_TARGETS, getEffectGroupForTarget } from './effect-fields.js'
+import { BOOLEAN_TARGETS, getEffectGroupForTarget, getEffectFieldsForActor } from './effect-fields.js'
 
 const { HandlebarsApplicationMixin } = foundry.applications.api
 const { ItemSheetV2 } = foundry.applications.sheets
@@ -13,7 +13,7 @@ class DolmenEffectSheet extends HandlebarsApplicationMixin(ItemSheetV2) {
 		},
 		position: {
 			width: 420,
-			height: 310
+			height: 'auto'
 		},
 		window: {
 			resizable: true
@@ -29,17 +29,23 @@ class DolmenEffectSheet extends HandlebarsApplicationMixin(ItemSheetV2) {
 	async _prepareContext(options) {
 		const context = await super._prepareContext(options)
 		const system = this.item.system
+		const actorType = this.item.parent?.type || 'Adventurer'
+		const effectFields = getEffectFieldsForActor(actorType)
 
-		context.currentGroup = getEffectGroupForTarget(system.target) || 'abilities'
+		context.currentGroup = getEffectGroupForTarget(system.target) || Object.keys(effectFields)[0]
+		// Fall back to first available group if current group is excluded
+		if (!effectFields[context.currentGroup]) {
+			context.currentGroup = Object.keys(effectFields)[0]
+		}
 
 		// Build group choices
 		context.groupChoices = {}
-		for (const [key, val] of Object.entries(EFFECT_FIELDS)) {
+		for (const [key, val] of Object.entries(effectFields)) {
 			context.groupChoices[key] = game.i18n.localize(val.label)
 		}
 
 		// Build field choices for current group
-		const activeGroup = EFFECT_FIELDS[context.currentGroup]
+		const activeGroup = effectFields[context.currentGroup]
 		context.fieldChoices = {}
 		if (activeGroup) {
 			for (const [key, label] of Object.entries(activeGroup.fields)) {
@@ -52,6 +58,18 @@ class DolmenEffectSheet extends HandlebarsApplicationMixin(ItemSheetV2) {
 		context.system = system
 		context.item = this.item
 
+		// Duration choices
+		context.durationChoices = {
+			permanent: game.i18n.localize('DOLMEN.Effects.DurationPermanent'),
+			rounds: game.i18n.localize('DOLMEN.Effects.DurationRounds'),
+			turns: game.i18n.localize('DOLMEN.Effects.DurationTurns'),
+			hours: game.i18n.localize('DOLMEN.Effects.DurationHours'),
+			days: game.i18n.localize('DOLMEN.Effects.DurationDays'),
+			untilRest: game.i18n.localize('DOLMEN.Effects.DurationUntilRest'),
+			untilNextDay: game.i18n.localize('DOLMEN.Effects.DurationUntilNextDay')
+		}
+		context.hideDurationAmount = ['permanent', 'untilRest', 'untilNextDay'].includes(system.duration)
+
 		return context
 	}
 
@@ -63,10 +81,12 @@ class DolmenEffectSheet extends HandlebarsApplicationMixin(ItemSheetV2) {
 		const groupSelect = html.querySelector('.effect-group-select')
 
 		// Group dropdown change → update field dropdown
+		const actorType = this.item.parent?.type || 'Adventurer'
+		const effectFields = getEffectFieldsForActor(actorType)
 		groupSelect?.addEventListener('change', (e) => {
 			e.stopPropagation()
 			const groupKey = e.target.value
-			const group = EFFECT_FIELDS[groupKey]
+			const group = effectFields[groupKey]
 			if (!group || !fieldSelect) return
 
 			fieldSelect.innerHTML = ''
@@ -86,6 +106,14 @@ class DolmenEffectSheet extends HandlebarsApplicationMixin(ItemSheetV2) {
 		// Field dropdown change → auto-detect boolean
 		fieldSelect?.addEventListener('change', () => {
 			this._updateBooleanState(html, fieldSelect.value)
+		})
+
+		// Duration dropdown change → show/hide amount field
+		const durationSelect = html.querySelector('.effect-duration-select')
+		durationSelect?.addEventListener('change', (e) => {
+			const valueRow = html.querySelector('.effect-duration-value-row')
+			const noAmount = ['permanent', 'untilRest', 'untilNextDay'].includes(e.target.value)
+			if (valueRow) valueRow.style.display = noAmount ? 'none' : ''
 		})
 	}
 

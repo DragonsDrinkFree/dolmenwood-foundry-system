@@ -160,4 +160,36 @@ function getEffectGroupForTarget(target) {
 	return null
 }
 
-export { EFFECT_FIELDS, VALID_EFFECT_TARGETS, BOOLEAN_TARGETS, getEffectTargetLabel, getEffectGroupForTarget }
+/**
+ * Groups and fields excluded for Creature actors.
+ */
+const CREATURE_EXCLUDED_GROUPS = new Set(['abilities', 'skills', 'magic', 'encumbrance', 'xp'])
+const CREATURE_EXCLUDED_FIELDS = new Set([
+	'magicResistance',
+	'attackMelee', 'attackMissile', 'damageMelee', 'damageMissile',
+	'movement.exploring', 'movement.overland'
+])
+
+/**
+ * Get effect fields filtered for a specific actor type.
+ * @param {string} actorType - The actor type (e.g. 'Adventurer', 'Creature')
+ * @returns {object} Filtered EFFECT_FIELDS structure
+ */
+function getEffectFieldsForActor(actorType) {
+	if (actorType !== 'Creature') return EFFECT_FIELDS
+	const filtered = {}
+	for (const [groupKey, group] of Object.entries(EFFECT_FIELDS)) {
+		if (CREATURE_EXCLUDED_GROUPS.has(groupKey)) continue
+		const fields = {}
+		for (const [fieldKey, label] of Object.entries(group.fields)) {
+			if (CREATURE_EXCLUDED_FIELDS.has(fieldKey)) continue
+			fields[fieldKey] = label
+		}
+		if (Object.keys(fields).length > 0) {
+			filtered[groupKey] = { label: group.label, fields }
+		}
+	}
+	return filtered
+}
+
+export { EFFECT_FIELDS, VALID_EFFECT_TARGETS, BOOLEAN_TARGETS, getEffectTargetLabel, getEffectGroupForTarget, getEffectFieldsForActor }

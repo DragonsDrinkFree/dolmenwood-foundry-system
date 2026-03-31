@@ -277,6 +277,14 @@ class DolmenActor extends Actor {
 
 		await this.update(updateData)
 
+		// Remove "until rest" effects
+		const restEffects = this.items.filter(i =>
+			i.type === 'Effect' && i.system.duration === 'untilRest'
+		)
+		if (restEffects.length) {
+			await this.deleteEmbeddedDocuments('Item', restEffects.map(e => e.id))
+		}
+
 		// Build and send chat message
 		const restLabel = type === 'overnight'
 			? game.i18n.localize('DOLMEN.Rest.Overnight')

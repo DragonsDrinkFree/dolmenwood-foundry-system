@@ -27,8 +27,8 @@ export function setupAdjustableInputListeners(sheet) {
 		const manualAdj = parseFloat(input.dataset.manualAdj) || 0
 		const targetName = input.dataset.target
 
-		// Add visual indicator if value is modified by manual adjustment (not trait adjustment)
-		if (manualAdj !== 0) {
+		// Add visual indicator if value is modified by adjustment
+		if (manualAdj !== 0 || baseValue !== adjustedValue) {
 			input.classList.add('has-adjustment')
 		}
 

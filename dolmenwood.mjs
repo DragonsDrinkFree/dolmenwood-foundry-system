@@ -631,6 +631,114 @@ Hooks.once('ready', async function () {
 	lastRuneRefreshDay = `${initCal.year}-${initCal.monthKey}-${initCal.day}`
 })
 
+// Decrement round-based effect durations when combat round advances
+Hooks.on('combatRound', async (combat) => {
+	if (game.user !== game.users.activeGM) return
+	for (const combatant of combat.combatants) {
+		const actor = combatant.actor
+		if (!actor) continue
+		const roundEffects = actor.items.filter(i =>
+			i.type === 'Effect' && i.system.enabled && i.system.duration === 'rounds'
+		)
+		const toDelete = []
+		const toUpdate = []
+		for (const effect of roundEffects) {
+			const remaining = effect.system.durationValue - 1
+			if (remaining <= 0) {
+				toDelete.push(effect.id)
+			} else {
+				toUpdate.push({ _id: effect.id, 'system.durationValue': remaining })
+			}
+		}
+		if (toUpdate.length) await actor.updateEmbeddedDocuments('Item', toUpdate)
+		if (toDelete.length) await actor.deleteEmbeddedDocuments('Item', toDelete)
+	}
+})
+
+// Compute expiry timestamp for time-based effect durations
+function computeExpiresAt(duration, durationValue) {
+	const SECONDS = { turns: 600, hours: 3600, days: 86400 }
+	const perUnit = SECONDS[duration]
+	if (!perUnit) return null
+	return game.time.worldTime + (durationValue * perUnit)
+}
+
+// Stamp expiresAt when a time-based effect is created on an actor
+Hooks.on('preCreateItem', (item, data) => {
+	if (!item.isEmbedded || item.type !== 'Effect') return
+	const dur = data.system?.duration || item.system.duration
+	const noExpiry = ['permanent', 'rounds', 'untilRest', 'untilNextDay']
+	if (!dur || noExpiry.includes(dur)) return
+	const val = data.system?.durationValue || item.system.durationValue || 1
+	item.updateSource({ 'system.expiresAt': computeExpiresAt(dur, val) })
+})
+
+// Update expiresAt when duration type or value changes on an existing effect
+Hooks.on('preUpdateItem', (item, changes) => {
+	if (item.type !== 'Effect') return
+	// Skip if expiresAt is already explicitly set (system-managed update from updateWorldTime)
+	if (changes.system?.expiresAt !== undefined) return
+	// Recalculate expiresAt when re-enabling a time-based effect
+	const enabling = changes.system?.enabled === true && !item.system.enabled
+	const durChanged = changes.system?.duration !== undefined
+	const valChanged = changes.system?.durationValue !== undefined
+	if (!durChanged && !valChanged && !enabling) return
+	const dur = changes.system?.duration ?? item.system.duration
+	const val = changes.system?.durationValue ?? item.system.durationValue
+	const noExpiry = ['permanent', 'rounds', 'untilRest', 'untilNextDay']
+	if (noExpiry.includes(dur)) {
+		changes.system = changes.system || {}
+		changes.system.expiresAt = null
+	} else {
+		changes.system = changes.system || {}
+		changes.system.expiresAt = computeExpiresAt(dur, val)
+	}
+})
+
+// Expire and decrement time-based effects when world time advances
+const DURATION_SECONDS = { turns: 600, hours: 3600, days: 86400 }
+Hooks.on('updateWorldTime', async () => {
+	if (game.user !== game.users.activeGM) return
+	const now = game.time.worldTime
+	for (const actor of game.actors) {
+		const toDelete = []
+		const toUpdate = []
+		for (const item of actor.items) {
+			if (item.type !== 'Effect' || !item.system.enabled) continue
+			// Round-based effects expire when time advances (combat is over)
+			if (item.system.duration === 'rounds') {
+				toDelete.push(item.id)
+				continue
+			}
+			// Time-based effects: check expiry and update remaining display value
+			if (item.system.expiresAt == null) continue
+			if (now >= item.system.expiresAt) {
+				toDelete.push(item.id)
+			} else {
+				const remainingSec = item.system.expiresAt - now
+				let dur = item.system.duration
+				// Cascade: days → hours when less than 1 day remains
+				if (dur === 'days' && remainingSec < 86400) dur = 'hours'
+				// Cascade: hours → turns when less than 1 hour remains
+				if (dur === 'hours' && remainingSec < 3600) dur = 'turns'
+				const perUnit = DURATION_SECONDS[dur]
+				if (!perUnit) continue
+				const remaining = Math.max(1, Math.ceil(remainingSec / perUnit))
+				if (remaining !== item.system.durationValue || dur !== item.system.duration) {
+					toUpdate.push({
+						_id: item.id,
+						'system.duration': dur,
+						'system.durationValue': remaining,
+						'system.expiresAt': item.system.expiresAt
+					})
+				}
+			}
+		}
+		if (toUpdate.length) await actor.updateEmbeddedDocuments('Item', toUpdate)
+		if (toDelete.length) await actor.deleteEmbeddedDocuments('Item', toDelete)
+	}
+})
+
 // Randomize HP for unlinked creature tokens placed on canvas
 Hooks.on('createToken', async (tokenDoc) => {
 	if (!game.user.isGM) return
@@ -701,6 +809,16 @@ Hooks.on('updateWorldTime', async () => {
 	const dayChanged = lastRuneRefreshDay !== null && dayKey !== lastRuneRefreshDay
 	lastRuneRefreshDay = dayKey
 	if (!dayChanged) return
+
+	// Remove "until next day" effects from all actors
+	for (const actor of game.actors) {
+		const dayEffects = actor.items.filter(i =>
+			i.type === 'Effect' && i.system.duration === 'untilNextDay'
+		)
+		if (dayEffects.length) {
+			await actor.deleteEmbeddedDocuments('Item', dayEffects.map(e => e.id))
+		}
+	}
 
 	const currentEpochDay = dateKeyToEpochDay(dayKey)
 

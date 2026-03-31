@@ -147,12 +147,12 @@ class DolmenSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 			template: 'systems/dolmenwood/templates/adventurer/parts/tab-details.html',
 			scrollable: ['']
 		},
-		notes: {
-			template: 'systems/dolmenwood/templates/adventurer/parts/tab-notes.html',
-			scrollable: ['']
-		},
 		effects: {
 			template: 'systems/dolmenwood/templates/adventurer/parts/tab-effects.html',
+			scrollable: ['']
+		},
+		notes: {
+			template: 'systems/dolmenwood/templates/adventurer/parts/tab-notes.html',
 			scrollable: ['']
 		},
 		settings: {
@@ -169,8 +169,8 @@ class DolmenSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 				{ id: 'magic', icon: 'fas fa-sparkles', label: 'DOLMEN.Tabs.Magic' },
 				{ id: 'traits', icon: 'fas fa-person-rays', label: 'DOLMEN.Tabs.Traits' },
 				{ id: 'details', icon: 'fas fa-eye', label: 'DOLMEN.Tabs.Details' },
-				{ id: 'notes', icon: 'fas fa-note-sticky', label: 'DOLMEN.Tabs.Notes' },
 				{ id: 'effects', icon: 'fas fa-bolt', label: 'DOLMEN.Tabs.Effects' },
+				{ id: 'notes', icon: 'fas fa-note-sticky', label: 'DOLMEN.Tabs.Notes' },
 				{ id: 'settings', icon: 'fas fa-cog', label: '' }
 			],
 			initial: 'stats'
@@ -642,16 +642,26 @@ class DolmenSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
 		// Prepare effects tab data
 		const effectItems = actor.items.filter(i => i.type === 'Effect')
-		context.effectItems = effectItems.map(e => ({
-			id: e.id,
-			name: e.name,
-			img: e.img,
-			enabled: e.system.enabled,
-			target: e.system.target,
-			value: e.system.value,
-			effectType: e.system.effectType,
-			targetLabel: getEffectTargetLabel(e.system.target)
-		})).sort((a, b) => a.name.localeCompare(b.name))
+		context.effectItems = effectItems.map(e => {
+			const dur = e.system.duration || 'permanent'
+			let durationLabel = null
+			if (dur === 'untilRest' || dur === 'untilNextDay') {
+				durationLabel = game.i18n.localize(`DOLMEN.Effects.Duration${dur.charAt(0).toUpperCase() + dur.slice(1)}`)
+			} else if (dur !== 'permanent') {
+				durationLabel = `${e.system.durationValue} ${game.i18n.localize(`DOLMEN.Effects.Duration${dur.charAt(0).toUpperCase() + dur.slice(1)}`)}`
+			}
+			return {
+				id: e.id,
+				name: e.name,
+				img: e.img,
+				enabled: e.system.enabled,
+				target: e.system.target,
+				value: e.system.value,
+				effectType: e.system.effectType,
+				targetLabel: getEffectTargetLabel(e.system.target),
+				durationLabel
+			}
+		}).sort((a, b) => a.name.localeCompare(b.name))
 
 		// Gear effects summary
 		const gearTypes = ['Item', 'Weapon', 'Armor', 'Treasure', 'Foraged', 'Container']
@@ -679,7 +689,7 @@ class DolmenSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 		context = await super._preparePartContext(partId, context)
 
 		// For tab content parts, add the tab object
-		const tabIds = ['stats', 'inventory', 'magic', 'traits', 'details', 'notes', 'effects', 'settings']
+		const tabIds = ['stats', 'inventory', 'magic', 'traits', 'details', 'effects', 'notes', 'settings']
 		if (tabIds.includes(partId)) {
 			context.tab = context.tabs?.primary?.[partId] || {
 				id: partId,

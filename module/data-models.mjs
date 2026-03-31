@@ -826,6 +826,45 @@ export class CreatureDataModel extends ActorDataModel {
 
 		}
 	}
+
+	/** @override */
+	prepareDerivedData() {
+		this._aggregateCreatureEffects()
+	}
+
+	/**
+	 * Aggregate Effect items into computed final values for creatures.
+	 */
+	_aggregateCreatureEffects() {
+		const items = this.parent?.items
+		const adj = { 'hp.max': 0, ac: 0, attack: 0, damage: 0, speed: 0,
+			'saves.doom': 0, 'saves.ray': 0, 'saves.hold': 0, 'saves.blast': 0, 'saves.spell': 0 }
+
+		if (items) {
+			for (const item of items) {
+				if (item.type !== 'Effect' || !item.system.enabled) continue
+				const target = item.system.target
+				if (target in adj) {
+					adj[target] += (item.system.value || 0)
+				}
+			}
+		}
+
+		this.final = {
+			hp: { max: this.hp.max + adj['hp.max'] },
+			ac: this.ac + adj.ac,
+			attack: adj.attack,
+			damage: adj.damage,
+			speed: this.speed + adj.speed,
+			saves: {
+				doom: this.saves.doom + adj['saves.doom'],
+				ray: this.saves.ray + adj['saves.ray'],
+				hold: this.saves.hold + adj['saves.hold'],
+				blast: this.saves.blast + adj['saves.blast'],
+				spell: this.saves.spell + adj['saves.spell']
+			}
+		}
+	}
 }
 
 /**
@@ -1547,6 +1586,22 @@ export class EffectDataModel extends ItemDataModel {
 				required: true,
 				blank: false,
 				initial: 'numeric'
+			}),
+			duration: new StringField({
+				required: true,
+				blank: false,
+				initial: 'permanent'
+			}),
+			durationValue: new NumberField({
+				required: true,
+				integer: true,
+				min: 1,
+				initial: 1
+			}),
+			expiresAt: new NumberField({
+				required: false,
+				nullable: true,
+				initial: null
 			})
 		}
 	}

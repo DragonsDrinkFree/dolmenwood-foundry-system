@@ -327,9 +327,8 @@ function openSaveModifierPanel(sheet, saveKey, modifiers, position) {
  * @param {string[]} [modifierNames] - Names of applied modifiers for display
  */
 async function performSavingThrow(sheet, saveKey, traitBonus = 0, modifierNames = []) {
-	const baseSaveTarget = sheet.actor.type === 'Adventurer'
-		? sheet.actor.system.final.saves[saveKey]
-		: sheet.actor.system.saves[saveKey]
+	const baseSaveTarget = sheet.actor.system.final?.saves?.[saveKey]
+		?? sheet.actor.system.saves[saveKey]
 	if (baseSaveTarget === undefined) return
 
 	const saveName = game.i18n.localize(`DOLMEN.Saves.${saveKey.charAt(0).toUpperCase() + saveKey.slice(1)}`)

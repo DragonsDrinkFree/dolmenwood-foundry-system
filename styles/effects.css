@@ -42,12 +42,12 @@
 /* Effect list header and row grid */
 .sheet.dolmen .tab-effects .effect-header,
 .sheet.dolmen .tab-effects .item-row.effect {
-	grid-template-columns: 22px 20px 1fr 15rem 50px 24px;
+	grid-template-columns: 22px 20px 1fr 10rem 10rem 5rem 24px;
 }
 
 .sheet.dolmen .tab-effects .gear-effect-header,
 .sheet.dolmen .tab-effects .item-row.gear-effect {
-	grid-template-columns: 22px 20px 1fr 1fr 15rem 50px 24px;
+	grid-template-columns: 22px 20px 1fr 10rem 10rem 5rem 24px;
 }
 
 /* Column alignment */
@@ -81,6 +81,12 @@
 
 .sheet.dolmen .tab-effects .effect-col-name {
 	text-align: left;
+}
+
+.sheet.dolmen .tab-effects .effect-col-duration {
+	font-size: 0.75rem;
+	color: var(--dolmen-color-text-muted);
+	text-align: center;
 }
 
 /* Disabled/inactive effect rows */
