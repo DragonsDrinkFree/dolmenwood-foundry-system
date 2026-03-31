@@ -27,6 +27,7 @@ const EFFECT_FIELDS = {
 	saves: {
 		label: 'DOLMEN.Effects.Groups.Saves',
 		fields: {
+			'saves.all': 'DOLMEN.Effects.Fields.SaveAll',
 			'saves.doom': 'DOLMEN.Effects.Fields.SaveDoom',
 			'saves.ray': 'DOLMEN.Effects.Fields.SaveRay',
 			'saves.hold': 'DOLMEN.Effects.Fields.SaveHold',
@@ -59,6 +60,7 @@ const EFFECT_FIELDS = {
 	skills: {
 		label: 'DOLMEN.Effects.Groups.Skills',
 		fields: {
+			'skills.all': 'DOLMEN.Effects.Fields.SkillAll',
 			'skills.listen': 'DOLMEN.Effects.Fields.SkillListen',
 			'skills.search': 'DOLMEN.Effects.Fields.SkillSearch',
 			'skills.survival': 'DOLMEN.Effects.Fields.SkillSurvival',

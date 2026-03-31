@@ -358,6 +358,18 @@ export class AdventurerDataModel extends ActorDataModel {
 
 		// Helper to apply a single effect to the adjustments
 		const applyEffect = (target, value, effectType) => {
+			if (target === 'saves.all') {
+				for (const save of ['doom', 'ray', 'hold', 'blast', 'spell']) {
+					adj.saves[save] = (adj.saves[save] || 0) + (value || 0)
+				}
+				return
+			}
+			if (target === 'skills.all') {
+				for (const skill of Object.keys(adj.skills)) {
+					adj.skills[skill] = (adj.skills[skill] || 0) + (value || 0)
+				}
+				return
+			}
 			if (effectType === 'boolean') {
 				foundry.utils.setProperty(adj, target, true)
 			} else {
@@ -844,7 +856,11 @@ export class CreatureDataModel extends ActorDataModel {
 			for (const item of items) {
 				if (item.type !== 'Effect' || !item.system.enabled) continue
 				const target = item.system.target
-				if (target in adj) {
+				if (target === 'saves.all') {
+					for (const save of ['doom', 'ray', 'hold', 'blast', 'spell']) {
+						adj[`saves.${save}`] += (item.system.value || 0)
+					}
+				} else if (target in adj) {
 					adj[target] += (item.system.value || 0)
 				}
 			}
