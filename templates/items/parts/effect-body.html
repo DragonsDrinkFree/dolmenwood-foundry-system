@@ -1,0 +1,75 @@
+<section class="tab-content item-body active" data-group="primary" data-tab="body">
+	<!-- Header: Details + Portrait -->
+	<div class="two-columns header">
+		<section class="details boxed-section">
+			<h2>{{localize "DOLMEN.NameType"}}</h2>
+			<div class="header-details">
+				<div class="header-field">
+					<label>{{localize "DOLMEN.Item.Name"}}</label>
+					<input type="text" name="name" value="{{item.name}}" placeholder="{{localize 'DOLMEN.Effects.NewEffect'}}">
+				</div>
+				<div class="header-field">
+					<label>{{localize "DOLMEN.Item.Type"}}</label>
+					<span class="proficiency-value">{{localize "TYPES.Item.Effect"}}</span>
+				</div>
+			</div>
+		</section>
+		<section class="portrait-section boxed-section">
+			<div class="portrait-container">
+				<img src="{{item.img}}" alt="{{item.name}}" class="portrait-image" data-edit="img">
+			</div>
+		</section>
+	</div>
+
+	<!-- Effect Configuration -->
+	<section class="boxed-section effect-config">
+		<h2>{{localize "DOLMEN.Effects.DetailsSimple"}}</h2>
+
+		<div class="form-row">
+			<div class="form-field">
+				<label>{{localize "DOLMEN.Effects.Enabled"}}</label>
+				<input type="checkbox" name="system.enabled" {{checked system.enabled}} />
+			</div>
+			<div class="form-field effect-value-row" {{#if isBoolean}}style="display:none"{{/if}}>
+				<label>{{localize "DOLMEN.Effects.Value"}}</label>
+				<input type="number" name="system.value" value="{{system.value}}" step="1" />
+			</div>
+		</div>
+
+		<div class="form-row">
+			<div class="form-field">
+				<label>{{localize "DOLMEN.Effects.Group"}}</label>
+				<select class="effect-group-select">
+					{{#each groupChoices}}
+					<option value="{{@key}}" {{#if (eq @key ../currentGroup)}}selected{{/if}}>{{this}}</option>
+					{{/each}}
+				</select>
+			</div>
+			<div class="form-field">
+				<label>{{localize "DOLMEN.Effects.Target"}}</label>
+				<select class="effect-field-select" name="system.target">
+					{{#each fieldChoices}}
+					<option value="{{@key}}" {{#if (eq @key ../currentField)}}selected{{/if}}>{{this}}</option>
+					{{/each}}
+				</select>
+			</div>
+		</div>
+
+		<input type="hidden" name="system.effectType" value="{{system.effectType}}" />
+
+		<div class="form-row">
+			<div class="form-field">
+				<label>{{localize "DOLMEN.Effects.Duration"}}</label>
+				<select name="system.duration" class="effect-duration-select">
+					{{#each durationChoices}}
+					<option value="{{@key}}" {{#if (eq @key ../system.duration)}}selected{{/if}}>{{this}}</option>
+					{{/each}}
+				</select>
+			</div>
+			<div class="form-field effect-duration-value-row" {{#if hideDurationAmount}}style="display:none"{{/if}}>
+				<label>{{localize "DOLMEN.Effects.DurationAmount"}}</label>
+				<input type="number" name="system.durationValue" value="{{system.durationValue}}" min="1" step="1" />
+			</div>
+		</div>
+	</section>
+</section>

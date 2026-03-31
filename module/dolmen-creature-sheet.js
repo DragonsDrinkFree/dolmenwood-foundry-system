@@ -1,11 +1,15 @@
-/* global foundry, game, FilePicker, Roll, ChatMessage, CONST, CONFIG, fromUuid */
+/* global foundry, game, ui, FilePicker, Roll, ChatMessage, CONST, CONFIG, fromUuid */
 
 const { DialogV2 } = foundry.applications.api
 import { buildChoices, CHOICE_KEYS } from './utils/choices.js'
 import { onSaveRoll } from './sheet/roll-handlers.js'
+import { createChatMessage } from './sheet/chat-helpers.js'
 import { createContextMenu } from './sheet/context-menu.js'
 import { getDieIconFromFormula } from './sheet/attack-rolls.js'
 import { parseSaveLinks } from './chat-save.js'
+import { getEffectTargetLabel, getEffectFieldsForActor } from './effect-fields.js'
+import { onOpenItem } from './sheet/inventory-actions.js'
+import { setupAdjustableInputListeners } from './sheet/listeners.js'
 
 const { HandlebarsApplicationMixin } = foundry.applications.api
 const { ActorSheetV2 } = foundry.applications.sheets
@@ -28,7 +32,11 @@ class DolmenCreatureSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 			addAttack: DolmenCreatureSheet._onAddAttack,
 			removeAttack: DolmenCreatureSheet._onRemoveAttack,
 			addAbility: DolmenCreatureSheet._onAddAbility,
-			removeAbility: DolmenCreatureSheet._onRemoveAbility
+			removeAbility: DolmenCreatureSheet._onRemoveAbility,
+			openItem: onOpenItem,
+			addEffect: DolmenCreatureSheet._onAddEffect,
+			deleteEffect: DolmenCreatureSheet._onDeleteEffect,
+			toggleEffect: DolmenCreatureSheet._onToggleEffect
 		}
 	}
 
@@ -47,6 +55,10 @@ class DolmenCreatureSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 		notes: {
 			template: 'systems/dolmenwood/templates/creature/parts/tab-notes.html',
 			scrollable: ['']
+		},
+		effects: {
+			template: 'systems/dolmenwood/templates/creature/parts/tab-effects.html',
+			scrollable: ['']
 		}
 	}
 
@@ -55,6 +67,7 @@ class DolmenCreatureSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 			tabs: [
 				{ id: 'stats', icon: 'fas fa-dragon', label: 'DOLMEN.Tabs.Stats' },
 				{ id: 'notes', icon: 'fas fa-eye', label: 'DOLMEN.Tabs.Details' },
+				{ id: 'effects', icon: 'fas fa-bolt', label: 'DOLMEN.Tabs.Effects' },
 				{ id: 'description', icon: 'fas fa-book-open', label: 'DOLMEN.Tabs.Description' }
 			],
 			initial: 'stats'
@@ -90,6 +103,7 @@ class DolmenCreatureSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
 		context.actor = actor
 		context.system = actor.system
+		context.final = actor.system.final || {}
 		context.isGM = game.user.isGM
 		context.tabs = this._getTabs()
 
@@ -133,12 +147,35 @@ class DolmenCreatureSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 			}))
 		)
 
+		// Prepare effects tab data
+		const effectItems = actor.items.filter(i => i.type === 'Effect')
+		context.effectItems = effectItems.map(e => {
+			const dur = e.system.duration || 'permanent'
+			let durationLabel = null
+			if (dur === 'untilRest' || dur === 'untilNextDay') {
+				durationLabel = game.i18n.localize(`DOLMEN.Effects.Duration${dur.charAt(0).toUpperCase() + dur.slice(1)}`)
+			} else if (dur !== 'permanent') {
+				durationLabel = `${e.system.durationValue} ${game.i18n.localize(`DOLMEN.Effects.Duration${dur.charAt(0).toUpperCase() + dur.slice(1)}`)}`
+			}
+			return {
+				id: e.id,
+				name: e.name,
+				img: e.img,
+				enabled: e.system.enabled,
+				target: e.system.target,
+				value: e.system.value,
+				effectType: e.system.effectType,
+				targetLabel: getEffectTargetLabel(e.system.target),
+				durationLabel
+			}
+		}).sort((a, b) => a.name.localeCompare(b.name))
+
 		return context
 	}
 
 	async _preparePartContext(partId, context) {
 		context = await super._preparePartContext(partId, context)
-		const tabIds = ['stats', 'description', 'notes']
+		const tabIds = ['stats', 'description', 'notes', 'effects']
 		if (tabIds.includes(partId)) {
 			context.tab = context.tabs?.primary?.[partId] || {
 				id: partId,
@@ -164,6 +201,9 @@ class DolmenCreatureSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
 	_onRender(context, options) {
 		super._onRender(context, options)
+
+		// Adjustable input listeners (effect-modified values)
+		setupAdjustableInputListeners(this)
 
 		// Actor link toggle
 		this.element.querySelector('.actor-link-icon')?.addEventListener('click', async () => {
@@ -320,6 +360,22 @@ class DolmenCreatureSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 			return
 		}
 
+		// Check Effect items for unsupported targets
+		if (data.type === 'Item' && data.uuid) {
+			const item = await fromUuid(data.uuid)
+			if (item?.type === 'Effect') {
+				const creatureFields = getEffectFieldsForActor('Creature')
+				const validTargets = new Set()
+				for (const group of Object.values(creatureFields)) {
+					for (const key of Object.keys(group.fields)) validTargets.add(key)
+				}
+				if (!validTargets.has(item.system.target)) {
+					ui.notifications.warn(game.i18n.localize('DOLMEN.Effects.UnsupportedTarget'))
+					return
+				}
+			}
+		}
+
 		return super._onDrop(event)
 	}
 
@@ -363,6 +419,29 @@ class DolmenCreatureSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 		const abilities = foundry.utils.deepClone(this.actor.system.specialAbilities)
 		abilities.splice(index, 1)
 		this.actor.update({ 'system.specialAbilities': abilities })
+	}
+
+	static async _onAddEffect() {
+		const itemData = {
+			name: game.i18n.localize('DOLMEN.Effects.NewEffect'),
+			type: 'Effect'
+		}
+		const created = await this.actor.createEmbeddedDocuments('Item', [itemData])
+		if (created?.[0]) created[0].sheet.render(true)
+	}
+
+	static async _onDeleteEffect(_event, target) {
+		const itemId = target.closest('[data-item-id]')?.dataset.itemId
+		if (!itemId) return
+		const item = this.actor.items.get(itemId)
+		if (item) await item.delete()
+	}
+
+	static async _onToggleEffect(_event, target) {
+		const itemId = target.closest('[data-item-id]')?.dataset.itemId
+		if (!itemId) return
+		const item = this.actor.items.get(itemId)
+		if (item) await item.update({ 'system.enabled': !item.system.enabled })
 	}
 
 	/* -------------------------------------------- */
@@ -541,7 +620,7 @@ class DolmenCreatureSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 			? game.i18n.localize('DOLMEN.Creature.MoraleHolds')
 			: game.i18n.localize('DOLMEN.Creature.MoraleFlees')
 
-		const anchor = await roll.toAnchor({ classes: ['morale-inline-roll'] })
+		const anchor = await roll.toAnchor({ classes: ['morale-inline-roll', 'inline-dsn-hidden'] })
 
 		const chatContent = `
 			<div class="dolmen skill-roll">
@@ -564,9 +643,10 @@ class DolmenCreatureSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 			</div>
 		`
 
-		await ChatMessage.create({
+		await createChatMessage({
 			speaker: ChatMessage.getSpeaker({ actor }),
 			content: chatContent,
+			rolls: [roll],
 			sound: CONFIG.sounds.dice,
 			style: CONST.CHAT_MESSAGE_STYLES.OTHER
 		})
@@ -719,7 +799,7 @@ class DolmenCreatureSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 					</div>
 				</div>
 			`
-			await ChatMessage.create({
+			await createChatMessage({
 				speaker: ChatMessage.getSpeaker({ actor: this.actor }),
 				content,
 				style: CONST.CHAT_MESSAGE_STYLES.OTHER
@@ -728,18 +808,26 @@ class DolmenCreatureSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 		}
 
 		// Attack type: roll attack and damage dice
-		const totalBonus = attack.attackBonus + rangeMod
+		const effectAtk = this.actor.system.final?.attack || 0
+		const effectDmg = this.actor.system.final?.damage || 0
+		const totalBonus = attack.attackBonus + rangeMod + effectAtk
 		const modSign = totalBonus >= 0 ? '+' : ''
 		const atkFormula = `1d20${modSign}${totalBonus}`
 		const atkRoll = new Roll(atkFormula)
 		await atkRoll.evaluate()
 
-		const dmgRoll = new Roll(attack.attackDamage)
+		let dmgFormula = attack.attackDamage
+		if (effectDmg !== 0) {
+			dmgFormula = effectDmg > 0
+				? `${dmgFormula} + ${effectDmg}`
+				: `${dmgFormula} - ${Math.abs(effectDmg)}`
+		}
+		const dmgRoll = new Roll(dmgFormula)
 		await dmgRoll.evaluate()
 		if (dmgRoll.total < 1) dmgRoll._total = 1
 
-		const atkAnchor = await atkRoll.toAnchor({ classes: ['attack-inline-roll'] })
-		const dmgAnchor = await dmgRoll.toAnchor({ classes: ['damage-inline-roll'] })
+		const atkAnchor = await atkRoll.toAnchor({ classes: ['attack-inline-roll', 'inline-dsn-hidden'] })
+		const dmgAnchor = await dmgRoll.toAnchor({ classes: ['damage-inline-roll', 'inline-dsn-hidden'] })
 
 		const diceIcon = getDieIconFromFormula(attack.attackDamage)
 
@@ -766,9 +854,10 @@ class DolmenCreatureSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 			</div>
 		`
 
-		await ChatMessage.create({
+		await createChatMessage({
 			speaker: ChatMessage.getSpeaker({ actor: this.actor }),
 			content,
+			rolls: [atkRoll, dmgRoll],
 			sound: CONFIG.sounds.dice,
 			style: CONST.CHAT_MESSAGE_STYLES.OTHER
 		})

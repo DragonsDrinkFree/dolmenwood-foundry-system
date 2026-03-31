@@ -1,4 +1,5 @@
 /* global game, CONFIG, ui, foundry, Roll, ChatMessage, CONST */
+import { createChatMessage } from './chat-helpers.js'
 
 const { DialogV2 } = foundry.applications.api
 /**
@@ -324,14 +325,16 @@ export async function levelUp(sheet) {
 		let formula = ''
 		const conMod = sys.abilities.constitution.mod
 		let rollBody = ''
+		let hpRoll = null
 
 		if (newLevel <= 10) {
 			// Roll hit die + CON modifier, minimum 1
 			formula = hitDice.die
-			const roll = await new Roll(formula).evaluate()
+			hpRoll = await new Roll(formula).evaluate()
+			const roll = hpRoll
 			hpGain = Math.max(1, roll.total + conMod)
 
-			const rollAnchor = (await roll.toAnchor()).outerHTML
+			const rollAnchor = (await roll.toAnchor({ classes: ['inline-dsn-hidden'] })).outerHTML
 			const conLabel = conMod >= 0 ? `+${conMod}` : String(conMod)
 			const iconClass = getDieIconFromFormula(formula)
 			rollBody = `
@@ -365,9 +368,10 @@ export async function levelUp(sheet) {
 				</div>
 			</div>`
 
-		await ChatMessage.create({
+		await createChatMessage({
 			speaker: ChatMessage.getSpeaker({ actor }),
 			content,
+			rolls: hpRoll ? [hpRoll] : [],
 			style: CONST.CHAT_MESSAGE_STYLES.OTHER
 		})
 

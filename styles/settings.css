@@ -11,8 +11,98 @@
 	box-shadow: none;
 }
 
-.sheet.dolmen .tab-settings .retainer-setting .hint {
+.sheet.dolmen .tab-settings .retainer-setting h3 {
+	font-size: 0.75rem;
+	text-transform: uppercase;
+	color: var(--dolmen-color-text-muted);
+	margin: 0.5rem 0 0.5rem 0.5rem;
+}
+
+.sheet.dolmen .tab-settings .retainer-slider {
+	display: flex;
+	flex-direction: column;
+	align-items: stretch;
+	gap: 0.5rem;
+	padding: 0 0.5rem;
+}
+
+.sheet.dolmen .tab-settings .retainer-slider input[type="range"] {
+	-webkit-appearance: none;
+	appearance: none;
+	width: auto;
+	height: 6px;
+	border-radius: 3px;
+	background: var(--dolmen-color-box-background);
+	border: 1px solid var(--dolmen-color-input-border);
+	outline: none;
+	cursor: pointer;
+	margin: 0 calc(100% / 22 - 8px);
+	padding: 0;
+}
+
+.sheet.dolmen .tab-settings .retainer-slider input[type="range"]::-webkit-slider-runnable-track {
+	height: 6px;
+	border-radius: 3px;
+	background: transparent;
+	border: none;
+}
+
+.sheet.dolmen .tab-settings .retainer-slider input[type="range"]::-webkit-slider-thumb {
+	-webkit-appearance: none;
+	appearance: none;
+	width: 16px;
+	height: 16px;
+	border-radius: 50%;
+	background: var(--dolmen-color-accent);
+	border: 2px solid var(--dolmen-color-box-border);
+	box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+	cursor: pointer;
+	margin-top: -5px;
+}
+
+.sheet.dolmen .tab-settings .retainer-slider input[type="range"]::-moz-range-track {
+	height: 6px;
+	border-radius: 3px;
+	background: var(--dolmen-color-box-background);
+	border: 1px solid var(--dolmen-color-input-border);
+}
+
+.sheet.dolmen .tab-settings .retainer-slider input[type="range"]::-moz-range-thumb {
+	width: 16px;
+	height: 16px;
+	border-radius: 50%;
+	background: var(--dolmen-color-accent);
+	border: 2px solid var(--dolmen-color-box-border);
+	box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+	cursor: pointer;
+}
+
+.sheet.dolmen .tab-settings .retainer-slider .retainer-labels {
+	display: flex;
+	justify-content: space-between;
+	width: 100%;
+	font-size: 0.7rem;
+	color: var(--dolmen-color-text-muted);
+}
+
+.sheet.dolmen .tab-settings .retainer-slider .retainer-tick {
 	text-align: center;
+	flex: 1;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	font-weight: normal;
+	font-size: 0.9rem;
+}
+
+.sheet.dolmen .tab-settings .retainer-slider .retainer-tick:first-child,
+.sheet.dolmen .tab-settings .retainer-slider .retainer-tick:last-child {
+	font-size: 0.8rem;
+}
+
+.sheet.dolmen .tab-settings .retainer-slider .retainer-tick.active {
+	color: var(--dolmen-color-accent);
+	text-shadow: 0 0 4px var(--dolmen-color-box-highlight);
 }
 
 .sheet.dolmen .tab-settings .base-speed-setting .form-group {

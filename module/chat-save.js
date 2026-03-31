@@ -1,4 +1,5 @@
 /* global game, canvas, ui, ChatMessage, Roll, CONST, CONFIG */
+import { createChatMessage } from './sheet/chat-helpers.js'
 
 /**
  * Get an actor's magic resistance value.
@@ -112,7 +113,7 @@ async function performSaveRollForActor(actor, saveKey, bonus = 0, modifierNames 
 		? game.i18n.localize('DOLMEN.Roll.Success')
 		: game.i18n.localize('DOLMEN.Roll.Failure')
 
-	const anchor = await roll.toAnchor({ classes: ['save-inline-roll'] })
+	const anchor = await roll.toAnchor({ classes: ['save-inline-roll', 'inline-dsn-hidden'] })
 
 	const traitBadges = modifierNames.map(n => `<span class="trait-badge">${n}</span>`).join(' ')
 	const targetDisplay = `${baseSaveTarget}+`
@@ -138,9 +139,10 @@ async function performSaveRollForActor(actor, saveKey, bonus = 0, modifierNames 
 		</div>
 	`
 
-	await ChatMessage.create({
+	await createChatMessage({
 		speaker: ChatMessage.getSpeaker({ actor }),
 		content: chatContent,
+		rolls: [roll],
 		sound: CONFIG.sounds.dice,
 		style: CONST.CHAT_MESSAGE_STYLES.OTHER
 	})
@@ -276,7 +278,7 @@ export async function rollChance(target) {
 		? game.i18n.localize('DOLMEN.Roll.Success')
 		: game.i18n.localize('DOLMEN.Roll.Failure')
 
-	const anchor = await roll.toAnchor({ classes: ['chance-inline-roll'] })
+	const anchor = await roll.toAnchor({ classes: ['chance-inline-roll', 'inline-dsn-hidden'] })
 
 	const chatContent = `
 		<div class="dolmen save-roll">
@@ -303,9 +305,10 @@ export async function rollChance(target) {
 		? ChatMessage.getSpeaker({ actor: canvas.tokens.controlled[0].actor })
 		: ChatMessage.getSpeaker()
 
-	await ChatMessage.create({
+	await createChatMessage({
 		speaker,
 		content: chatContent,
+		rolls: [roll],
 		sound: CONFIG.sounds.dice,
 		style: CONST.CHAT_MESSAGE_STYLES.OTHER
 	})

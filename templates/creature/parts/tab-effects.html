@@ -1,0 +1,47 @@
+<section class="tab-content tab-effects {{tab.cssClass}}" data-group="primary" data-tab="effects">
+	<section class="effects-section boxed-section">
+		<h2><i class="fas fa-bolt"></i> {{localize "DOLMEN.Effects.Title"}}<button type="button" class="add-item-btn" data-action="addEffect"><i class="fas fa-plus"></i></button></h2>
+		<div class="item-list effect-list">
+			{{#if effectItems.length}}
+			<div class="item-list-header effect-header">
+				<span class="effect-col-enabled"></span>
+				<span></span>
+				<span class="effect-col-name">{{localize "DOLMEN.Effects.Name"}}</span>
+				<span class="effect-col-duration">{{localize "DOLMEN.Effects.Duration"}}</span>
+				<span class="effect-col-target">{{localize "DOLMEN.Effects.Target"}}</span>
+				<span class="effect-col-value">{{localize "DOLMEN.Effects.Value"}}</span>
+				<span class="item-controls"></span>
+			</div>
+			{{#each effectItems}}
+			<div class="item-row draggable effect {{#unless this.enabled}}effect-off{{/unless}}" data-item-id="{{this.id}}">
+				<span class="effect-col-enabled">
+					<input type="checkbox" {{checked this.enabled}} data-action="toggleEffect" title="{{localize 'DOLMEN.Effects.Enabled'}}" />
+				</span>
+				<img src="{{this.img}}" class="item-image" data-action="openItem" />
+				<span class="item-name" data-action="openItem">{{this.name}}</span>
+				<span class="effect-col-duration">
+					{{#if this.durationLabel}}{{this.durationLabel}}{{else}}<i class="fas fa-infinity" title="{{localize 'DOLMEN.Effects.DurationPermanent'}}"></i>{{/if}}
+				</span>
+				<span class="effect-col-target">{{this.targetLabel}}</span>
+				<span class="effect-col-value">
+					{{#if (eq this.effectType "boolean")}}
+						<i class="fas fa-check"></i>
+					{{else}}
+						{{#if (gt this.value 0)}}+{{/if}}{{this.value}}
+					{{/if}}
+				</span>
+				<span class="item-controls">
+					<a class="item-control" data-action="deleteEffect" title="{{localize 'DOLMEN.Inventory.Delete'}}">
+						<i class="fas fa-square-x"></i>
+					</a>
+				</span>
+			</div>
+			{{/each}}
+			{{else}}
+			<div class="item-list-empty">
+				<span>{{localize "DOLMEN.Effects.NoEffects"}}</span>
+			</div>
+			{{/if}}
+		</div>
+	</section>
+</section>

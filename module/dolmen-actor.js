@@ -1,5 +1,6 @@
 /*global Actor, ui, game, Roll, ChatMessage, CONST, CONFIG, foundry */
 import { drawFromTableSilent } from './utils/roll-tables.js'
+import { createChatMessage } from './sheet/chat-helpers.js'
 import { computeEncumbrance, computeAdjustedValues, getRuneUsage } from './sheet/data-context.js'
 
 class DolmenActor extends Actor {
@@ -276,13 +277,21 @@ class DolmenActor extends Actor {
 
 		await this.update(updateData)
 
+		// Remove "until rest" effects
+		const restEffects = this.items.filter(i =>
+			i.type === 'Effect' && i.system.duration === 'untilRest'
+		)
+		if (restEffects.length) {
+			await this.deleteEmbeddedDocuments('Item', restEffects.map(e => e.id))
+		}
+
 		// Build and send chat message
 		const restLabel = type === 'overnight'
 			? game.i18n.localize('DOLMEN.Rest.Overnight')
 			: game.i18n.localize('DOLMEN.Rest.FullDay')
 		let hpLine
 		if (healRoll) {
-			const anchor = await healRoll.toAnchor({ classes: ['rest-inline-roll'] })
+			const anchor = await healRoll.toAnchor({ classes: ['rest-inline-roll', 'inline-dsn-hidden'] })
 			hpLine = `${anchor.outerHTML} ${game.i18n.format('DOLMEN.Rest.HPRestored', { hp: '' })}`
 		} else {
 			hpLine = game.i18n.format('DOLMEN.Rest.HPRestored', { hp: 1 })
@@ -305,9 +314,10 @@ class DolmenActor extends Actor {
 				<ul class="rest-details">${details}</ul>
 			</div>`
 
-		await ChatMessage.create({
+		await createChatMessage({
 			speaker: ChatMessage.getSpeaker({ actor: this }),
 			content,
+			rolls: healRoll ? [healRoll] : [],
 			sound: healRoll ? CONFIG.sounds.dice : undefined,
 			style: CONST.CHAT_MESSAGE_STYLES.OTHER
 		})
@@ -557,11 +567,13 @@ class DolmenActor extends Actor {
 
 		const kindredName = kindredItem.name
 		const results = {}
+		const allRolls = []
 
 		// Roll age
 		const ageFormula = kindredItem.system.ageFormula
 		if (ageFormula) {
 			const ageRoll = await new Roll(ageFormula).evaluate()
+			allRolls.push(ageRoll)
 			results.age = ageRoll.total
 		}
 
@@ -569,6 +581,7 @@ class DolmenActor extends Actor {
 		const lifespanFormula = kindredItem.system.lifespanFormula
 		if (lifespanFormula && lifespanFormula !== '0') {
 			const lifespanRoll = await new Roll(lifespanFormula).evaluate()
+			allRolls.push(lifespanRoll)
 			results.lifespan = lifespanRoll.total
 		} else {
 			results.lifespan = 0 // Immortal
@@ -578,6 +591,7 @@ class DolmenActor extends Actor {
 		const heightFormula = kindredItem.system.heightFormula
 		if (heightFormula) {
 			const heightRoll = await new Roll(heightFormula).evaluate()
+			allRolls.push(heightRoll)
 			const totalInches = heightRoll.total
 			const feet = Math.floor(totalInches / 12)
 			const inches = totalInches % 12
@@ -590,6 +604,7 @@ class DolmenActor extends Actor {
 		const weightFormula = kindredItem.system.weightFormula
 		if (weightFormula) {
 			const weightRoll = await new Roll(weightFormula).evaluate()
+			allRolls.push(weightRoll)
 			results.weightLbs = weightRoll.total
 			results.weightKg = Math.round(weightRoll.total * 0.453592)
 		}
@@ -597,11 +612,13 @@ class DolmenActor extends Actor {
 		// Roll birthday
 		const months = Object.keys(CONFIG.DOLMENWOOD.months)
 		const monthRoll = await new Roll('1d12').evaluate()
+		allRolls.push(monthRoll)
 		const monthIndex = monthRoll.total - 1
 		results.birthMonth = months[monthIndex]
 
 		const monthData = CONFIG.DOLMENWOOD.months[results.birthMonth]
 		const dayRoll = await new Roll(`1d${monthData.days}`).evaluate()
+		allRolls.push(dayRoll)
 		results.birthDay = dayRoll.total
 
 		// Roll background and appearance traits from RollTables
@@ -639,7 +656,7 @@ class DolmenActor extends Actor {
 		})
 
 		// Send results to chat
-		await this._sendCharacteristicsToChat(kindredName, results, hasFur)
+		await this._sendCharacteristicsToChat(kindredName, results, hasFur, allRolls)
 	}
 
 	/**
@@ -648,7 +665,7 @@ class DolmenActor extends Actor {
 	 * @param {object} results - Rolled characteristics
 	 * @private
 	 */
-	async _sendCharacteristicsToChat(kindredName, results, hasFur) {
+	async _sendCharacteristicsToChat(kindredName, results, hasFur, allRolls = []) {
 		const loc = (key) => game.i18n.localize(key)
 		const fmt = (key, data) => game.i18n.format(key, data)
 		const monthName = loc(`DOLMEN.Months.${results.birthMonth}`)
@@ -693,9 +710,10 @@ class DolmenActor extends Actor {
 			</div>
 		`
 
-		await ChatMessage.create({
+		await createChatMessage({
 			speaker: ChatMessage.getSpeaker({ actor: this }),
 			content,
+			rolls: allRolls,
 			style: CONST.CHAT_MESSAGE_STYLES.OTHER
 		})
 	}

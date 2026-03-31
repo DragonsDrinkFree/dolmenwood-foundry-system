@@ -29,6 +29,8 @@ import {
 import { openAddSkillDialog, removeSkill } from './sheet/dialogs.js'
 import { createContextMenu } from './sheet/context-menu.js'
 import { onOpenItem, onIncreaseQty, onDecreaseQty, onToggleContainer, createDeleteItemHandler, onEquipItem, onStowItem, onRemoveFromContainer } from './sheet/inventory-actions.js'
+import { getEffectTargetLabel } from './effect-fields.js'
+import { createChatMessage } from './sheet/chat-helpers.js'
 
 const TextEditor = foundry.applications.ux.TextEditor.implementation
 const { HandlebarsApplicationMixin } = foundry.applications.api
@@ -112,7 +114,12 @@ class DolmenSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 			toggleContainer: onToggleContainer,
 			removeFromContainer: onRemoveFromContainer,
 			addInventoryItem: DolmenSheet._onAddInventoryItem,
-			addSpell: DolmenSheet._onAddSpell
+			addSpell: DolmenSheet._onAddSpell,
+			addEffect: DolmenSheet._onAddEffect,
+			deleteEffect: DolmenSheet._onDeleteEffect,
+			toggleEffect: DolmenSheet._onToggleEffect,
+			toggleGearEffect: DolmenSheet._onToggleGearEffect,
+			openItemEffects: DolmenSheet._onOpenItemEffects
 		}
 	}
 
@@ -140,12 +147,12 @@ class DolmenSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 			template: 'systems/dolmenwood/templates/adventurer/parts/tab-details.html',
 			scrollable: ['']
 		},
-		notes: {
-			template: 'systems/dolmenwood/templates/adventurer/parts/tab-notes.html',
+		effects: {
+			template: 'systems/dolmenwood/templates/adventurer/parts/tab-effects.html',
 			scrollable: ['']
 		},
-		adjustments: {
-			template: 'systems/dolmenwood/templates/adventurer/parts/tab-adjustments.html',
+		notes: {
+			template: 'systems/dolmenwood/templates/adventurer/parts/tab-notes.html',
 			scrollable: ['']
 		},
 		settings: {
@@ -162,8 +169,8 @@ class DolmenSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 				{ id: 'magic', icon: 'fas fa-sparkles', label: 'DOLMEN.Tabs.Magic' },
 				{ id: 'traits', icon: 'fas fa-person-rays', label: 'DOLMEN.Tabs.Traits' },
 				{ id: 'details', icon: 'fas fa-eye', label: 'DOLMEN.Tabs.Details' },
+				{ id: 'effects', icon: 'fas fa-bolt', label: 'DOLMEN.Tabs.Effects' },
 				{ id: 'notes', icon: 'fas fa-note-sticky', label: 'DOLMEN.Tabs.Notes' },
-				{ id: 'adjustments', icon: 'fas fa-sliders', label: 'DOLMEN.Tabs.Adjustments' },
 				{ id: 'settings', icon: 'fas fa-cog', label: '' }
 			],
 			initial: 'stats'
@@ -411,8 +418,35 @@ class DolmenSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 			context.weightTitle = '—'
 		}
 
+		// Share slider data (used for both XP and Loot sliders)
+		const shareSteps = [
+			{ value: 'none', label: game.i18n.localize('DOLMEN.PartyViewer.RetainerNoShare'), pct: '0%' },
+			{ value: '1/5', label: game.i18n.localize('DOLMEN.PartyViewer.RetainerFifth'), pct: '20%' },
+			{ value: '1/4', label: game.i18n.localize('DOLMEN.PartyViewer.RetainerQuarter'), pct: '25%' },
+			{ value: '1/3', label: game.i18n.localize('DOLMEN.PartyViewer.RetainerThird'), pct: '33%' },
+			{ value: '2/5', label: game.i18n.localize('DOLMEN.PartyViewer.RetainerTwoFifths'), pct: '40%' },
+			{ value: '1/2', label: game.i18n.localize('DOLMEN.PartyViewer.RetainerHalf'), pct: '50%' },
+			{ value: '3/5', label: game.i18n.localize('DOLMEN.PartyViewer.RetainerThreeFifths'), pct: '60%' },
+			{ value: '2/3', label: game.i18n.localize('DOLMEN.PartyViewer.RetainerTwoThirds'), pct: '66%' },
+			{ value: '3/4', label: game.i18n.localize('DOLMEN.PartyViewer.RetainerThreeQuarters'), pct: '75%' },
+			{ value: '4/5', label: game.i18n.localize('DOLMEN.PartyViewer.RetainerFourFifths'), pct: '80%' },
+			{ value: 'full', label: game.i18n.localize('DOLMEN.PartyViewer.RetainerFull'), pct: '100%' }
+		]
+		const xpIdx = Math.max(0, shareSteps.findIndex(s => s.value === (actor.system.xpShare || '1/2')))
+		const lootIdx = Math.max(0, shareSteps.findIndex(s => s.value === (actor.system.lootShare || '1/2')))
+		context.xpShareIndex = xpIdx
+		context.xpShareLabel = shareSteps[xpIdx].pct
+		context.lootShareIndex = lootIdx
+		context.lootShareLabel = shareSteps[lootIdx].pct
+		context.shareOptions = shareSteps.map((s, i) => ({
+			label: s.label,
+			pct: s.pct,
+			xpActive: i === xpIdx,
+			lootActive: i === lootIdx
+		}))
+
 		// Prepare inventory items grouped by type (exclude spells, Kindred, and Class items)
-		const excludedTypes = ['Spell', 'HolySpell', 'Glamour', 'Rune', 'Kindred', 'Class']
+		const excludedTypes = ['Spell', 'HolySpell', 'Glamour', 'Rune', 'Kindred', 'Class', 'Effect']
 		const items = actor.items.contents.filter(i => !excludedTypes.includes(i.type))
 		const equippedItems = items.filter(i => i.system.equipped && i.type !== 'Container').map(i => prepareItemData(i))
 		const allStowedItems = items.filter(i => !i.system.equipped && i.type !== 'Container').map(i => prepareItemData(i))
@@ -564,9 +598,10 @@ class DolmenSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 		// Read precomputed final values from prepareDerivedData
 		context.encumbrance = actor.system.encumbranceResult || { current: 0, max: 0, speed: null }
 		context.adjusted = actor.system.final || {}
+		const baseSpeed = actor.system.speed
 		const encSpeed = context.encumbrance.speed
 		const encSpeedVal = encSpeed !== null && encSpeed !== undefined ? encSpeed : 40
-		context.encumbranceSpeed = encSpeedVal
+		context.encumbranceSpeed = context.adjusted.speed ?? baseSpeed
 		context.isEncumbered = encSpeedVal < 40
 
 		// Compute XP modifier from prime abilities + custom adjustment
@@ -605,6 +640,48 @@ class DolmenSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 		context.backgroundTitle = kindredLabel ? `${kindredLabel} Backgrounds` : ''
 		context.nameTitle = kindredLabel ? `${kindredLabel} Names` : ''
 
+		// Prepare effects tab data
+		const effectItems = actor.items.filter(i => i.type === 'Effect')
+		context.effectItems = effectItems.map(e => {
+			const dur = e.system.duration || 'permanent'
+			let durationLabel = null
+			if (dur === 'untilRest' || dur === 'untilNextDay') {
+				durationLabel = game.i18n.localize(`DOLMEN.Effects.Duration${dur.charAt(0).toUpperCase() + dur.slice(1)}`)
+			} else if (dur !== 'permanent') {
+				durationLabel = `${e.system.durationValue} ${game.i18n.localize(`DOLMEN.Effects.Duration${dur.charAt(0).toUpperCase() + dur.slice(1)}`)}`
+			}
+			return {
+				id: e.id,
+				name: e.name,
+				img: e.img,
+				enabled: e.system.enabled,
+				target: e.system.target,
+				value: e.system.value,
+				effectType: e.system.effectType,
+				targetLabel: getEffectTargetLabel(e.system.target),
+				durationLabel
+			}
+		}).sort((a, b) => a.name.localeCompare(b.name))
+
+		// Gear effects summary
+		const gearTypes = ['Item', 'Weapon', 'Armor', 'Treasure', 'Foraged', 'Container']
+		context.gearEffects = actor.items
+			.filter(i => gearTypes.includes(i.type) && i.system.statEffects?.length > 0)
+			.flatMap(item => item.system.statEffects.map((eff, idx) => ({
+				itemId: item.id,
+				effectIdx: idx,
+				itemImg: item.img,
+				itemName: item.name,
+				enabled: eff.enabled,
+				equipped: item.system.equipped,
+				condition: eff.condition,
+				conditionLabel: game.i18n.localize(`DOLMEN.Effects.Condition.${eff.condition}`),
+				active: eff.enabled && (eff.condition === 'whenInPossession' || item.system.equipped),
+				targetLabel: getEffectTargetLabel(eff.target),
+				value: eff.value,
+				effectType: eff.effectType
+			})))
+
 		return context
 	}
 
@@ -612,7 +689,7 @@ class DolmenSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 		context = await super._preparePartContext(partId, context)
 
 		// For tab content parts, add the tab object
-		const tabIds = ['stats', 'inventory', 'magic', 'traits', 'details', 'notes', 'adjustments', 'settings']
+		const tabIds = ['stats', 'inventory', 'magic', 'traits', 'details', 'effects', 'notes', 'settings']
 		if (tabIds.includes(partId)) {
 			context.tab = context.tabs?.primary?.[partId] || {
 				id: partId,
@@ -652,6 +729,15 @@ class DolmenSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 				obj[key] = parseInt(obj[key]) || 0
 			}
 		}
+		// Convert retainer radio to boolean
+		if ('system.retainer' in obj) {
+			obj['system.retainer'] = obj['system.retainer'] === 'true'
+		}
+		// Convert share slider indices to string values
+		const shareValues = ['none', '1/5', '1/4', '1/3', '2/5', '1/2', '3/5', '2/3', '3/4', '4/5', 'full']
+		for (const key of ['system.xpShare', 'system.lootShare']) {
+			if (key in obj) obj[key] = shareValues[parseInt(obj[key])] ?? 'full'
+		}
 		const submitData = super._prepareSubmitData(event, form, formData)
 		// Remove kindred/class selects from submission (they're handled separately)
 		delete submitData._kindred
@@ -670,6 +756,26 @@ class DolmenSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 		this.element.querySelector('.actor-link-icon')?.addEventListener('click', async () => {
 			const linked = !this.actor.prototypeToken.actorLink
 			await this.actor.update({'prototypeToken.actorLink': linked})
+		})
+
+		// Toggle retainer share sliders visibility
+		const sharesPanel = this.element.querySelector('.retainer-shares')
+		this.element.querySelectorAll('input[name="system.retainer"]').forEach(radio => {
+			radio.addEventListener('change', (ev) => {
+				if (sharesPanel) sharesPanel.hidden = ev.target.value !== 'true'
+			})
+		})
+
+		// Share slider live label updates
+		this.element.querySelectorAll('.retainer-slider input[type="range"]').forEach(slider => {
+			slider.addEventListener('input', (ev) => {
+				const key = ev.target.dataset.slider
+				const idx = parseInt(ev.target.value)
+				const ticks = this.element.querySelector(`[data-labels="${key}"]`)?.querySelectorAll('.retainer-tick')
+				ticks?.forEach((t, i) => t.classList.toggle('active', i === idx))
+				const valueEl = this.element.querySelector(`[data-value="${key}"]`)
+				if (valueEl && ticks?.[idx]) valueEl.textContent = `(${ticks[idx].dataset.pct})`
+			})
 		})
 
 		setupTabListeners(this)
@@ -892,9 +998,10 @@ class DolmenSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 		const slotIndex = parseInt(target.dataset.slotIndex)
 		const rankKey = target.dataset.rankKey
 
-		// For arcane/holy memorized spells: remove from slot and increment used
-		// Rank 0 spells (cantrips) are not removed from slots on use
-		if (spellType && !isNaN(slotIndex) && rankKey && rankKey !== 'rank0') {
+		// For arcane/holy memorized spells: remove from slot on use
+		// Cantrips (rank0) are only persistent if the world setting is enabled
+		const persistCantrips = rankKey === 'rank0' && game.settings.get('dolmenwood', 'persistentCantrips')
+		if (spellType && !isNaN(slotIndex) && rankKey && !persistCantrips) {
 			const magicPath = spellType === 'holy' ? 'holyMagic' : 'arcaneMagic'
 			const slotData = this.actor.system[magicPath].spellSlots[rankKey]
 			const memorized = [...(slotData.memorized || [])]
@@ -980,7 +1087,7 @@ class DolmenSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 				<div class="spell-body">${fields}</div>
 			</div>`
 
-		await ChatMessage.create({
+		await createChatMessage({
 			speaker: ChatMessage.getSpeaker({ actor: this.actor }),
 			content,
 			style: CONST.CHAT_MESSAGE_STYLES.OTHER
@@ -1079,6 +1186,52 @@ class DolmenSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 		}
 		system.cost = Math.round(perUnit)
 		system.costDenomination = 'cp'
+	}
+
+	static async _onAddEffect() {
+		const itemData = {
+			name: game.i18n.localize('DOLMEN.Effects.NewEffect'),
+			type: 'Effect'
+		}
+		const created = await this.actor.createEmbeddedDocuments('Item', [itemData])
+		if (created?.[0]) created[0].sheet.render(true)
+	}
+
+	static async _onDeleteEffect(event, target) {
+		const itemId = target.closest('[data-item-id]')?.dataset.itemId
+		if (!itemId) return
+		const item = this.actor.items.get(itemId)
+		if (item) await item.delete()
+	}
+
+	static async _onToggleEffect(event, target) {
+		const itemId = target.closest('[data-item-id]')?.dataset.itemId
+		if (!itemId) return
+		const item = this.actor.items.get(itemId)
+		if (item) await item.update({ 'system.enabled': !item.system.enabled })
+	}
+
+	static async _onToggleGearEffect(event, target) {
+		const row = target.closest('[data-item-id]')
+		const itemId = row?.dataset.itemId
+		const idx = parseInt(row?.dataset.effectIdx)
+		if (!itemId || isNaN(idx)) return
+		const item = this.actor.items.get(itemId)
+		if (!item) return
+		const effects = foundry.utils.deepClone(item.system.statEffects || [])
+		if (effects[idx]) {
+			effects[idx].enabled = !effects[idx].enabled
+			await item.update({ 'system.statEffects': effects })
+		}
+	}
+
+	static _onOpenItemEffects(event, target) {
+		const itemId = target.closest('[data-item-id]')?.dataset.itemId
+		if (!itemId) return
+		const item = this.actor.items.get(itemId)
+		if (!item) return
+		item.sheet.tabGroups = { primary: 'effects' }
+		item.sheet.render(true)
 	}
 
 	async _onDrop(event) {

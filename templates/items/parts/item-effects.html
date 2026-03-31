@@ -1,0 +1,58 @@
+<section class="tab-content item-effects-tab {{tab.cssClass}}" data-group="primary" data-tab="effects">
+	<section class="stat-effects-section">
+		<h2>
+			{{localize "DOLMEN.Effects.StatEffects"}}
+			<button type="button" class="add-item-btn" data-action="addStatEffect">
+				<i class="fas fa-plus"></i>
+			</button>
+		</h2>
+
+		{{#if statEffects.length}}
+		<div class="stat-effects-list">
+			{{#each statEffects}}
+			<div class="stat-effect-row {{#unless this.enabled}}disabled{{/unless}}" data-effect-idx="{{this.idx}}">
+				<div class="effect-row-top">
+					<span class="effect-enabled-col">
+						<input type="checkbox" {{checked this.enabled}} data-action="toggleStatEffect" title="{{localize 'DOLMEN.Effects.Enabled'}}" />
+					</span>
+					<span class="effect-target-label">{{this.targetLabel}}</span>
+					<span class="effect-value-input">
+						{{#if this.isBoolean}}
+						<i class="fas fa-check"></i>
+						{{else}}
+						<input type="number" name="system.statEffects.{{this.idx}}.value" value="{{this.value}}" step="1" />
+						{{/if}}
+					</span>
+					<span class="effect-controls-col">
+						<a class="item-control" data-action="removeStatEffect" title="{{localize 'DOLMEN.Inventory.Delete'}}">
+							<i class="fas fa-square-x"></i>
+						</a>
+					</span>
+				</div>
+				<div class="effect-row-bottom">
+					<select name="system.statEffects.{{this.idx}}.condition">
+						{{#each ../effectConditionChoices}}
+						<option value="{{@key}}" {{#if (eq @key ../condition)}}selected{{/if}}>{{this}}</option>
+						{{/each}}
+					</select>
+					<select class="effect-group-select">
+						{{#each ../effectGroupChoices}}
+						<option value="{{@key}}" {{#if (eq @key ../groupKey)}}selected{{/if}}>{{this}}</option>
+						{{/each}}
+					</select>
+					<select class="effect-field-select" name="system.statEffects.{{this.idx}}.target">
+						{{#each this.fieldChoices}}
+						<option value="{{this.key}}" {{#if this.selected}}selected{{/if}}>{{this.label}}</option>
+						{{/each}}
+					</select>
+				</div>
+			</div>
+			{{/each}}
+		</div>
+		{{else}}
+		<div class="effect-list-empty">
+			<span>{{localize "DOLMEN.Effects.NoStatEffects"}}</span>
+		</div>
+		{{/if}}
+	</section>
+</section>

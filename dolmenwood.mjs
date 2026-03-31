@@ -10,7 +10,7 @@ import DolmenKindredSheet from './module/dolmen-kindred-sheet.js'
 import DolmenClassSheet from './module/dolmen-class-sheet.js'
 import DolmenActor from './module/dolmen-actor.js'
 import DolmenItem from './module/dolmen-item.js'
-import { AdventurerDataModel, CreatureDataModel, HorseDataModel, VehicleDataModel, GearDataModel, ContainerDataModel, TreasureDataModel, WeaponDataModel, SpellDataModel, HolySpellDataModel, ArmorDataModel, ForagedDataModel, GlamourDataModel, RuneDataModel, KindredDataModel, ClassDataModel } from './module/data-models.mjs'
+import { AdventurerDataModel, CreatureDataModel, HorseDataModel, VehicleDataModel, GearDataModel, ContainerDataModel, TreasureDataModel, WeaponDataModel, SpellDataModel, HolySpellDataModel, ArmorDataModel, ForagedDataModel, GlamourDataModel, RuneDataModel, KindredDataModel, ClassDataModel, EffectDataModel } from './module/data-models.mjs'
 import { setupDamageContextMenu } from './module/chat-damage.js'
 import { createSaveLinkEnricher, createChanceLinkEnricher, openInlineSaveModifierPanel, rollChance } from './module/chat-save.js'
 import WelcomeDialog from './module/welcome-dialog.js'
@@ -22,6 +22,8 @@ import { initDungeonTracker, toggleDungeonTracker, onLightSourcesChanged, onTrac
 import { initPartyViewer, togglePartyViewer, onPartyMembersChanged } from './module/party-viewer/party-viewer.js'
 import { openCreatureImportDialog } from './module/creature-importer.js'
 import { executeMacroAttack } from './module/attack-macros.js'
+import DolmenEffectSheet from './module/dolmen-effect-sheet.js'
+import { EFFECT_FIELDS } from './module/effect-fields.js'
 
 const { Actors, Items } = foundry.documents.collections
 
@@ -58,6 +60,7 @@ Hooks.on('initializeDynamicTokenRingConfig', ringConfig => {
 
 Hooks.once('init', async function () {
 	CONFIG.DOLMENWOOD = DOLMENWOOD
+	CONFIG.DOLMENWOOD.effectFields = EFFECT_FIELDS
 	game.dolmenwood = { executeMacroAttack }
 
 	game.settings.register('dolmenwood', 'colorTheme', {
@@ -259,7 +262,8 @@ Hooks.once('init', async function () {
 		Glamour: GlamourDataModel,
 		Rune: RuneDataModel,
 		Kindred: KindredDataModel,
-		Class: ClassDataModel
+		Class: ClassDataModel,
+		Effect: EffectDataModel
 	}
 
 	game.settings.register('dolmenwood', 'encumbranceMethod', {
@@ -341,6 +345,15 @@ Hooks.once('init', async function () {
 		default: true
 	})
 
+	game.settings.register('dolmenwood', 'persistentCantrips', {
+		name: 'DOLMEN.Settings.PersistentCantrips',
+		hint: 'DOLMEN.Settings.PersistentCantripsHint',
+		scope: 'world',
+		config: true,
+		type: Boolean,
+		default: false
+	})
+
 	game.settings.register('dolmenwood', 'showWelcomeDialog', {
 		name: 'DOLMEN.Welcome.SettingName',
 		hint: 'DOLMEN.Welcome.SettingHint',
@@ -348,6 +361,13 @@ Hooks.once('init', async function () {
 		config: true,
 		type: Boolean,
 		default: true
+	})
+
+	game.settings.register('dolmenwood', 'effectsMigrationDone', {
+		scope: 'world',
+		config: false,
+		type: Boolean,
+		default: false
 	})
 
 	game.settings.register('dolmenwood', 'activeUnseason', {
@@ -485,6 +505,12 @@ Hooks.once('init', async function () {
 		makeDefault: true
 	})
 
+	Items.registerSheet('dolmen', DolmenEffectSheet, {
+		types: ['Effect'],
+		label: 'DOLMEN.EffectSheetTitle',
+		makeDefault: true
+	})
+
 	Items.registerSheet('dolmen', DolmenKindredSheet, {
 		types: ['Kindred'],
 		label: 'DOLMEN.KindredSheetTitle',
@@ -498,11 +524,88 @@ Hooks.once('init', async function () {
 	})
 })
 
+/**
+ * Migrate existing manual adjustments on Adventurer actors to Effect items.
+ * Walks the adjustments object tree, creates an Effect for each non-zero/non-false value,
+ * then zeroes out the source adjustments.
+ */
+async function migrateAdjustmentsToEffects() {
+	const MIGRATION_KEY = 'effectsMigrationDone'
+	if (game.settings.get('dolmenwood', MIGRATION_KEY)) return
+
+	console.log('Dolmenwood | Migrating manual adjustments to Effect items...')
+	const { BOOLEAN_TARGETS } = await import('./module/effect-fields.js')
+
+	// Recursively collect non-zero adjustment values as { path, value } entries
+	function collectAdjustments(obj, prefix = '') {
+		const entries = []
+		for (const [key, val] of Object.entries(obj)) {
+			const path = prefix ? `${prefix}.${key}` : key
+			if (val && typeof val === 'object' && !Array.isArray(val)) {
+				entries.push(...collectAdjustments(val, path))
+			} else if (typeof val === 'boolean' && val === true) {
+				entries.push({ path, value: 0, effectType: 'boolean' })
+			} else if (typeof val === 'number' && val !== 0) {
+				entries.push({ path, value: val, effectType: BOOLEAN_TARGETS.has(path) ? 'boolean' : 'numeric' })
+			}
+		}
+		return entries
+	}
+
+	let totalEffects = 0
+	for (const actor of game.actors.filter(a => a.type === 'Adventurer')) {
+		// Read from source data since prepareDerivedData may have already zeroed adjustments
+		const adj = actor._source?.system?.adjustments
+		if (!adj) continue
+
+		const entries = collectAdjustments(adj)
+		if (!entries.length) continue
+
+		// Create Effect items for each non-zero adjustment
+		const effectsData = entries.map(e => ({
+			name: `Migrated: ${e.path}`,
+			type: 'Effect',
+			system: {
+				enabled: true,
+				target: e.path,
+				value: e.value,
+				effectType: e.effectType
+			}
+		}))
+
+		await actor.createEmbeddedDocuments('Item', effectsData)
+
+		// Zero out the source adjustments so they don't double-apply if schema is ever read raw
+		const resetUpdates = {}
+		for (const e of entries) {
+			const fullPath = `system.adjustments.${e.path}`
+			resetUpdates[fullPath] = e.effectType === 'boolean' ? false : 0
+		}
+		await actor.update(resetUpdates)
+
+		totalEffects += effectsData.length
+		console.log(`Dolmenwood | Migrated ${effectsData.length} adjustments for "${actor.name}"`)
+	}
+
+	await game.settings.set('dolmenwood', MIGRATION_KEY, true)
+	if (totalEffects > 0) {
+		console.log(`Dolmenwood | Migration complete: created ${totalEffects} Effect items total`)
+		ui.notifications.info(`Dolmenwood: Migrated ${totalEffects} manual adjustment(s) to Effect items.`)
+	} else {
+		console.log('Dolmenwood | Migration complete: no adjustments to migrate')
+	}
+}
+
 Hooks.once('ready', async function () {
 	console.log(game.i18n.localize('DOLMEN.WelcomeMessage'))
 
 	if (game.user.isGM && game.settings.get('dolmenwood', 'showWelcomeDialog')) {
 		new WelcomeDialog().render(true)
+	}
+
+	// Run one-time migration of manual adjustments to Effect items
+	if (game.user.isGM) {
+		await migrateAdjustmentsToEffects()
 	}
 
 	initCalendarWidget()
@@ -526,6 +629,114 @@ Hooks.once('ready', async function () {
 	// Initialize rune refresh day tracking
 	const initCal = worldTimeToCalendar(game.time.worldTime)
 	lastRuneRefreshDay = `${initCal.year}-${initCal.monthKey}-${initCal.day}`
+})
+
+// Decrement round-based effect durations when combat round advances
+Hooks.on('combatRound', async (combat) => {
+	if (game.user !== game.users.activeGM) return
+	for (const combatant of combat.combatants) {
+		const actor = combatant.actor
+		if (!actor) continue
+		const roundEffects = actor.items.filter(i =>
+			i.type === 'Effect' && i.system.enabled && i.system.duration === 'rounds'
+		)
+		const toDelete = []
+		const toUpdate = []
+		for (const effect of roundEffects) {
+			const remaining = effect.system.durationValue - 1
+			if (remaining <= 0) {
+				toDelete.push(effect.id)
+			} else {
+				toUpdate.push({ _id: effect.id, 'system.durationValue': remaining })
+			}
+		}
+		if (toUpdate.length) await actor.updateEmbeddedDocuments('Item', toUpdate)
+		if (toDelete.length) await actor.deleteEmbeddedDocuments('Item', toDelete)
+	}
+})
+
+// Compute expiry timestamp for time-based effect durations
+function computeExpiresAt(duration, durationValue) {
+	const SECONDS = { turns: 600, hours: 3600, days: 86400 }
+	const perUnit = SECONDS[duration]
+	if (!perUnit) return null
+	return game.time.worldTime + (durationValue * perUnit)
+}
+
+// Stamp expiresAt when a time-based effect is created on an actor
+Hooks.on('preCreateItem', (item, data) => {
+	if (!item.isEmbedded || item.type !== 'Effect') return
+	const dur = data.system?.duration || item.system.duration
+	const noExpiry = ['permanent', 'rounds', 'untilRest', 'untilNextDay']
+	if (!dur || noExpiry.includes(dur)) return
+	const val = data.system?.durationValue || item.system.durationValue || 1
+	item.updateSource({ 'system.expiresAt': computeExpiresAt(dur, val) })
+})
+
+// Update expiresAt when duration type or value changes on an existing effect
+Hooks.on('preUpdateItem', (item, changes) => {
+	if (item.type !== 'Effect') return
+	// Skip if expiresAt is already explicitly set (system-managed update from updateWorldTime)
+	if (changes.system?.expiresAt !== undefined) return
+	// Recalculate expiresAt when re-enabling a time-based effect
+	const enabling = changes.system?.enabled === true && !item.system.enabled
+	const durChanged = changes.system?.duration !== undefined
+	const valChanged = changes.system?.durationValue !== undefined
+	if (!durChanged && !valChanged && !enabling) return
+	const dur = changes.system?.duration ?? item.system.duration
+	const val = changes.system?.durationValue ?? item.system.durationValue
+	const noExpiry = ['permanent', 'rounds', 'untilRest', 'untilNextDay']
+	if (noExpiry.includes(dur)) {
+		changes.system = changes.system || {}
+		changes.system.expiresAt = null
+	} else {
+		changes.system = changes.system || {}
+		changes.system.expiresAt = computeExpiresAt(dur, val)
+	}
+})
+
+// Expire and decrement time-based effects when world time advances
+const DURATION_SECONDS = { turns: 600, hours: 3600, days: 86400 }
+Hooks.on('updateWorldTime', async () => {
+	if (game.user !== game.users.activeGM) return
+	const now = game.time.worldTime
+	for (const actor of game.actors) {
+		const toDelete = []
+		const toUpdate = []
+		for (const item of actor.items) {
+			if (item.type !== 'Effect' || !item.system.enabled) continue
+			// Round-based effects expire when time advances (combat is over)
+			if (item.system.duration === 'rounds') {
+				toDelete.push(item.id)
+				continue
+			}
+			// Time-based effects: check expiry and update remaining display value
+			if (item.system.expiresAt == null) continue
+			if (now >= item.system.expiresAt) {
+				toDelete.push(item.id)
+			} else {
+				const remainingSec = item.system.expiresAt - now
+				let dur = item.system.duration
+				// Cascade: days → hours when less than 1 day remains
+				if (dur === 'days' && remainingSec < 86400) dur = 'hours'
+				// Cascade: hours → turns when less than 1 hour remains
+				if (dur === 'hours' && remainingSec < 3600) dur = 'turns'
+				const perUnit = DURATION_SECONDS[dur]
+				if (!perUnit) continue
+				const remaining = Math.max(1, Math.ceil(remainingSec / perUnit))
+				if (remaining !== item.system.durationValue || dur !== item.system.duration) {
+					toUpdate.push({
+						_id: item.id,
+						'system.duration': dur,
+						'system.durationValue': remaining,
+						'system.expiresAt': item.system.expiresAt
+					})
+				}
+			}
+		}
+		if (toUpdate.length) await actor.updateEmbeddedDocuments('Item', toUpdate)
+		if (toDelete.length) await actor.deleteEmbeddedDocuments('Item', toDelete)
+	}
 })
 
 // Randomize HP for unlinked creature tokens placed on canvas
@@ -598,6 +809,16 @@ Hooks.on('updateWorldTime', async () => {
 	const dayChanged = lastRuneRefreshDay !== null && dayKey !== lastRuneRefreshDay
 	lastRuneRefreshDay = dayKey
 	if (!dayChanged) return
+
+	// Remove "until next day" effects from all actors
+	for (const actor of game.actors) {
+		const dayEffects = actor.items.filter(i =>
+			i.type === 'Effect' && i.system.duration === 'untilNextDay'
+		)
+		if (dayEffects.length) {
+			await actor.deleteEmbeddedDocuments('Item', dayEffects.map(e => e.id))
+		}
+	}
 
 	const currentEpochDay = dateKeyToEpochDay(dayKey)
 

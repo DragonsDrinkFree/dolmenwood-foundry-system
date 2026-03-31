@@ -32,7 +32,8 @@ const layers = [
 			'calendar.css',
 			'combat-tracker.css',
 			'dungeon-tracker.css',
-			'party-viewer.css'
+			'party-viewer.css',
+			'effects.css'
 		]
 	}
 ]

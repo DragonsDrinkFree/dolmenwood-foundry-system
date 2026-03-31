@@ -1,0 +1,210 @@
+/* -------------------------------------------- */
+/*  Effects Tab (Adventurer Sheet)              */
+/* -------------------------------------------- */
+
+.sheet.dolmen .tab-effects {
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+}
+
+.sheet.dolmen .tab-effects .effects-section h2,
+.sheet.dolmen .tab-effects .gear-effects-section h2 {
+	margin-bottom: 0;
+	position: relative;
+}
+
+/* Reuse add-item-btn styles from inventory */
+.sheet.dolmen .tab-effects h2 .add-item-btn {
+	position: absolute;
+	right: 0;
+	top: 0;
+	height: 100%;
+	width: 1.5rem;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background: none;
+	border: none;
+	color: var(--dolmen-color-title);
+	cursor: pointer;
+	font-size: 0.7rem;
+	opacity: 0.7;
+	transition: opacity 0.15s;
+	padding: 0;
+	margin: 0;
+}
+
+.sheet.dolmen .tab-effects h2 .add-item-btn:hover {
+	opacity: 1;
+}
+
+/* Effect list header and row grid */
+.sheet.dolmen .tab-effects .effect-header,
+.sheet.dolmen .tab-effects .item-row.effect {
+	grid-template-columns: 22px 20px 1fr 10rem 10rem 5rem 24px;
+}
+
+.sheet.dolmen .tab-effects .gear-effect-header,
+.sheet.dolmen .tab-effects .item-row.gear-effect {
+	grid-template-columns: 22px 20px 1fr 10rem 10rem 5rem 24px;
+}
+
+/* Column alignment */
+.sheet.dolmen .tab-effects .effect-col-enabled,
+.sheet.dolmen .tab-effects .effect-col-status {
+	text-align: center;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.sheet.dolmen .tab-effects .effect-col-target {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	color: var(--dolmen-color-text-muted);
+	font-size: 0.75rem;
+	text-align: center;
+}
+
+.sheet.dolmen .tab-effects .effect-col-value {
+	text-align: center;
+	font-weight: bold;
+}
+
+.sheet.dolmen .tab-effects .effect-col-condition {
+	font-size: 0.7rem;
+	color: var(--dolmen-color-text-muted);
+	text-align: center;
+}
+
+.sheet.dolmen .tab-effects .effect-col-name {
+	text-align: left;
+}
+
+.sheet.dolmen .tab-effects .effect-col-duration {
+	font-size: 0.75rem;
+	color: var(--dolmen-color-text-muted);
+	text-align: center;
+}
+
+/* Disabled/inactive effect rows */
+.sheet.dolmen .tab-effects .item-row.effect-off,
+.sheet.dolmen .tab-effects .item-row.inactive {
+	opacity: 0.5;
+}
+
+.sheet.dolmen .tab-effects .active-icon {
+	color: var(--dolmen-color-success, #2a2);
+}
+
+.sheet.dolmen .tab-effects .inactive-icon {
+	color: var(--dolmen-color-text-muted);
+}
+
+/* -------------------------------------------- */
+/*  Effect Item Sheet                           */
+/* -------------------------------------------- */
+
+
+/* -------------------------------------------- */
+/*  Gear Item Effects Tab                       */
+/* -------------------------------------------- */
+
+.item-effects-tab {
+	padding: 0.5rem;
+}
+
+.item-effects-tab h2 {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	margin: 0 0 0.5rem 0;
+	font-size: 0.85rem;
+	position: relative;
+}
+
+.item-effects-tab h2 .add-item-btn {
+	position: absolute;
+	right: 0;
+	top: 0;
+	height: 100%;
+	width: 1.5rem;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background: none;
+	border: none;
+	cursor: pointer;
+	font-size: 0.7rem;
+	color: var(--dolmen-color-title);
+	opacity: 0.7;
+	transition: opacity 0.15s;
+	padding: 0;
+	margin: 0;
+}
+
+.item-effects-tab h2 .add-item-btn:hover {
+	opacity: 1;
+}
+
+.item-effects-tab .stat-effect-row {
+	padding: 0.4rem;
+	margin-bottom: 0.4rem;
+	border: 1px solid var(--dolmen-color-box-background);
+	border-radius: 4px;
+}
+
+.item-effects-tab .stat-effect-row.disabled {
+	opacity: 0.5;
+}
+
+.item-effects-tab .effect-row-top {
+	display: flex;
+	align-items: center;
+	gap: 0.4rem;
+	margin-bottom: 0.3rem;
+}
+
+.item-effects-tab .effect-target-label {
+	flex: 1;
+	font-weight: bold;
+	font-size: 0.8rem;
+}
+
+.item-effects-tab .effect-value-input {
+	width: 55px;
+}
+
+.item-effects-tab .effect-value-input input {
+	width: 100%;
+	text-align: center;
+}
+
+.item-effects-tab .effect-controls-col .item-control {
+	cursor: pointer;
+	color: var(--dolmen-color-text-muted);
+}
+
+.item-effects-tab .effect-controls-col .item-control:hover {
+	color: var(--dolmen-color-danger, #c00);
+}
+
+.item-effects-tab .effect-row-bottom {
+	display: flex;
+	gap: 0.3rem;
+}
+
+.item-effects-tab .effect-row-bottom select {
+	flex: 1;
+	font-size: 0.75rem;
+}
+
+.item-effects-tab .effect-list-empty {
+	padding: 1rem;
+	text-align: center;
+	color: var(--dolmen-color-h3);
+	font-style: italic;
+	font-size: 0.85rem;
+}
