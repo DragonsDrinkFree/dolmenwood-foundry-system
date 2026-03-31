@@ -148,6 +148,13 @@ async function executeMacroMelee(sheet, weapon, attackMode, selectedModifiers, n
 				? `${damageFormula} + ${modDamageBonus}`
 				: `${damageFormula} - ${Math.abs(modDamageBonus)}`
 		}
+		// Effect-based damage bonuses (general + melee-specific)
+		const effectDmgBonus = (sheet.actor.system.final.damage || 0) + (sheet.actor.system.final.damageMelee || 0)
+		if (effectDmgBonus !== 0) {
+			damageFormula = effectDmgBonus > 0
+				? `${damageFormula} + ${effectDmgBonus}`
+				: `${damageFormula} - ${Math.abs(effectDmgBonus)}`
+		}
 	}
 	if (exhaustion !== 0) {
 		damageFormula = `${damageFormula} - ${Math.abs(exhaustion)}`
@@ -203,6 +210,13 @@ async function executeMacroMissile(sheet, weapon, selectedModifiers, numericMod,
 		damageFormula = modDamageBonus > 0
 			? `${damageFormula} + ${modDamageBonus}`
 			: `${damageFormula} - ${Math.abs(modDamageBonus)}`
+	}
+	// Effect-based damage bonuses (general + missile-specific)
+	const effectDmgBonus = (sheet.actor.system.final.damage || 0) + (sheet.actor.system.final.damageMissile || 0)
+	if (effectDmgBonus !== 0) {
+		damageFormula = effectDmgBonus > 0
+			? `${damageFormula} + ${effectDmgBonus}`
+			: `${damageFormula} - ${Math.abs(effectDmgBonus)}`
 	}
 	const exhaustion = sheet.actor.system.exhaustion || 0
 	if (exhaustion !== 0) {

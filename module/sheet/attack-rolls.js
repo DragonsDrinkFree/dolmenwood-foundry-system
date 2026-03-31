@@ -191,13 +191,24 @@ export function buildAttackChatHtml({ weapon, attackType, attack, damage }) {
 
 	let rollSections = ''
 	if (attack) {
+		const hitClass = attack.hitResult === 'hit' ? ' success' : attack.hitResult === 'miss' ? ' failure' : ''
+		const targetInfo = attack.targetData
+			? `<span class="roll-target">${game.i18n.format('DOLMEN.Attack.VsAC', { ac: attack.targetData.ac, name: attack.targetData.name })}</span>`
+			: ''
+		const hitLabel = attack.hitResult === 'hit'
+			? `<span class="roll-label success">${game.i18n.localize('DOLMEN.Attack.Hit')}</span>`
+			: attack.hitResult === 'miss'
+				? `<span class="roll-label failure">${game.i18n.localize('DOLMEN.Attack.Miss')}</span>`
+				: ''
 		rollSections += `
-			<div class="roll-section attack-section">
+			<div class="roll-section attack-section${hitClass}">
 				<label>${game.i18n.localize('DOLMEN.Attack.AttackRoll')}</label>
 				<div class="roll-result">
 					${attack.anchor.outerHTML}
 				</div>
 				<span class="roll-breakdown">${attack.formula}</span>
+				${targetInfo}
+				${hitLabel}
 			</div>`
 	}
 	if (damage) {
@@ -251,6 +262,18 @@ export async function performAttackRoll(sheet, weapon, attackType, {
 	let damageData = null
 	const rolls = []
 
+	// Get target info for hit/miss evaluation
+	let targetData = null
+	const targets = game.user.targets
+	if (targets.size > 0) {
+		const targetToken = targets.first()
+		const targetActor = targetToken.actor
+		if (targetActor) {
+			const targetAC = targetActor.system.final?.ac ?? targetActor.system.ac
+			targetData = { name: targetToken.name, ac: targetAC }
+		}
+	}
+
 	// Handle attack roll
 	if (!damageOnly) {
 		let finalMod
@@ -265,13 +288,21 @@ export async function performAttackRoll(sheet, weapon, attackType, {
 		await roll.evaluate()
 		rolls.push(roll)
 
+		// Determine hit/miss against target
+		let hitResult = null
+		if (targetData !== null) {
+			hitResult = roll.total >= targetData.ac ? 'hit' : 'miss'
+		}
+
 		attackData = {
 			anchor: await roll.toAnchor({ classes: ['attack-inline-roll', 'inline-dsn-hidden'] }),
 			formula,
 			traitName,
 			modifierNames,
 			attackModeName,
-			specialText
+			specialText,
+			targetData,
+			hitResult
 		}
 	}
 
@@ -689,6 +720,13 @@ async function executeMeleeAttack(sheet, weapon, attackMode, selectedModifiers, 
 				? `${damageFormula} + ${modDamageBonus}`
 				: `${damageFormula} - ${Math.abs(modDamageBonus)}`
 		}
+		// Effect-based damage bonuses (general + melee-specific)
+		const effectDmgBonus = (sheet.actor.system.final.damage || 0) + (sheet.actor.system.final.damageMelee || 0)
+		if (effectDmgBonus !== 0) {
+			damageFormula = effectDmgBonus > 0
+				? `${damageFormula} + ${effectDmgBonus}`
+				: `${damageFormula} - ${Math.abs(effectDmgBonus)}`
+		}
 	}
 	if (exhaustion !== 0) {
 		damageFormula = `${damageFormula} - ${Math.abs(exhaustion)}`
@@ -1031,6 +1069,14 @@ async function executeMissileAttack(sheet, weapon, selectedModifiers, numericMod
 		damageFormula = modDamageBonus > 0
 			? `${damageFormula} + ${modDamageBonus}`
 			: `${damageFormula} - ${Math.abs(modDamageBonus)}`
+	}
+	// Effect-based damage bonuses (general + missile-specific)
+	const adjusted = sheet.actor.system.final
+	const effectDmgBonus = (adjusted.damage || 0) + (adjusted.damageMissile || 0)
+	if (effectDmgBonus !== 0) {
+		damageFormula = effectDmgBonus > 0
+			? `${damageFormula} + ${effectDmgBonus}`
+			: `${damageFormula} - ${Math.abs(effectDmgBonus)}`
 	}
 	const exhaustion = sheet.actor.system.exhaustion || 0
 	if (exhaustion !== 0) {

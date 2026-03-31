@@ -12,7 +12,7 @@
 				<span class="item-controls"></span>
 			</div>
 			{{#each effectItems}}
-			<div class="item-row effect {{#unless this.enabled}}effect-off{{/unless}}" data-item-id="{{this.id}}">
+			<div class="item-row draggable effect {{#unless this.enabled}}effect-off{{/unless}}" data-item-id="{{this.id}}">
 				<span class="effect-col-enabled">
 					<input type="checkbox" {{checked this.enabled}} data-action="toggleEffect" title="{{localize 'DOLMEN.Effects.Enabled'}}" />
 				</span>

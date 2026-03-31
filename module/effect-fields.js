@@ -40,7 +40,12 @@ const EFFECT_FIELDS = {
 		fields: {
 			'hp.max': 'DOLMEN.Effects.Fields.HPMax',
 			'ac': 'DOLMEN.Effects.Fields.AC',
-			'attack': 'DOLMEN.Effects.Fields.Attack'
+			'attack': 'DOLMEN.Effects.Fields.Attack',
+			'attackMelee': 'DOLMEN.Effects.Fields.AttackMelee',
+			'attackMissile': 'DOLMEN.Effects.Fields.AttackMissile',
+			'damage': 'DOLMEN.Effects.Fields.Damage',
+			'damageMelee': 'DOLMEN.Effects.Fields.DamageMelee',
+			'damageMissile': 'DOLMEN.Effects.Fields.DamageMissile'
 		}
 	},
 	movement: {

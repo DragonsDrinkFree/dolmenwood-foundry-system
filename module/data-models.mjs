@@ -170,6 +170,11 @@ function createAdjustmentsSchema() {
 		}),
 		ac: createAdjustmentField(),
 		attack: createAdjustmentField(),
+		attackMelee: createAdjustmentField(),
+		attackMissile: createAdjustmentField(),
+		damage: createAdjustmentField(),
+		damageMelee: createAdjustmentField(),
+		damageMissile: createAdjustmentField(),
 		saves: createSaveAdjustmentsSchema(),
 		magicResistance: createAdjustmentField(),
 		skills: createSkillAdjustmentsSchema(),
@@ -327,6 +332,11 @@ export class AdventurerDataModel extends ActorDataModel {
 		adj.hp.max = 0
 		adj.ac = 0
 		adj.attack = 0
+		adj.attackMelee = 0
+		adj.attackMissile = 0
+		adj.damage = 0
+		adj.damageMelee = 0
+		adj.damageMissile = 0
 		adj.speed = 0
 		adj.movement.exploring = 0
 		adj.movement.overland = 0
