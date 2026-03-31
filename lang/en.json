@@ -234,7 +234,7 @@
 			"Title": "Combat",
 			"HP": "HP",
 			"AC": "AC",
-			"ACTooltip": "Auto-calculated from equipped armor + DEX modifier + shield. Use Adjustments tab to modify.",
+			"ACTooltip": "Auto-calculated from equipped armor + DEX modifier + shield. Use Effects tab to modify.",
 			"Unarmored": "Unarmored",
 			"Adjustment": "Adjustment",
 			"Attack": "Attack",
@@ -343,7 +343,7 @@
 			"OptionalRules": "Optional Rules",
 			"CustomizeSkills": "Customize Skills",
 			"CustomizeSkillsHint": "Use the optional customising skills rule instead of skill table (works only for skill-based classes, e.g., Thief, Hunter, Bard).",
-			"CustomizeRequired": "Enable 'Customize Skills' in the Settings tab to edit skill targets directly, or use the Adjustments tab."
+			"CustomizeRequired": "Enable 'Customize Skills' in the Settings tab to edit skill targets directly, or use the Effects tab."
 		},
 		"SkillPoints": "skill points",
 		"AddSkill": "Add Skill",
