@@ -588,6 +588,23 @@ async function migrateAdjustmentsToEffects() {
 }
 
 Hooks.once('ready', async function () {
+	// Add custom skills to effect target fields (from settings + all actors)
+	if (EFFECT_FIELDS.skills?.fields) {
+		const customNames = new Set()
+		const customSkillsSetting = game.settings.get('dolmenwood', 'customSkills') || ''
+		for (const name of customSkillsSetting.split(',').map(s => s.trim()).filter(Boolean)) {
+			customNames.add(name)
+		}
+		for (const actor of game.actors) {
+			for (const skill of actor.system?.extraSkills || []) {
+				if (skill.customName) customNames.add(skill.customName)
+			}
+		}
+		for (const name of customNames) {
+			EFFECT_FIELDS.skills.fields[`skills.custom.${name}`] = name
+		}
+	}
+
 	console.log(game.i18n.localize('DOLMEN.WelcomeMessage'))
 
 	if (game.user.isGM && game.settings.get('dolmenwood', 'showWelcomeDialog')) {

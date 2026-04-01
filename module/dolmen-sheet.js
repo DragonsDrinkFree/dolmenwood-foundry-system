@@ -356,9 +356,13 @@ class DolmenSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
 		// Compute effective adjustment for each extra skill
 		const skillAdj = actor.system.adjustments?.skills || {}
+		const skillsAllAdj = actor.system.adjustments?.skillsAll || 0
+		const customSkillEffects = actor.system._customSkillEffects || {}
 		context.extraSkills = (actor.system.extraSkills || []).map(s => ({
 			...s,
-			effectiveAdj: s.customName ? (s.adjustment || 0) : (skillAdj[s.id] || 0)
+			effectiveAdj: s.customName
+				? (s.adjustment || 0) + skillsAllAdj + (customSkillEffects[s.customName] || 0)
+				: (skillAdj[s.id] || 0)
 		}))
 
 		// Determine body/fur label based on kindred

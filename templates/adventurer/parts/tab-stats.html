@@ -233,7 +233,7 @@
 				<div class="combat-stat">
 					<label>{{localize "DOLMEN.Combat.AC"}}</label>
 					<input type="hidden" name="system.ac" value="{{system.ac}}">
-					<div class="stat-value computed-ac tooltip {{#if system.adjustments.ac}}has-adjustment{{/if}}">{{adjusted.ac}}<span class="tooltiptext ac-breakdown">{{{adjusted.acBreakdown}}}</span></div>
+					<div class="stat-value computed-ac tooltip {{#if system.adjustments.ac}}{{#if (gt system.adjustments.ac 0)}}has-buff{{else}}has-penalty{{/if}}{{/if}}">{{adjusted.ac}}<span class="tooltiptext ac-breakdown">{{{adjusted.acBreakdown}}}</span></div>
 				</div>
 				<div class="combat-stat">
 					<label>{{localize "DOLMEN.Combat.Attack"}}</label>

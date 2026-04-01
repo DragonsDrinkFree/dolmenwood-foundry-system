@@ -178,6 +178,7 @@ function createAdjustmentsSchema() {
 		saves: createSaveAdjustmentsSchema(),
 		magicResistance: createAdjustmentField(),
 		skills: createSkillAdjustmentsSchema(),
+		skillsAll: createAdjustmentField(),
 		speed: createAdjustmentField(),
 		movement: createMovementAdjustmentsSchema(),
 		magic: createMagicAdjustmentsSchema(),
@@ -341,6 +342,7 @@ export class AdventurerDataModel extends ActorDataModel {
 		adj.movement.exploring = 0
 		adj.movement.overland = 0
 		for (const skill of Object.keys(adj.skills)) adj.skills[skill] = 0
+		adj.skillsAll = 0
 		adj.xpModifier = 0
 		adj.coinCapacity = 0
 		adj.slotCapacity.equipped = 0
@@ -353,6 +355,9 @@ export class AdventurerDataModel extends ActorDataModel {
 		for (let i = 0; i <= 6; i++) adj.magic.arcaneSlots[`rank${i}`] = 0
 		for (let i = 0; i <= 5; i++) adj.magic.holySlots[`rank${i}`] = 0
 		adj.magic.glamoursMax = 0
+
+		// Runtime-only map for custom skill effect adjustments (not schema-backed)
+		this._customSkillEffects = {}
 
 		if (!items) return
 
@@ -368,6 +373,13 @@ export class AdventurerDataModel extends ActorDataModel {
 				for (const skill of Object.keys(adj.skills)) {
 					adj.skills[skill] = (adj.skills[skill] || 0) + (value || 0)
 				}
+				adj.skillsAll = (adj.skillsAll || 0) + (value || 0)
+				return
+			}
+			// Custom skill targets: skills.custom.<name>
+			if (target.startsWith('skills.custom.')) {
+				const skillName = target.slice('skills.custom.'.length)
+				this._customSkillEffects[skillName] = (this._customSkillEffects[skillName] || 0) + (value || 0)
 				return
 			}
 			if (effectType === 'boolean') {

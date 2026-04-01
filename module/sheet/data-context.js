@@ -88,7 +88,7 @@ function computeWeightFull(equipped, stowed, totalCoins, coinCapacityAdj) {
 	else if (current > 800 + coinCapacityAdj) speed = 10
 	else if (current > 600 + coinCapacityAdj) speed = 20
 	else if (current > 400 + coinCapacityAdj) speed = 30
-	return { current, max, speed }
+	return { current, max, speed, adj: coinCapacityAdj }
 }
 
 function computeWeightTreasure(equipped, stowed, totalCoins, significantLoad, coinCapacityAdj) {
@@ -121,7 +121,7 @@ function computeWeightTreasure(equipped, stowed, totalCoins, significantLoad, co
 	}
 
 	if (current > max) speed = 0
-	return { current, max, speed }
+	return { current, max, speed, adj: coinCapacityAdj }
 }
 
 function itemSlots(i) {
@@ -160,8 +160,8 @@ function computeSlots(equipped, stowed, totalCoins, slotCapacityAdj) {
 	const speed = Math.min(equippedSpeed, stowedSpeed)
 
 	return {
-		equipped: { current: equippedSlots, max: equippedMax },
-		stowed: { current: stowedSlots, max: stowedMax },
+		equipped: { current: equippedSlots, max: equippedMax, adj: eAdj },
+		stowed: { current: stowedSlots, max: stowedMax, adj: sAdj },
 		speed
 	}
 }

@@ -34,8 +34,11 @@
 	display: block;
 }
 
-.sheet.dolmen .tab-content .encumbrance-stat .encumbrance-value.adjusted {
-	color: var(--dolmen-color-adjusted);
+.sheet.dolmen .tab-content .encumbrance-stat .encumbrance-value.has-buff {
+	color: var(--dolmen-color-adjusted-buff);
+}
+.sheet.dolmen .tab-content .encumbrance-stat .encumbrance-value.has-penalty {
+	color: var(--dolmen-color-adjusted-penalty);
 }
 
 .sheet.dolmen .tab-content .encumbrance-stat.encumbrance-load {

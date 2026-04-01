@@ -1,4 +1,4 @@
-/* global foundry, game */
+/* global foundry, game, FilePicker */
 import { BOOLEAN_TARGETS, getEffectGroupForTarget, getEffectFieldsForActor } from './effect-fields.js'
 
 const { HandlebarsApplicationMixin } = foundry.applications.api
@@ -76,6 +76,17 @@ class DolmenEffectSheet extends HandlebarsApplicationMixin(ItemSheetV2) {
 	_onRender(context, options) {
 		super._onRender(context, options)
 		const html = this.element
+
+		const portrait = html.querySelector('.portrait-image')
+		if (portrait) {
+			portrait.addEventListener('click', () => {
+				new FilePicker({
+					type: 'image',
+					current: this.item.img,
+					callback: (path) => this.item.update({ img: path })
+				}).browse()
+			})
+		}
 
 		const fieldSelect = html.querySelector('.effect-field-select')
 		const groupSelect = html.querySelector('.effect-group-select')

@@ -7,23 +7,23 @@
 				{{#unless (eq encumbranceMethod "disabled")}}
 				<div class="encumbrance-stat">
 					<label>{{localize "DOLMEN.Encumbrance.Speed"}}</label>
-					<span class="encumbrance-value {{#if isEncumbered}}adjusted{{/if}}">{{encumbranceSpeed}}</span>
+					<span class="encumbrance-value {{#if isEncumbered}}has-penalty{{/if}}">{{encumbranceSpeed}}</span>
 				</div>
 				{{/unless}}
 				{{#if (eq encumbranceMethod "slots")}}
 				<div class="encumbrance-stat">
 					<label>{{localize "DOLMEN.Inventory.Equipped"}}</label>
-					<span class="encumbrance-value">{{encumbrance.equipped.current}} / {{encumbrance.equipped.max}}</span>
+					<span class="encumbrance-value {{#if (gt encumbrance.equipped.adj 0)}}has-buff{{else if (lt encumbrance.equipped.adj 0)}}has-penalty{{/if}}">{{encumbrance.equipped.current}} / {{encumbrance.equipped.max}}</span>
 				</div>
 				<div class="encumbrance-stat">
 					<label>{{localize "DOLMEN.Inventory.Stowed"}}</label>
-					<span class="encumbrance-value">{{encumbrance.stowed.current}} / {{encumbrance.stowed.max}}</span>
+					<span class="encumbrance-value {{#if (gt encumbrance.stowed.adj 0)}}has-buff{{else if (lt encumbrance.stowed.adj 0)}}has-penalty{{/if}}">{{encumbrance.stowed.current}} / {{encumbrance.stowed.max}}</span>
 				</div>
 				{{else}}
 				{{#unless (eq encumbranceMethod "disabled")}}
 				<div class="encumbrance-stat encumbrance-load">
 					<label>{{localize "DOLMEN.Encumbrance.Load"}}</label>
-					<span class="encumbrance-value">{{encumbrance.current}} / {{encumbrance.max}}</span>
+					<span class="encumbrance-value {{#if (gt encumbrance.adj 0)}}has-buff{{else if (lt encumbrance.adj 0)}}has-penalty{{/if}}">{{encumbrance.current}} / {{encumbrance.max}}</span>
 				</div>
 				{{/unless}}
 				{{/if}}
