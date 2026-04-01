@@ -140,8 +140,11 @@ span.proficiency-value {
 }
 
 /* Adjusted values indicator (not when focused, as it shows base value) */
-.sheet.dolmen .tab-content input.has-adjustment:not(:focus) {
-	color: var(--dolmen-color-adjusted);
+.sheet.dolmen .tab-content input.has-buff:not(:focus) {
+	color: var(--dolmen-color-adjusted-buff);
+}
+.sheet.dolmen .tab-content input.has-penalty:not(:focus) {
+	color: var(--dolmen-color-adjusted-penalty);
 }
 
 .sheet.dolmen .tab-content label {

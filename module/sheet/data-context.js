@@ -88,7 +88,7 @@ function computeWeightFull(equipped, stowed, totalCoins, coinCapacityAdj) {
 	else if (current > 800 + coinCapacityAdj) speed = 10
 	else if (current > 600 + coinCapacityAdj) speed = 20
 	else if (current > 400 + coinCapacityAdj) speed = 30
-	return { current, max, speed }
+	return { current, max, speed, adj: coinCapacityAdj }
 }
 
 function computeWeightTreasure(equipped, stowed, totalCoins, significantLoad, coinCapacityAdj) {
@@ -121,7 +121,7 @@ function computeWeightTreasure(equipped, stowed, totalCoins, significantLoad, co
 	}
 
 	if (current > max) speed = 0
-	return { current, max, speed }
+	return { current, max, speed, adj: coinCapacityAdj }
 }
 
 function itemSlots(i) {
@@ -160,8 +160,8 @@ function computeSlots(equipped, stowed, totalCoins, slotCapacityAdj) {
 	const speed = Math.min(equippedSpeed, stowedSpeed)
 
 	return {
-		equipped: { current: equippedSlots, max: equippedMax },
-		stowed: { current: stowedSlots, max: stowedMax },
+		equipped: { current: equippedSlots, max: equippedMax, adj: eAdj },
+		stowed: { current: stowedSlots, max: stowedMax, adj: sAdj },
 		speed
 	}
 }
@@ -255,7 +255,7 @@ export function computeAdjustedValues(actor, encumbranceSpeed = null) {
 	}
 	// Manual adjustment
 	if (adj.ac) {
-		acSources.push({ label: game.i18n.localize('DOLMEN.Combat.Adjustment'), value: adj.ac })
+		acSources.push({ label: game.i18n.localize('DOLMEN.Effects.Title'), value: adj.ac })
 	}
 	const acBreakdown = acSources.map((s, i) => {
 		const prefix = i > 0 && s.value >= 0 ? '+' : ''
@@ -282,6 +282,8 @@ export function computeAdjustedValues(actor, encumbranceSpeed = null) {
 		damage: (adj.damage || 0),
 		damageMelee: (adj.damageMelee || 0),
 		damageMissile: (adj.damageMissile || 0),
+		weaponTypeAttack: system._weaponTypeAttack || {},
+		weaponTypeDamage: system._weaponTypeDamage || {},
 		saves: {
 			doom: system.saves.doom + (adj.saves.doom || 0) + getTraitAdj('saves.doom'),
 			ray: system.saves.ray + (adj.saves.ray || 0) + getTraitAdj('saves.ray'),
@@ -312,11 +314,11 @@ export function computeAdjustedValues(actor, encumbranceSpeed = null) {
  */
 export function prepareSpellSlots(slots, maxRanks) {
 	const result = []
-	for (let i = 0; i <= maxRanks; i++) {
+	for (let i = 1; i <= maxRanks; i++) {
 		const key = `rank${i}`
 		result.push({
 			key,
-			label: i === 0 ? game.i18n.localize('DOLMEN.Magic.Cantrips') : game.i18n.localize('DOLMEN.Magic.SpellRank') + ` ${i}`,
+			label: game.i18n.localize('DOLMEN.Magic.SpellRank') + ` ${i}`,
 			max: slots[key]?.max || 0
 		})
 	}
@@ -387,7 +389,7 @@ export function prepareSpellData(spell) {
 export function groupSpellsByRank(spells, maxRank) {
 	const groups = []
 
-	for (let rank = 0; rank <= maxRank; rank++) {
+	for (let rank = 1; rank <= maxRank; rank++) {
 		const rankSpells = spells
 			.filter(s => s.system.rank === rank)
 			.map(s => prepareSpellData(s))
@@ -396,8 +398,8 @@ export function groupSpellsByRank(spells, maxRank) {
 		if (rankSpells.length > 0) {
 			groups.push({
 				rank,
-				icon: rank === 0 ? null : 'fa-' + rank,
-				label: rank === 0 ? game.i18n.localize('DOLMEN.Magic.Cantrips') : null,
+				icon: 'fa-' + rank,
+				label: null,
 				spells: rankSpells
 			})
 		}
@@ -416,7 +418,7 @@ export function groupSpellsByRank(spells, maxRank) {
 export function prepareMemorizedSlots(slotsData, knownSpells, maxRank) {
 	const result = []
 
-	for (let rank = 0; rank <= maxRank; rank++) {
+	for (let rank = 1; rank <= maxRank; rank++) {
 		const key = `rank${rank}`
 		const slotData = slotsData[key] || { max: 0, memorized: [] }
 		const maxSlots = slotData.max || 0
@@ -459,8 +461,8 @@ export function prepareMemorizedSlots(slotsData, knownSpells, maxRank) {
 		result.push({
 			rank,
 			key,
-			icon: rank === 0 ? null : 'fa-' + rank,
-			label: rank === 0 ? game.i18n.localize('DOLMEN.Magic.Cantrips') : null,
+			icon: 'fa-' + rank,
+			label: null,
 			filledSlots,
 			hasEmpty: !!firstEmpty,
 			firstEmptyIndex: firstEmpty?.index ?? 0,

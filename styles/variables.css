@@ -74,7 +74,8 @@
 	--dolmen-color-header-item: #e0e0e0;
 	--dolmen-color-header-magic: #e0d0f0;
 
-	--dolmen-color-adjusted: #c92a2a;
+	--dolmen-color-adjusted-buff: #1a7a1a;
+	--dolmen-color-adjusted-penalty: #c92a2a;
 
 	--dolmen-color-text-muted: #6b5e53;
 	--dolmen-color-accent: #8b4513;
@@ -117,7 +118,8 @@
 	--dolmen-color-header-item: #2a2a2a;
 	--dolmen-color-header-magic: #2a1b39;
 
-	--dolmen-color-adjusted: #ff6b6b;
+	--dolmen-color-adjusted-buff: #55cc55;
+	--dolmen-color-adjusted-penalty: #ff6b6b;
 
 	--dolmen-color-text-muted: #c4b8b0;
 	--dolmen-color-accent: #8b4513;
@@ -160,7 +162,8 @@
 	--dolmen-color-header-item: #d8dce0;
 	--dolmen-color-header-magic: #d4ccec;
 
-	--dolmen-color-adjusted: #c0392b;
+	--dolmen-color-adjusted-buff: #27ae60;
+	--dolmen-color-adjusted-penalty: #c0392b;
 
 	--dolmen-color-text-muted: #506878;
 	--dolmen-color-accent: #2a7acc;
@@ -203,7 +206,8 @@
 	--dolmen-color-header-item: #161620;
 	--dolmen-color-header-magic: #180a30;
 
-	--dolmen-color-adjusted: #6ab0ff;
+	--dolmen-color-adjusted-buff: #55cc88;
+	--dolmen-color-adjusted-penalty: #6ab0ff;
 
 	--dolmen-color-text-muted: #98b0c8;
 	--dolmen-color-accent: #4a90d9;
@@ -246,7 +250,8 @@
 	--dolmen-color-header-item: #e8dce0;
 	--dolmen-color-header-magic: #e4d0e8;
 
-	--dolmen-color-adjusted: #b8184a;
+	--dolmen-color-adjusted-buff: #2ecc71;
+	--dolmen-color-adjusted-penalty: #b8184a;
 
 	--dolmen-color-text-muted: #7a5068;
 	--dolmen-color-accent: #c93a6a;
@@ -289,7 +294,8 @@
 	--dolmen-color-header-item: #1a1a1a;
 	--dolmen-color-header-magic: #1a0a2a;
 
-	--dolmen-color-adjusted: #e066ff;
+	--dolmen-color-adjusted-buff: #66ff99;
+	--dolmen-color-adjusted-penalty: #e066ff;
 
 	--dolmen-color-text-muted: #b8a8d0;
 	--dolmen-color-accent: #9b59b6;
@@ -332,7 +338,8 @@
 	--dolmen-color-header-item: #d8d8d4;
 	--dolmen-color-header-magic: #d4d0dc;
 
-	--dolmen-color-adjusted: #c0392b;
+	--dolmen-color-adjusted-buff: #27ae60;
+	--dolmen-color-adjusted-penalty: #c0392b;
 
 	--dolmen-color-text-muted: #5a6858;
 	--dolmen-color-accent: #4a7a4a;
@@ -375,7 +382,8 @@
 	--dolmen-color-header-item: #1a1a1a;
 	--dolmen-color-header-magic: #1a102a;
 
-	--dolmen-color-adjusted: #ff6b6b;
+	--dolmen-color-adjusted-buff: #55cc55;
+	--dolmen-color-adjusted-penalty: #ff6b6b;
 
 	--dolmen-color-text-muted: #a0b8a0;
 	--dolmen-color-accent: #6b8f5a;
@@ -418,7 +426,8 @@
 	--dolmen-color-header-item: #d8d0c0;
 	--dolmen-color-header-magic: #d8c8d8;
 
-	--dolmen-color-adjusted: #b22222;
+	--dolmen-color-adjusted-buff: #228b22;
+	--dolmen-color-adjusted-penalty: #b22222;
 
 	--dolmen-color-text-muted: #6b5e53;
 	--dolmen-color-accent: #8b4513;
@@ -461,7 +470,8 @@
 	--dolmen-color-header-item: #2a2218;
 	--dolmen-color-header-magic: #2a1a28;
 
-	--dolmen-color-adjusted: #e0906a;
+	--dolmen-color-adjusted-buff: #6abf6a;
+	--dolmen-color-adjusted-penalty: #e0906a;
 
 	--dolmen-color-text-muted: #b8a890;
 	--dolmen-color-accent: #a0784a;
@@ -504,7 +514,8 @@
 	--dolmen-color-header-item: #d8d8d8;
 	--dolmen-color-header-magic: #d4d0dc;
 
-	--dolmen-color-adjusted: #aa3030;
+	--dolmen-color-adjusted-buff: #30aa30;
+	--dolmen-color-adjusted-penalty: #aa3030;
 
 	--dolmen-color-text-muted: #6a6a78;
 	--dolmen-color-accent: #5a5a6a;
@@ -547,7 +558,8 @@
 	--dolmen-color-header-item: #202020;
 	--dolmen-color-header-magic: #201828;
 
-	--dolmen-color-adjusted: #ee6666;
+	--dolmen-color-adjusted-buff: #66cc66;
+	--dolmen-color-adjusted-penalty: #ee6666;
 
 	--dolmen-color-text-muted: #9898a8;
 	--dolmen-color-accent: #8a8a9a;
@@ -590,7 +602,8 @@
 	--dolmen-color-header-item: #222222;
 	--dolmen-color-header-magic: #220033;
 
-	--dolmen-color-adjusted: #ff4444;
+	--dolmen-color-adjusted-buff: #44cc44;
+	--dolmen-color-adjusted-penalty: #ff4444;
 
 	--dolmen-color-text-muted: #cccccc;
 	--dolmen-color-accent: #00ddff;

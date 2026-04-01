@@ -44,9 +44,11 @@ const EFFECT_FIELDS = {
 			'attack': 'DOLMEN.Effects.Fields.Attack',
 			'attackMelee': 'DOLMEN.Effects.Fields.AttackMelee',
 			'attackMissile': 'DOLMEN.Effects.Fields.AttackMissile',
+			'attackType': 'DOLMEN.Effects.Fields.AttackType',
 			'damage': 'DOLMEN.Effects.Fields.Damage',
 			'damageMelee': 'DOLMEN.Effects.Fields.DamageMelee',
-			'damageMissile': 'DOLMEN.Effects.Fields.DamageMissile'
+			'damageMissile': 'DOLMEN.Effects.Fields.DamageMissile',
+			'damageType': 'DOLMEN.Effects.Fields.DamageType'
 		}
 	},
 	movement: {
@@ -84,14 +86,12 @@ const EFFECT_FIELDS = {
 			'magic.holy': 'DOLMEN.Effects.Fields.MagicHoly',
 			'magic.fairy': 'DOLMEN.Effects.Fields.MagicFairy',
 			'magic.knacks': 'DOLMEN.Effects.Fields.MagicKnacks',
-			'magic.arcaneSlots.rank0': 'DOLMEN.Effects.Fields.ArcaneSlotRank0',
 			'magic.arcaneSlots.rank1': 'DOLMEN.Effects.Fields.ArcaneSlotRank1',
 			'magic.arcaneSlots.rank2': 'DOLMEN.Effects.Fields.ArcaneSlotRank2',
 			'magic.arcaneSlots.rank3': 'DOLMEN.Effects.Fields.ArcaneSlotRank3',
 			'magic.arcaneSlots.rank4': 'DOLMEN.Effects.Fields.ArcaneSlotRank4',
 			'magic.arcaneSlots.rank5': 'DOLMEN.Effects.Fields.ArcaneSlotRank5',
 			'magic.arcaneSlots.rank6': 'DOLMEN.Effects.Fields.ArcaneSlotRank6',
-			'magic.holySlots.rank0': 'DOLMEN.Effects.Fields.HolySlotRank0',
 			'magic.holySlots.rank1': 'DOLMEN.Effects.Fields.HolySlotRank1',
 			'magic.holySlots.rank2': 'DOLMEN.Effects.Fields.HolySlotRank2',
 			'magic.holySlots.rank3': 'DOLMEN.Effects.Fields.HolySlotRank3',
@@ -125,6 +125,11 @@ for (const group of Object.values(EFFECT_FIELDS)) {
 		VALID_EFFECT_TARGETS.add(fieldPath)
 	}
 }
+
+/**
+ * Set of effect targets that require a weapon type sub-target.
+ */
+const WEAPON_TYPE_TARGETS = new Set(['attackType', 'damageType'])
 
 /**
  * Set of boolean effect targets (magic enable flags).
@@ -194,4 +199,4 @@ function getEffectFieldsForActor(actorType) {
 	return filtered
 }
 
-export { EFFECT_FIELDS, VALID_EFFECT_TARGETS, BOOLEAN_TARGETS, getEffectTargetLabel, getEffectGroupForTarget, getEffectFieldsForActor }
+export { EFFECT_FIELDS, VALID_EFFECT_TARGETS, BOOLEAN_TARGETS, WEAPON_TYPE_TARGETS, getEffectTargetLabel, getEffectGroupForTarget, getEffectFieldsForActor }

@@ -280,7 +280,13 @@ export function openAddSkillDialog(sheet) {
 function addSkill(sheet, skillId, customName) {
 	const currentSkills = foundry.utils.deepClone(sheet.actor.system.extraSkills || [])
 	const entry = { id: skillId, target: 6 }
-	if (customName) entry.customName = customName
+	if (customName) {
+		entry.customName = customName
+		// Register as effect target if not already present
+		const fields = CONFIG.DOLMENWOOD?.effectFields?.skills?.fields
+		const key = `skills.custom.${customName}`
+		if (fields && !fields[key]) fields[key] = customName
+	}
 	currentSkills.push(entry)
 	sheet.actor.update({ 'system.extraSkills': currentSkills })
 }

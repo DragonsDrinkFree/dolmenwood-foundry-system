@@ -127,7 +127,7 @@ async function executeMacroMelee(sheet, weapon, attackMode, selectedModifiers, n
 		? game.i18n.localize(`DOLMEN.Attack.Type.${attackMode.charAt(0).toUpperCase() + attackMode.slice(1)}`)
 		: null
 
-	const { totalMod } = getAttackModifiers(sheet, 'melee')
+	const { totalMod } = getAttackModifiers(sheet, 'melee', weapon.system.weaponType)
 	const weaponToHitBonus = weapon.system.toHitBonus || 0
 	const finalAttackMod = totalMod + attackModeBonus + modAttackBonus + numericMod + proficiencyPenalty + weaponToHitBonus
 
@@ -148,8 +148,9 @@ async function executeMacroMelee(sheet, weapon, attackMode, selectedModifiers, n
 				? `${damageFormula} + ${modDamageBonus}`
 				: `${damageFormula} - ${Math.abs(modDamageBonus)}`
 		}
-		// Effect-based damage bonuses (general + melee-specific)
-		const effectDmgBonus = (sheet.actor.system.final.damage || 0) + (sheet.actor.system.final.damageMelee || 0)
+		// Effect-based damage bonuses (general + melee-specific + weapon type)
+		const wTypeDmg = sheet.actor.system.final.weaponTypeDamage?.[weapon.system.weaponType] || 0
+		const effectDmgBonus = (sheet.actor.system.final.damage || 0) + (sheet.actor.system.final.damageMelee || 0) + wTypeDmg
 		if (effectDmgBonus !== 0) {
 			damageFormula = effectDmgBonus > 0
 				? `${damageFormula} + ${effectDmgBonus}`
@@ -201,7 +202,7 @@ async function executeMacroMissile(sheet, weapon, selectedModifiers, numericMod,
 		modifierNames.push(`<span title="${sheet.actor.system.exhaustion}">${game.i18n.localize('DOLMEN.Exhaustion')}</span>`)
 	}
 
-	const { totalMod } = getAttackModifiers(sheet, 'missile')
+	const { totalMod } = getAttackModifiers(sheet, 'missile', weapon.system.weaponType)
 	const weaponToHitBonus = weapon.system.toHitBonus || 0
 	const finalAttackMod = totalMod + modAttackBonus + numericMod + rangeMod + weaponToHitBonus
 
@@ -211,8 +212,9 @@ async function executeMacroMissile(sheet, weapon, selectedModifiers, numericMod,
 			? `${damageFormula} + ${modDamageBonus}`
 			: `${damageFormula} - ${Math.abs(modDamageBonus)}`
 	}
-	// Effect-based damage bonuses (general + missile-specific)
-	const effectDmgBonus = (sheet.actor.system.final.damage || 0) + (sheet.actor.system.final.damageMissile || 0)
+	// Effect-based damage bonuses (general + missile-specific + weapon type)
+	const wTypeDmg = sheet.actor.system.final.weaponTypeDamage?.[weapon.system.weaponType] || 0
+	const effectDmgBonus = (sheet.actor.system.final.damage || 0) + (sheet.actor.system.final.damageMissile || 0) + wTypeDmg
 	if (effectDmgBonus !== 0) {
 		damageFormula = effectDmgBonus > 0
 			? `${damageFormula} + ${effectDmgBonus}`

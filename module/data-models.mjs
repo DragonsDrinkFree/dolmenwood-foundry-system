@@ -178,6 +178,7 @@ function createAdjustmentsSchema() {
 		saves: createSaveAdjustmentsSchema(),
 		magicResistance: createAdjustmentField(),
 		skills: createSkillAdjustmentsSchema(),
+		skillsAll: createAdjustmentField(),
 		speed: createAdjustmentField(),
 		movement: createMovementAdjustmentsSchema(),
 		magic: createMagicAdjustmentsSchema(),
@@ -341,6 +342,7 @@ export class AdventurerDataModel extends ActorDataModel {
 		adj.movement.exploring = 0
 		adj.movement.overland = 0
 		for (const skill of Object.keys(adj.skills)) adj.skills[skill] = 0
+		adj.skillsAll = 0
 		adj.xpModifier = 0
 		adj.coinCapacity = 0
 		adj.slotCapacity.equipped = 0
@@ -354,10 +356,15 @@ export class AdventurerDataModel extends ActorDataModel {
 		for (let i = 0; i <= 5; i++) adj.magic.holySlots[`rank${i}`] = 0
 		adj.magic.glamoursMax = 0
 
+		// Runtime-only maps for effects not backed by schema fields
+		this._customSkillEffects = {}
+		this._weaponTypeAttack = {}
+		this._weaponTypeDamage = {}
+
 		if (!items) return
 
 		// Helper to apply a single effect to the adjustments
-		const applyEffect = (target, value, effectType) => {
+		const applyEffect = (target, value, effectType, subTarget) => {
 			if (target === 'saves.all') {
 				for (const save of ['doom', 'ray', 'hold', 'blast', 'spell']) {
 					adj.saves[save] = (adj.saves[save] || 0) + (value || 0)
@@ -368,6 +375,19 @@ export class AdventurerDataModel extends ActorDataModel {
 				for (const skill of Object.keys(adj.skills)) {
 					adj.skills[skill] = (adj.skills[skill] || 0) + (value || 0)
 				}
+				adj.skillsAll = (adj.skillsAll || 0) + (value || 0)
+				return
+			}
+			// Weapon type-specific attack/damage bonuses
+			if (target === 'attackType' || target === 'damageType') {
+				const map = target === 'attackType' ? this._weaponTypeAttack : this._weaponTypeDamage
+				if (subTarget) map[subTarget] = (map[subTarget] || 0) + (value || 0)
+				return
+			}
+			// Custom skill targets: skills.custom.<name>
+			if (target.startsWith('skills.custom.')) {
+				const skillName = target.slice('skills.custom.'.length)
+				this._customSkillEffects[skillName] = (this._customSkillEffects[skillName] || 0) + (value || 0)
 				return
 			}
 			if (effectType === 'boolean') {
@@ -383,7 +403,7 @@ export class AdventurerDataModel extends ActorDataModel {
 		// Aggregate Effect items on the actor
 		for (const item of items) {
 			if (item.type === 'Effect' && item.system.enabled) {
-				applyEffect(item.system.target, item.system.value, item.system.effectType)
+				applyEffect(item.system.target, item.system.value, item.system.effectType, item.system.subTarget)
 			}
 		}
 
@@ -1346,7 +1366,7 @@ export class SpellDataModel extends ItemDataModel {
 			rank: new NumberField({
 				required: true,
 				integer: true,
-				min: 0,
+				min: 1,
 				max: 6,
 				initial: 1
 			}),
@@ -1361,11 +1381,11 @@ export class HolySpellDataModel extends SpellDataModel {
 	static defineSchema() {
 		return {
 			...super.defineSchema(),
-			// Holy spell rank (0-5)
+			// Holy spell rank (1-5)
 			rank: new NumberField({
 				required: true,
 				integer: true,
-				min: 0,
+				min: 1,
 				max: 5,
 				initial: 1
 			}),
@@ -1602,6 +1622,11 @@ export class EffectDataModel extends ItemDataModel {
 				required: true,
 				blank: false,
 				initial: 'numeric'
+			}),
+			subTarget: new StringField({
+				required: false,
+				blank: true,
+				initial: ''
 			}),
 			duration: new StringField({
 				required: true,

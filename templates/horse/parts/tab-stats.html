@@ -76,7 +76,7 @@
 					<div class="creature-stat">
 						<label>{{localize "DOLMEN.Combat.AC"}}</label>
 						<input type="hidden" name="system.ac" value="{{@root.baseAC}}">
-						<input type="number" class="adjustable {{#if system.barding}}has-adjustment{{/if}}" value="{{@root.adjustedAC}}" data-base="{{@root.baseAC}}" data-adjusted="{{@root.adjustedAC}}" data-manual-adj="{{#if system.barding}}2{{else}}0{{/if}}" data-target="system.ac" min="0">
+						<input type="number" class="adjustable" value="{{@root.adjustedAC}}" data-base="{{@root.baseAC}}" data-adjusted="{{@root.adjustedAC}}" data-manual-adj="{{#if system.barding}}2{{else}}0{{/if}}" data-target="system.ac" min="0">
 					</div>
 					<div class="creature-stat">
 						<label>{{localize "DOLMEN.Creature.Morale"}}</label>
@@ -128,27 +128,27 @@
 					<div class="movement-stat">
 						<label>{{localize "DOLMEN.Movement.Speed"}}</label>
 						<input type="hidden" name="system.speed" value="{{@root.baseSpeed}}">
-						<input type="number" class="adjustable {{#if @root.speedHasAdj}}has-adjustment{{/if}}" value="{{@root.adjustedSpeed}}" data-base="{{@root.baseSpeed}}" data-adjusted="{{@root.adjustedSpeed}}" data-target="system.speed" min="0">
+						<input type="number" class="adjustable" value="{{@root.adjustedSpeed}}" data-base="{{@root.baseSpeed}}" data-adjusted="{{@root.adjustedSpeed}}" data-target="system.speed" min="0">
 					</div>
 					<div class="movement-stat">
 						<label>{{localize "DOLMEN.Creature.Movement.swim"}}</label>
 						<input type="hidden" name="system.movement.swim" value="{{@root.movementSpeeds.swim.base}}">
-						<input type="number" class="adjustable {{#if @root.movementSpeeds.swim.hasAdj}}has-adjustment{{/if}}" value="{{@root.movementSpeeds.swim.adjusted}}" data-base="{{@root.movementSpeeds.swim.base}}" data-adjusted="{{@root.movementSpeeds.swim.adjusted}}" data-target="system.movement.swim" min="0">
+						<input type="number" class="adjustable" value="{{@root.movementSpeeds.swim.adjusted}}" data-base="{{@root.movementSpeeds.swim.base}}" data-adjusted="{{@root.movementSpeeds.swim.adjusted}}" data-target="system.movement.swim" min="0">
 					</div>
 					<div class="movement-stat">
 						<label>{{localize "DOLMEN.Creature.Movement.fly"}}</label>
 						<input type="hidden" name="system.movement.fly" value="{{@root.movementSpeeds.fly.base}}">
-						<input type="number" class="adjustable {{#if @root.movementSpeeds.fly.hasAdj}}has-adjustment{{/if}}" value="{{@root.movementSpeeds.fly.adjusted}}" data-base="{{@root.movementSpeeds.fly.base}}" data-adjusted="{{@root.movementSpeeds.fly.adjusted}}" data-target="system.movement.fly" min="0">
+						<input type="number" class="adjustable" value="{{@root.movementSpeeds.fly.adjusted}}" data-base="{{@root.movementSpeeds.fly.base}}" data-adjusted="{{@root.movementSpeeds.fly.adjusted}}" data-target="system.movement.fly" min="0">
 					</div>
 					<div class="movement-stat">
 						<label>{{localize "DOLMEN.Creature.Movement.climb"}}</label>
 						<input type="hidden" name="system.movement.climb" value="{{@root.movementSpeeds.climb.base}}">
-						<input type="number" class="adjustable {{#if @root.movementSpeeds.climb.hasAdj}}has-adjustment{{/if}}" value="{{@root.movementSpeeds.climb.adjusted}}" data-base="{{@root.movementSpeeds.climb.base}}" data-adjusted="{{@root.movementSpeeds.climb.adjusted}}" data-target="system.movement.climb" min="0">
+						<input type="number" class="adjustable" value="{{@root.movementSpeeds.climb.adjusted}}" data-base="{{@root.movementSpeeds.climb.base}}" data-adjusted="{{@root.movementSpeeds.climb.adjusted}}" data-target="system.movement.climb" min="0">
 					</div>
 					<div class="movement-stat">
 						<label>{{localize "DOLMEN.Creature.Movement.burrow"}}</label>
 						<input type="hidden" name="system.movement.burrow" value="{{@root.movementSpeeds.burrow.base}}">
-						<input type="number" class="adjustable {{#if @root.movementSpeeds.burrow.hasAdj}}has-adjustment{{/if}}" value="{{@root.movementSpeeds.burrow.adjusted}}" data-base="{{@root.movementSpeeds.burrow.base}}" data-adjusted="{{@root.movementSpeeds.burrow.adjusted}}" data-target="system.movement.burrow" min="0">
+						<input type="number" class="adjustable" value="{{@root.movementSpeeds.burrow.adjusted}}" data-base="{{@root.movementSpeeds.burrow.base}}" data-adjusted="{{@root.movementSpeeds.burrow.adjusted}}" data-target="system.movement.burrow" min="0">
 					</div>
 				</div>
 			</section>

@@ -29,7 +29,11 @@ export function setupAdjustableInputListeners(sheet) {
 
 		// Add visual indicator if value is modified by adjustment
 		if (manualAdj !== 0 || baseValue !== adjustedValue) {
-			input.classList.add('has-adjustment')
+			const diff = parseFloat(adjustedValue) - parseFloat(baseValue)
+			// Saves and skills are "lower is better" — a negative diff is a buff
+			const lowerIsBetter = targetName?.startsWith('system.saves.') || targetName?.startsWith('system.skills.') || targetName?.startsWith('system.extraSkills.')
+			const isBuff = lowerIsBetter ? diff < 0 : diff > 0
+			input.classList.add(isBuff ? 'has-buff' : 'has-penalty')
 		}
 
 		// Find the corresponding hidden input

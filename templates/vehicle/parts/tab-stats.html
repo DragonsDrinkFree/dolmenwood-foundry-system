@@ -45,7 +45,7 @@
 				<div class="header-field">
 					<label>{{localize "DOLMEN.Vehicle.Cargo"}} ({{@root.cargoUnit}})</label>
 					<input type="hidden" name="system.cargo" value="{{system.cargo}}">
-					<input type="number" class="load-display {{#if @root.cargoHasAdj}}has-adjustment{{/if}}" value="{{@root.cargoCapacity}}" data-base="{{@root.cargoDisplay}}" data-divisor="{{@root.cargoDivisor}}" data-target="system.cargo" min="0">
+					<input type="number" class="load-display {{#if @root.cargoHasAdj}}has-buff{{/if}}" value="{{@root.cargoCapacity}}" data-base="{{@root.cargoDisplay}}" data-divisor="{{@root.cargoDivisor}}" data-target="system.cargo" min="0">
 				</div>
 			</div>
 		</section>
@@ -80,7 +80,7 @@
 				<label>{{localize "DOLMEN.Movement.Speed"}}</label>
 				{{#if @root.speedHasAdj}}
 				<input type="hidden" name="system.speed" value="{{@root.baseSpeed}}">
-				<input type="number" class="adjustable has-adjustment" value="{{@root.adjustedSpeed}}" data-base="{{@root.baseSpeed}}" data-adjusted="{{@root.adjustedSpeed}}" data-target="system.speed" min="0">
+				<input type="number" class="adjustable" value="{{@root.adjustedSpeed}}" data-base="{{@root.baseSpeed}}" data-adjusted="{{@root.adjustedSpeed}}" data-target="system.speed" min="0">
 				{{else}}
 				<input type="number" name="system.speed" value="{{system.speed}}" min="0">
 				{{/if}}

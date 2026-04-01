@@ -252,8 +252,11 @@
 	cursor: help;
 }
 
-.sheet.dolmen .tab-content .combat-stat .computed-ac.has-adjustment {
-	color: var(--dolmen-color-adjusted);
+.sheet.dolmen .tab-content .combat-stat .computed-ac.has-buff {
+	color: var(--dolmen-color-adjusted-buff);
+}
+.sheet.dolmen .tab-content .combat-stat .computed-ac.has-penalty {
+	color: var(--dolmen-color-adjusted-penalty);
 }
 
 .sheet.dolmen .tab-content .hp-values {
