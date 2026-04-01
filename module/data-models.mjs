@@ -1346,7 +1346,7 @@ export class SpellDataModel extends ItemDataModel {
 			rank: new NumberField({
 				required: true,
 				integer: true,
-				min: 0,
+				min: 1,
 				max: 6,
 				initial: 1
 			}),
@@ -1361,11 +1361,11 @@ export class HolySpellDataModel extends SpellDataModel {
 	static defineSchema() {
 		return {
 			...super.defineSchema(),
-			// Holy spell rank (0-5)
+			// Holy spell rank (1-5)
 			rank: new NumberField({
 				required: true,
 				integer: true,
-				min: 0,
+				min: 1,
 				max: 5,
 				initial: 1
 			}),

@@ -999,9 +999,7 @@ class DolmenSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 		const rankKey = target.dataset.rankKey
 
 		// For arcane/holy memorized spells: remove from slot on use
-		// Cantrips (rank0) are only persistent if the world setting is enabled
-		const persistCantrips = rankKey === 'rank0' && game.settings.get('dolmenwood', 'persistentCantrips')
-		if (spellType && !isNaN(slotIndex) && rankKey && !persistCantrips) {
+		if (spellType && !isNaN(slotIndex) && rankKey) {
 			const magicPath = spellType === 'holy' ? 'holyMagic' : 'arcaneMagic'
 			const slotData = this.actor.system[magicPath].spellSlots[rankKey]
 			const memorized = [...(slotData.memorized || [])]
@@ -1138,12 +1136,10 @@ class DolmenSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 		const isHoly = spellType === 'holy'
 		const maxRank = isHoly ? 5 : 6
 		const itemType = isHoly ? 'HolySpell' : 'Spell'
-		const cantripLabel = game.i18n.localize('DOLMEN.Magic.Cantrips')
 
 		const ranks = []
-		for (let i = 0; i <= maxRank; i++) {
-			const label = i === 0 ? cantripLabel : `${game.i18n.localize('DOLMEN.Magic.SpellRank')} ${i}`
-			ranks.push({ rank: i, label })
+		for (let i = 1; i <= maxRank; i++) {
+			ranks.push({ rank: i, label: `${game.i18n.localize('DOLMEN.Magic.SpellRank')} ${i}` })
 		}
 
 		const html = ranks.map(r =>

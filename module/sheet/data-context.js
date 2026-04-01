@@ -312,11 +312,11 @@ export function computeAdjustedValues(actor, encumbranceSpeed = null) {
  */
 export function prepareSpellSlots(slots, maxRanks) {
 	const result = []
-	for (let i = 0; i <= maxRanks; i++) {
+	for (let i = 1; i <= maxRanks; i++) {
 		const key = `rank${i}`
 		result.push({
 			key,
-			label: i === 0 ? game.i18n.localize('DOLMEN.Magic.Cantrips') : game.i18n.localize('DOLMEN.Magic.SpellRank') + ` ${i}`,
+			label: game.i18n.localize('DOLMEN.Magic.SpellRank') + ` ${i}`,
 			max: slots[key]?.max || 0
 		})
 	}
@@ -387,7 +387,7 @@ export function prepareSpellData(spell) {
 export function groupSpellsByRank(spells, maxRank) {
 	const groups = []
 
-	for (let rank = 0; rank <= maxRank; rank++) {
+	for (let rank = 1; rank <= maxRank; rank++) {
 		const rankSpells = spells
 			.filter(s => s.system.rank === rank)
 			.map(s => prepareSpellData(s))
@@ -396,8 +396,8 @@ export function groupSpellsByRank(spells, maxRank) {
 		if (rankSpells.length > 0) {
 			groups.push({
 				rank,
-				icon: rank === 0 ? null : 'fa-' + rank,
-				label: rank === 0 ? game.i18n.localize('DOLMEN.Magic.Cantrips') : null,
+				icon: 'fa-' + rank,
+				label: null,
 				spells: rankSpells
 			})
 		}
@@ -416,7 +416,7 @@ export function groupSpellsByRank(spells, maxRank) {
 export function prepareMemorizedSlots(slotsData, knownSpells, maxRank) {
 	const result = []
 
-	for (let rank = 0; rank <= maxRank; rank++) {
+	for (let rank = 1; rank <= maxRank; rank++) {
 		const key = `rank${rank}`
 		const slotData = slotsData[key] || { max: 0, memorized: [] }
 		const maxSlots = slotData.max || 0
@@ -459,8 +459,8 @@ export function prepareMemorizedSlots(slotsData, knownSpells, maxRank) {
 		result.push({
 			rank,
 			key,
-			icon: rank === 0 ? null : 'fa-' + rank,
-			label: rank === 0 ? game.i18n.localize('DOLMEN.Magic.Cantrips') : null,
+			icon: 'fa-' + rank,
+			label: null,
 			filledSlots,
 			hasEmpty: !!firstEmpty,
 			firstEmptyIndex: firstEmpty?.index ?? 0,
