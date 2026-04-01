@@ -255,7 +255,7 @@ export function computeAdjustedValues(actor, encumbranceSpeed = null) {
 	}
 	// Manual adjustment
 	if (adj.ac) {
-		acSources.push({ label: game.i18n.localize('DOLMEN.Combat.Adjustment'), value: adj.ac })
+		acSources.push({ label: game.i18n.localize('DOLMEN.Effects.Title'), value: adj.ac })
 	}
 	const acBreakdown = acSources.map((s, i) => {
 		const prefix = i > 0 && s.value >= 0 ? '+' : ''
@@ -282,6 +282,8 @@ export function computeAdjustedValues(actor, encumbranceSpeed = null) {
 		damage: (adj.damage || 0),
 		damageMelee: (adj.damageMelee || 0),
 		damageMissile: (adj.damageMissile || 0),
+		weaponTypeAttack: system._weaponTypeAttack || {},
+		weaponTypeDamage: system._weaponTypeDamage || {},
 		saves: {
 			doom: system.saves.doom + (adj.saves.doom || 0) + getTraitAdj('saves.doom'),
 			ray: system.saves.ray + (adj.saves.ray || 0) + getTraitAdj('saves.ray'),

@@ -1,5 +1,6 @@
 /* global foundry, game, FilePicker */
-import { BOOLEAN_TARGETS, getEffectGroupForTarget, getEffectFieldsForActor } from './effect-fields.js'
+import { BOOLEAN_TARGETS, WEAPON_TYPE_TARGETS, getEffectGroupForTarget, getEffectFieldsForActor } from './effect-fields.js'
+import { CHOICE_KEYS } from './utils/choices.js'
 
 const { HandlebarsApplicationMixin } = foundry.applications.api
 const { ItemSheetV2 } = foundry.applications.sheets
@@ -55,6 +56,12 @@ class DolmenEffectSheet extends HandlebarsApplicationMixin(ItemSheetV2) {
 
 		context.currentField = system.target
 		context.isBoolean = BOOLEAN_TARGETS.has(system.target)
+		context.showWeaponType = WEAPON_TYPE_TARGETS.has(system.target)
+		context.weaponTypeChoices = {}
+		for (const wt of CHOICE_KEYS.weaponTypes) {
+			context.weaponTypeChoices[wt] = game.i18n.localize(`DOLMEN.Item.WeaponType.${wt}`)
+		}
+		context.currentWeaponType = system.subTarget || CHOICE_KEYS.weaponTypes[0]
 		context.system = system
 		context.item = this.item
 
@@ -110,13 +117,15 @@ class DolmenEffectSheet extends HandlebarsApplicationMixin(ItemSheetV2) {
 
 			const firstField = Object.keys(group.fields)[0]
 			this._updateBooleanState(html, firstField)
+			this._updateWeaponTypeState(html, firstField)
 
 			fieldSelect.dispatchEvent(new Event('change', { bubbles: true }))
 		})
 
-		// Field dropdown change → auto-detect boolean
+		// Field dropdown change → auto-detect boolean + weapon type visibility
 		fieldSelect?.addEventListener('change', () => {
 			this._updateBooleanState(html, fieldSelect.value)
+			this._updateWeaponTypeState(html, fieldSelect.value)
 		})
 
 		// Duration dropdown change → show/hide amount field
@@ -126,6 +135,11 @@ class DolmenEffectSheet extends HandlebarsApplicationMixin(ItemSheetV2) {
 			const noAmount = ['permanent', 'untilRest', 'untilNextDay'].includes(e.target.value)
 			if (valueRow) valueRow.style.display = noAmount ? 'none' : ''
 		})
+	}
+
+	_updateWeaponTypeState(html, target) {
+		const row = html.querySelector('.effect-weapon-type-row')
+		if (row) row.style.display = WEAPON_TYPE_TARGETS.has(target) ? '' : 'none'
 	}
 
 	_updateBooleanState(html, target) {

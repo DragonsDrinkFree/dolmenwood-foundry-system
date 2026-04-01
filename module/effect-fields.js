@@ -44,9 +44,11 @@ const EFFECT_FIELDS = {
 			'attack': 'DOLMEN.Effects.Fields.Attack',
 			'attackMelee': 'DOLMEN.Effects.Fields.AttackMelee',
 			'attackMissile': 'DOLMEN.Effects.Fields.AttackMissile',
+			'attackType': 'DOLMEN.Effects.Fields.AttackType',
 			'damage': 'DOLMEN.Effects.Fields.Damage',
 			'damageMelee': 'DOLMEN.Effects.Fields.DamageMelee',
-			'damageMissile': 'DOLMEN.Effects.Fields.DamageMissile'
+			'damageMissile': 'DOLMEN.Effects.Fields.DamageMissile',
+			'damageType': 'DOLMEN.Effects.Fields.DamageType'
 		}
 	},
 	movement: {
@@ -125,6 +127,11 @@ for (const group of Object.values(EFFECT_FIELDS)) {
 }
 
 /**
+ * Set of effect targets that require a weapon type sub-target.
+ */
+const WEAPON_TYPE_TARGETS = new Set(['attackType', 'damageType'])
+
+/**
  * Set of boolean effect targets (magic enable flags).
  */
 const BOOLEAN_TARGETS = new Set([
@@ -192,4 +199,4 @@ function getEffectFieldsForActor(actorType) {
 	return filtered
 }
 
-export { EFFECT_FIELDS, VALID_EFFECT_TARGETS, BOOLEAN_TARGETS, getEffectTargetLabel, getEffectGroupForTarget, getEffectFieldsForActor }
+export { EFFECT_FIELDS, VALID_EFFECT_TARGETS, BOOLEAN_TARGETS, WEAPON_TYPE_TARGETS, getEffectTargetLabel, getEffectGroupForTarget, getEffectFieldsForActor }

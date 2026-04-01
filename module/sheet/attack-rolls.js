@@ -126,7 +126,7 @@ export function createUnarmedWeapon(actor) {
  * @param {string} attackType - Either 'melee' or 'missile'
  * @returns {object} Object containing attackMod, abilityMod, traitMod, and totalMod
  */
-export function getAttackModifiers(sheet, attackType) {
+export function getAttackModifiers(sheet, attackType, weaponType) {
 	const adjusted = sheet.actor.system.final
 	const attackMod = adjusted.attack || 0
 	const abilityMod = attackType === 'melee'
@@ -136,11 +136,14 @@ export function getAttackModifiers(sheet, attackType) {
 	const traitMod = attackType === 'melee'
 		? (adjusted.attackMelee || 0)
 		: (adjusted.attackMissile || 0)
+	// Weapon type-specific attack bonus from effects
+	const weaponTypeMod = weaponType ? (adjusted.weaponTypeAttack?.[weaponType] || 0) : 0
 	return {
 		attackMod,
 		abilityMod,
 		traitMod,
-		totalMod: attackMod + abilityMod + traitMod
+		weaponTypeMod,
+		totalMod: attackMod + abilityMod + traitMod + weaponTypeMod
 	}
 }
 
@@ -698,7 +701,7 @@ async function executeMeleeAttack(sheet, weapon, attackMode, selectedModifiers, 
 		: null
 
 	// Compute total attack modifier
-	const { totalMod } = getAttackModifiers(sheet, 'melee')
+	const { totalMod } = getAttackModifiers(sheet, 'melee', weapon.system.weaponType)
 	const weaponToHitBonus = weapon.system.toHitBonus || 0
 	const finalAttackMod = totalMod + attackModeBonus + modAttackBonus + numericMod + proficiencyPenalty + weaponToHitBonus
 
@@ -720,8 +723,9 @@ async function executeMeleeAttack(sheet, weapon, attackMode, selectedModifiers, 
 				? `${damageFormula} + ${modDamageBonus}`
 				: `${damageFormula} - ${Math.abs(modDamageBonus)}`
 		}
-		// Effect-based damage bonuses (general + melee-specific)
-		const effectDmgBonus = (sheet.actor.system.final.damage || 0) + (sheet.actor.system.final.damageMelee || 0)
+		// Effect-based damage bonuses (general + melee-specific + weapon type)
+		const wTypeDmg = sheet.actor.system.final.weaponTypeDamage?.[weapon.system.weaponType] || 0
+		const effectDmgBonus = (sheet.actor.system.final.damage || 0) + (sheet.actor.system.final.damageMelee || 0) + wTypeDmg
 		if (effectDmgBonus !== 0) {
 			damageFormula = effectDmgBonus > 0
 				? `${damageFormula} + ${effectDmgBonus}`
@@ -1059,7 +1063,7 @@ async function executeMissileAttack(sheet, weapon, selectedModifiers, numericMod
 	}
 
 	// Compute total attack modifier (includes range modifier)
-	const { totalMod } = getAttackModifiers(sheet, 'missile')
+	const { totalMod } = getAttackModifiers(sheet, 'missile', weapon.system.weaponType)
 	const weaponToHitBonus = weapon.system.toHitBonus || 0
 	const finalAttackMod = totalMod + modAttackBonus + numericMod + rangeMod + weaponToHitBonus
 
@@ -1070,9 +1074,10 @@ async function executeMissileAttack(sheet, weapon, selectedModifiers, numericMod
 			? `${damageFormula} + ${modDamageBonus}`
 			: `${damageFormula} - ${Math.abs(modDamageBonus)}`
 	}
-	// Effect-based damage bonuses (general + missile-specific)
+	// Effect-based damage bonuses (general + missile-specific + weapon type)
 	const adjusted = sheet.actor.system.final
-	const effectDmgBonus = (adjusted.damage || 0) + (adjusted.damageMissile || 0)
+	const wTypeDmg = adjusted.weaponTypeDamage?.[weapon.system.weaponType] || 0
+	const effectDmgBonus = (adjusted.damage || 0) + (adjusted.damageMissile || 0) + wTypeDmg
 	if (effectDmgBonus !== 0) {
 		damageFormula = effectDmgBonus > 0
 			? `${damageFormula} + ${effectDmgBonus}`
