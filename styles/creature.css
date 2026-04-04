@@ -3,8 +3,21 @@
 /* -------------------------------------------- */
 /* Codex nav button (right-aligned in navbar) */
 .sheet.dolmen.creature .codex-nav-btn {
-	position: absolute;
-	right: 0;
+	margin-left: auto;
+	padding: 0.5rem 1rem;
+	cursor: pointer;
+	color: var(--dolmen-color-title);
+	opacity: 0.7;
+	transition: opacity 0.2s;
+}
+
+.sheet.dolmen.creature .codex-nav-btn:hover {
+	opacity: 1;
+}
+
+/* When link icon is present, codex button flows after it instead of pushing left */
+.sheet.dolmen.creature .actor-link-icon ~ .codex-nav-btn {
+	margin-left: 0;
 }
 
 .sheet.dolmen.creature .codex-input-group {

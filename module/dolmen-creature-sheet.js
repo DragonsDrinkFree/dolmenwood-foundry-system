@@ -68,7 +68,7 @@ class DolmenCreatureSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 				{ id: 'stats', icon: 'fas fa-dragon', label: 'DOLMEN.Tabs.Stats' },
 				{ id: 'notes', icon: 'fas fa-eye', label: 'DOLMEN.Tabs.Details' },
 				{ id: 'effects', icon: 'fas fa-bolt', label: 'DOLMEN.Tabs.Effects' },
-				{ id: 'description', icon: 'fas fa-book-open', label: 'DOLMEN.Tabs.Description' }
+				{ id: 'description', icon: 'fas fa-note-sticky', label: 'DOLMEN.Tabs.Description' }
 			],
 			initial: 'stats'
 		}
@@ -105,6 +105,8 @@ class DolmenCreatureSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 		context.system = actor.system
 		context.final = actor.system.final || {}
 		context.isGM = game.user.isGM
+		context.isToken = actor.isToken
+		context.isLinked = actor.isToken ? actor.token.actorLink : actor.prototypeToken.actorLink
 		context.tabs = this._getTabs()
 
 		// Dropdown choices
@@ -206,10 +208,12 @@ class DolmenCreatureSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 		setupAdjustableInputListeners(this)
 
 		// Actor link toggle
-		this.element.querySelector('.actor-link-icon')?.addEventListener('click', async () => {
-			const linked = !this.actor.prototypeToken.actorLink
-			await this.actor.update({'prototypeToken.actorLink': linked})
-		})
+		if (!this.actor.isToken) {
+			this.element.querySelector('.actor-link-icon')?.addEventListener('click', async () => {
+				const linked = !this.actor.prototypeToken.actorLink
+				await this.actor.update({'prototypeToken.actorLink': linked})
+			})
+		}
 
 		// Tab listeners
 		this.element.querySelectorAll('.tabs .item').forEach(tab => {

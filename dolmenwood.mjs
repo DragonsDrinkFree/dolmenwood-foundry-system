@@ -767,6 +767,22 @@ Hooks.on('createToken', async (tokenDoc) => {
 	})
 })
 
+// Ensure unlinked tokens are created with a valid ActorDelta containing all
+// required fields. Without this, the server's delta source is null, and any
+// subsequent delta update (e.g. HP randomization) constructs a new ActorDelta
+// with clean:false — which skips cleanData and fails validation on required
+// fields (items, effects, flags). Must use updateSource() because Foundry sends
+// document._source to the server, not the raw data parameter.
+Hooks.on('preCreateToken', (tokenDoc) => {
+	if (tokenDoc.actorLink) return
+	const delta = tokenDoc._source.delta ?? {}
+	tokenDoc.updateSource({ delta: {
+		items: delta.items ?? [],
+		effects: delta.effects ?? [],
+		flags: delta.flags ?? {}
+	}})
+})
+
 // Track defeated creatures for XP distribution
 function recordDefeatedCreature(actor) {
 	const list = game.settings.get('dolmenwood', 'defeatedCreatures').slice()

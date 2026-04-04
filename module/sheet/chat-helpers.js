@@ -8,10 +8,10 @@
  * @returns {Promise<ChatMessage>}
  */
 export async function createChatMessage(messageData) {
-	const rollMode = game.settings.get('core', 'rollMode')
-	if (rollMode !== 'publicroll') {
+	const messageMode = game.settings.get('core', 'messageMode')
+	if (messageMode !== 'publicroll') {
 		delete messageData.style
 	}
-	ChatMessage.applyRollMode(messageData, rollMode)
+	ChatMessage.applyMode(messageData, messageMode)
 	return ChatMessage.create(messageData)
 }
