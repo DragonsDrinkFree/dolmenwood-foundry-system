@@ -104,6 +104,8 @@ class DolmenHorseSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 		context.actor = actor
 		context.system = actor.system
 		context.isGM = game.user.isGM
+		context.isToken = actor.isToken
+		context.isLinked = actor.isToken ? actor.token.actorLink : actor.prototypeToken.actorLink
 		context.tabs = this._getTabs()
 
 		// Dropdown choices
@@ -297,11 +299,13 @@ class DolmenHorseSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 	_onRender(context, options) {
 		super._onRender(context, options)
 
-		// Actor link toggle
-		this.element.querySelector('.actor-link-icon')?.addEventListener('click', async () => {
-			const linked = !this.actor.prototypeToken.actorLink
-			await this.actor.update({'prototypeToken.actorLink': linked})
-		})
+		// Actor link toggle (only interactive on base actors, not placed tokens)
+		if (!this.actor.isToken) {
+			this.element.querySelector('.actor-link-icon')?.addEventListener('click', async () => {
+				const linked = !this.actor.prototypeToken.actorLink
+				await this.actor.update({'prototypeToken.actorLink': linked})
+			})
+		}
 
 		// Adjustable input listeners (AC with barding bonus)
 		setupAdjustableInputListeners(this)
