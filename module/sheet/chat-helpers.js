@@ -12,6 +12,7 @@ export async function createChatMessage(messageData) {
 	if (messageMode !== 'publicroll') {
 		delete messageData.style
 	}
-	ChatMessage.applyMode(messageData, messageMode)
+	const applyMode = ChatMessage.applyMode ?? ChatMessage.applyRollMode
+	applyMode(messageData, messageMode)
 	return ChatMessage.create(messageData)
 }
