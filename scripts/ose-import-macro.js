@@ -716,10 +716,11 @@ function convertTokenDelta(delta, baseActorItems) {
 			}
 		}
 
-		// Speed
-		if (sys.movement?.base !== undefined) {
-			newSys.speed = Math.round(safeInt(sys.movement.base, 120) / 3)
-		}
+		// Speed — always default PCs to 40 (Dolmenwood base).
+		// OSE's movement.base reflects current encumbered speed, so importing
+		// it directly produces 30 for armored characters. Encumbrance is
+		// applied dynamically by Dolmenwood, so we want the unencumbered base.
+		newSys.speed = 40
 
 		// Ability scores (character tokens)
 		if (sys.scores) {
