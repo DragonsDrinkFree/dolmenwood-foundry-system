@@ -513,6 +513,7 @@
 			"RangeMedium": "Medium",
 			"RangeLong": "Long",
 			"AttackGroup": "Group",
+			"Other": "Other",
 			"Movement": {
 				"swim": "Swim",
 				"fly": "Fly",
@@ -630,7 +631,7 @@
 			"Details": "Details",
 			"Damage": "Damage Formula",
 			"DamageShort": "Dmg",
-			"ToHitBonus": "To-Hit Bonus",
+			"ToHitBonus": "Attack Bonus",
 			"AC": "AC",
 			"Qualities": "Qualities",
 			"CommonDetails": "Item Details",

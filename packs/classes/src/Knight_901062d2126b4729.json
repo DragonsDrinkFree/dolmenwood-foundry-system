@@ -213,16 +213,6 @@
       ],
       "restrictions": [
         {
-          "id": "knightAlignment",
-          "nameKey": "DOLMEN.Traits.KnightAlignment",
-          "descKey": "DOLMEN.Traits.KnightAlignmentDesc",
-          "traitType": "alignmentRestriction",
-          "allowedAlignments": [
-            "lawful"
-          ],
-          "hideFromTraitTab": true
-        },
-        {
           "id": "liegeAlignment",
           "nameKey": "DOLMEN.Traits.LiegeAlignment",
           "descKey": "DOLMEN.Traits.LiegeAlignmentDesc",
