@@ -111,11 +111,20 @@ export async function rollInitiativeForGroup(combat, groupId) {
 	await roll.evaluate()
 
 	const updates = combatants.map(c => ({ _id: c.id, initiative: roll.total }))
-	await combat.updateEmbeddedDocuments('Combatant', updates)
 
-	// If all groups now have initiative, reset turn to 0
-	if (combat.round >= 1 && allGroupsRolled(combat)) {
-		await combat.update({ turn: 0 })
+	// Players lack permission to update combatants they don't own,
+	// so delegate the update to the GM via socket
+	if (game.user.isGM) {
+		await combat.updateEmbeddedDocuments('Combatant', updates)
+		if (combat.round >= 1 && allGroupsRolled(combat)) {
+			await combat.update({ turn: 0 })
+		}
+	} else {
+		game.socket.emit('system.dolmenwood', {
+			action: 'setGroupInitiative',
+			combatId: combat.id,
+			updates
+		})
 	}
 
 	const config = GROUP_CONFIG[groupId]
@@ -339,4 +348,25 @@ export async function rollEncounterDistance(environment = 'dungeon') {
 	})
 
 	return { roll, multiplier, distance }
+}
+
+/* -------------------------------------------- */
+/*  Socket Handler                              */
+/* -------------------------------------------- */
+
+/**
+ * Handle combat socket events (GM only).
+ * Players emit these when they lack permission to update combatants directly.
+ */
+export function handleCombatSocket(data) {
+	if (game.user !== game.users.activeGM) return
+	if (data.action === 'setGroupInitiative') {
+		const combat = game.combats.get(data.combatId)
+		if (!combat) return
+		combat.updateEmbeddedDocuments('Combatant', data.updates).then(() => {
+			if (combat.round >= 1 && allGroupsRolled(combat)) {
+				combat.update({ turn: 0 })
+			}
+		})
+	}
 }
