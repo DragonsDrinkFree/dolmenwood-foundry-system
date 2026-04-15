@@ -232,6 +232,7 @@
 .attack-edit-modal .form-group.full-width textarea {
 	min-height: 3rem;
 	resize: vertical;
+	flex: none;
 }
 
 .attack-edit-modal .type-radios {

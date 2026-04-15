@@ -146,6 +146,7 @@
 
 .dolmen-group-header .initiative-roll-btn[data-action="clearGroupInitiative"] i {
 	font-size: 1.15rem;
+	width: 100%;
 }
 
 /* ---- Combatant Rows ---- */
