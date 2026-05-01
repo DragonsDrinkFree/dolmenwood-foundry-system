@@ -1160,7 +1160,12 @@
 				"Everyone": "Everyone",
 				"Placeholder": "Enter note...",
 				"NoNotes": "No notes for this day.",
-				"Notification": "Calendar Note"
+				"Notification": "Calendar Note",
+				"Recurrence": "Recurrence",
+				"RecurrenceNone": "Once",
+				"RecurrenceWeekly": "Weekly",
+				"RecurrenceMonthly": "Monthly",
+				"RecurrenceYearly": "Yearly"
 			}
 		}
 	}

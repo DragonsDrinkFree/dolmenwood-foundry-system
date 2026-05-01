@@ -835,6 +835,28 @@ class DolmenCreatureSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
 		const diceIcon = getDieIconFromFormula(attack.attackDamage)
 
+		// Compare against targeted token's AC, if any
+		let targetData = null
+		const targets = game.user.targets
+		if (targets.size > 0) {
+			const targetToken = targets.first()
+			const targetActor = targetToken.actor
+			if (targetActor) {
+				const targetAC = targetActor.system.final?.ac ?? targetActor.system.ac
+				targetData = { name: targetToken.name, ac: targetAC }
+			}
+		}
+		const hitResult = targetData ? (atkRoll.total >= targetData.ac ? 'hit' : 'miss') : null
+		const hitClass = hitResult === 'hit' ? ' success' : hitResult === 'miss' ? ' failure' : ''
+		const targetInfo = targetData
+			? `<span class="roll-target">${game.i18n.format('DOLMEN.Attack.VsAC', { ac: targetData.ac, name: targetData.name })}</span>`
+			: ''
+		const hitLabel = hitResult === 'hit'
+			? `<span class="roll-label success">${game.i18n.localize('DOLMEN.Attack.Hit')}</span>`
+			: hitResult === 'miss'
+				? `<span class="roll-label failure">${game.i18n.localize('DOLMEN.Attack.Miss')}</span>`
+				: ''
+
 		const content = `
 			<div class="dolmen attack-roll">
 				<div class="attack-header">
@@ -843,10 +865,12 @@ class DolmenCreatureSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 					</div>
 				</div>
 				<div class="roll-results">
-					<div class="roll-section attack-section">
+					<div class="roll-section attack-section${hitClass}">
 						<label>${game.i18n.localize('DOLMEN.Attack.AttackRoll')}</label>
 						<div class="roll-result">${atkAnchor.outerHTML}</div>
 						<span class="roll-breakdown">${atkFormula}</span>
+						${targetInfo}
+						${hitLabel}
 					</div>
 					<div class="roll-section damage-section">
 						<label>${game.i18n.localize('DOLMEN.Attack.DamageRoll')}</label>

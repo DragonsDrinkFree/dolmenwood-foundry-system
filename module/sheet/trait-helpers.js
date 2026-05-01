@@ -25,6 +25,43 @@ export function resolveDamageProgression(progression, level) {
 }
 
 /**
+ * Fallbacks for traits whose level-scaling data was lost when the script's
+ * arrow-function `adjustmentValue` was serialised to compendium JSON.
+ * Existing actors with stale Class items still resolve via these entries.
+ */
+const TRAIT_PROGRESSION_FALLBACKS = {
+	armorOfFaith: [
+		{ minLevel: 1, value: 2 },
+		{ minLevel: 5, value: 3 },
+		{ minLevel: 9, value: 4 },
+		{ minLevel: 13, value: 5 }
+	]
+}
+
+/**
+ * Resolve a trait's adjustment value at a given level. Supports
+ * adjustmentProgression arrays, function-style adjustmentValue (legacy/script),
+ * static adjustmentValue, and the id-keyed fallback table above.
+ * @param {object} trait - Trait definition
+ * @param {number} level - Character level
+ * @returns {*} Numeric value, or undefined if no progression matches
+ */
+export function resolveAdjustmentValue(trait, level) {
+	const progression = Array.isArray(trait.adjustmentProgression)
+		? trait.adjustmentProgression
+		: TRAIT_PROGRESSION_FALLBACKS[trait.id]
+	if (Array.isArray(progression)) {
+		let result
+		for (const entry of progression) {
+			if (level >= entry.minLevel) result = entry.value
+		}
+		return result
+	}
+	if (typeof trait.adjustmentValue === 'function') return trait.adjustmentValue(level)
+	return trait.adjustmentValue
+}
+
+/**
  * Check if the character is using a kindred-class (kindred as class).
  * @param {Actor} actor - The actor
  * @returns {boolean} True if using a kindred-class
@@ -141,10 +178,8 @@ export function computeTraitAdjustments(actor) {
 		// Check armor condition (e.g., Fur Defense only when not wearing heavy armor)
 		if (trait.requiresNoHeavyArmor && isWearingHeavyArmor(actor)) continue
 
-		// Get adjustment value (may be a function of level)
-		const value = typeof trait.adjustmentValue === 'function'
-			? trait.adjustmentValue(level)
-			: trait.adjustmentValue
+		// Get adjustment value (may be a function of level or a progression array)
+		const value = resolveAdjustmentValue(trait, level)
 
 		// Handle skill overrides (set value instead of add)
 		if (trait.adjustmentType === 'skillOverride' && trait.adjustmentTargets) {
@@ -226,9 +261,7 @@ export function getTraitRollOptions(actor, rollType) {
 		if (!targetMatches) continue
 		if (trait.minLevel && level < trait.minLevel) continue
 
-		const bonus = typeof trait.adjustmentValue === 'function'
-			? trait.adjustmentValue(level)
-			: trait.adjustmentValue
+		const bonus = resolveAdjustmentValue(trait, level)
 
 		options.push({
 			id: trait.id,
@@ -265,6 +298,9 @@ function prepareTrait(actor, trait, level) {
 		prepared.value = trait.getValue(actor, level)
 	} else if (trait.value) {
 		prepared.value = trait.value
+	} else if (trait.traitType === 'adjustment' && trait.adjustmentType === 'static') {
+		const adj = resolveAdjustmentValue(trait, level)
+		if (typeof adj === 'number') prepared.value = adj > 0 ? `+${adj}` : `${adj}`
 	}
 
 	// Compute level-based damage for rollable traits

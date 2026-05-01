@@ -128,7 +128,7 @@ function renderParty() {
 		const stats = document.createElement('div')
 		stats.className = 'party-stats'
 
-		const adjusted = actor.type === 'Adventurer' ? actor.system.final : null
+		const adjusted = actor.system.final || null
 		const hp = actor.system.hp
 		const hpMax = adjusted?.hp?.max ?? hp.max
 		const hpRatio = hpMax > 0 ? hp.value / hpMax : 0
@@ -411,9 +411,10 @@ async function addXP() {
 
 			// Wire up remove buttons
 			creatureRowsEl.querySelectorAll('.xp-creature-remove').forEach(btn => {
-				btn.addEventListener('click', (e) => {
+				btn.addEventListener('click', async (e) => {
 					e.preventDefault()
 					creatures.splice(parseInt(btn.dataset.index), 1)
+					await game.settings.set('dolmenwood', 'defeatedCreatures', creatures)
 					refreshCreatureList()
 					updatePreview()
 				})
@@ -613,7 +614,7 @@ async function addCoins() {
 
 	const weights = validActors.map(a => getTreasureShare(a))
 
-	const coinInputs = DENOM_ORDER.map(d => {
+	const coinInputs = [...DENOM_ORDER].reverse().map(d => {
 		const label = game.i18n.localize(`DOLMEN.Coins.${d.key.charAt(0).toUpperCase() + d.key.slice(1)}`)
 		return `<div class="party-coin-cell">
 				<label title="${label}"><i class="fa-duotone fa-light fa-coin coin-icon ${d.icon}"></i></label>

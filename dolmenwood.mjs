@@ -812,6 +812,7 @@ Hooks.on('preUpdateActor', (actor, changes) => {
 	const newHP = changes?.system?.hp?.value
 	if (newHP === undefined || newHP > 0) return
 	if (actor.system.hp.value <= 0) return
+	if (game.combat?.combatants.some(c => c.actorId === actor.id && c.defeated)) return
 	recordDefeatedCreature(actor)
 })
 
@@ -823,7 +824,18 @@ Hooks.on('preUpdateToken', (tokenDoc, changes) => {
 	const newHP = changes?.delta?.system?.hp?.value
 	if (newHP === undefined || newHP > 0) return
 	if (tokenDoc.actor.system.hp.value <= 0) return
+	if (game.combat?.combatants.some(c => c.tokenId === tokenDoc.id && c.defeated)) return
 	recordDefeatedCreature(tokenDoc.actor)
+})
+
+Hooks.on('preUpdateCombatant', (combatant, changes) => {
+	if (!game.user.isGM) return
+	if (!game.settings.get('dolmenwood', 'automatedKillLog')) return
+	if (changes.defeated !== true || combatant.defeated) return
+	const actor = combatant.actor
+	if (!actor || actor.type !== 'Creature') return
+	if (actor.system.hp.value <= 0) return
+	recordDefeatedCreature(actor)
 })
 
 // Refresh rune usage on day change (x/day, x/week, x/year)

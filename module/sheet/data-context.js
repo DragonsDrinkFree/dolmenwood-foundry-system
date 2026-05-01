@@ -6,7 +6,7 @@
  */
 
 import { AdventurerDataModel } from '../data-models.mjs'
-import { computeTraitAdjustments, getAllActiveTraits, isWearingHeavyArmor } from './trait-helpers.js'
+import { computeTraitAdjustments, getAllActiveTraits, isWearingHeavyArmor, resolveAdjustmentValue } from './trait-helpers.js'
 
 /**
  * Compute XP modifier from prime abilities.
@@ -250,7 +250,8 @@ export function computeAdjustedValues(actor, encumbranceSpeed = null) {
 		if (trait.adjustmentTarget !== 'ac') continue
 		if (trait.minLevel && system.level < trait.minLevel) continue
 		if (trait.requiresNoHeavyArmor && isWearingHeavyArmor(actor)) continue
-		const val = typeof trait.adjustmentValue === 'function' ? trait.adjustmentValue(system.level) : trait.adjustmentValue
+		const val = resolveAdjustmentValue(trait, system.level)
+		if (typeof val !== 'number' || val === 0) continue
 		acSources.push({ label: game.i18n.localize(trait.nameKey), value: val })
 	}
 	// Manual adjustment
