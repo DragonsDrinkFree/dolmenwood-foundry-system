@@ -279,7 +279,13 @@
           "descKey": "DOLMEN.Traits.ArmorOfFaithDesc",
           "traitType": "adjustment",
           "adjustmentType": "static",
-          "adjustmentTarget": "ac"
+          "adjustmentTarget": "ac",
+          "adjustmentProgression": [
+            { "minLevel": 1, "value": 2 },
+            { "minLevel": 5, "value": 3 },
+            { "minLevel": 9, "value": 4 },
+            { "minLevel": 13, "value": 5 }
+          ]
         },
         {
           "id": "herbalism",

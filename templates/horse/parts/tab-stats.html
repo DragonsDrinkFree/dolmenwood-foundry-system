@@ -75,8 +75,8 @@
 					</div>
 					<div class="creature-stat">
 						<label>{{localize "DOLMEN.Combat.AC"}}</label>
-						<input type="hidden" name="system.ac" value="{{@root.baseAC}}">
-						<input type="number" class="adjustable" value="{{@root.adjustedAC}}" data-base="{{@root.baseAC}}" data-adjusted="{{@root.adjustedAC}}" data-manual-adj="{{#if system.barding}}2{{else}}0{{/if}}" data-target="system.ac" min="0">
+						<input type="hidden" name="system.ac" value="{{system.ac}}">
+						<input type="number" class="adjustable" value="{{final.ac}}" data-base="{{system.ac}}" data-adjusted="{{final.ac}}" data-manual-adj="{{#if system.barding}}2{{else}}0{{/if}}" data-target="system.ac" min="0">
 					</div>
 					<div class="creature-stat">
 						<label>{{localize "DOLMEN.Creature.Morale"}}</label>

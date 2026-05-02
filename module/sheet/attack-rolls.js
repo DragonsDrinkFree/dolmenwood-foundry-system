@@ -7,7 +7,7 @@ import { createChatMessage } from './chat-helpers.js'
  */
 
 import { createContextMenu } from './context-menu.js'
-import { getAllActiveTraits, resolveDamageProgression } from './trait-helpers.js'
+import { getAllActiveTraits, resolveAdjustmentValue, resolveDamageProgression } from './trait-helpers.js'
 import { parseSaveLinks } from '../chat-save.js'
 import { getWeaponTypesForGroup, WEAPON_PROF_GROUPS } from '../utils/choices.js'
 import { createAttackMacro } from '../attack-macros.js'
@@ -475,8 +475,7 @@ export function getApplicableMeleeModifiers(sheet, weapon) {
 		const target = trait.adjustmentTarget
 		if (target !== 'attack' && target !== 'attack.melee') continue
 		if (trait.minLevel && level < trait.minLevel) continue
-		const attackBonus = typeof trait.adjustmentValue === 'function'
-			? trait.adjustmentValue(level) : trait.adjustmentValue
+		const attackBonus = resolveAdjustmentValue(trait, level)
 		modifiers.push({
 			id: trait.id,
 			name: game.i18n.localize(trait.nameKey),
@@ -862,8 +861,7 @@ export function getApplicableMissileModifiers(sheet, weapon) {
 		const target = trait.adjustmentTarget
 		if (target !== 'attack' && target !== 'attack.missile') continue
 		if (trait.minLevel && level < trait.minLevel) continue
-		const attackBonus = typeof trait.adjustmentValue === 'function'
-			? trait.adjustmentValue(level) : trait.adjustmentValue
+		const attackBonus = resolveAdjustmentValue(trait, level)
 		modifiers.push({
 			id: trait.id,
 			name: game.i18n.localize(trait.nameKey),

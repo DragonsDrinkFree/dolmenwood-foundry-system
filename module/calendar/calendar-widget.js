@@ -768,17 +768,74 @@ export function handleCalendarSocket(data) {
 }
 
 /**
+ * Parse a note storage key (e.g. "1077-grimvold-5") into its parts.
+ */
+function parseNoteKey(key) {
+	const idx1 = key.indexOf('-')
+	const idx2 = key.indexOf('-', idx1 + 1)
+	return {
+		year: parseInt(key.substring(0, idx1)),
+		monthKey: key.substring(idx1 + 1, idx2),
+		day: parseInt(key.substring(idx2 + 1))
+	}
+}
+
+/**
+ * Decide whether a note (with origin date) should appear on the given target date,
+ * given its recurrence pattern. Notes always show on their origin date.
+ */
+function noteAppliesToDate(note, origin, year, monthKey, day) {
+	if (year === origin.year && monthKey === origin.monthKey && day === origin.day) {
+		return true
+	}
+	const recurrence = note.recurrence || 'none'
+	if (recurrence === 'none') return false
+
+	const dayOfYear = CONFIG.DOLMENWOOD.monthOffsets[monthKey] + day
+	const originDayOfYear = CONFIG.DOLMENWOOD.monthOffsets[origin.monthKey] + origin.day
+	const afterOrigin = year > origin.year
+		|| (year === origin.year && dayOfYear > originDayOfYear)
+	if (!afterOrigin) return false
+
+	if (recurrence === 'yearly') return monthKey === origin.monthKey && day === origin.day
+	if (recurrence === 'monthly') return day === origin.day
+	if (recurrence === 'weekly') {
+		// Wysendays (day 29+) sit outside the weekday cycle, so weekly recurrence
+		// only meaningfully applies to days 1–28.
+		if (origin.day > 28 || day > 28) return false
+		return ((day - 1) % 7) === ((origin.day - 1) % 7)
+	}
+	return false
+}
+
+/**
+ * Get all notes (direct + recurring) that apply to a given calendar date.
+ * Each entry returns the note plus its origin storage key (for deletion).
+ */
+function getNotesForDay(year, monthKey, day) {
+	const all = game.settings.get('dolmenwood', 'calendarNotes')
+	const result = []
+	for (const [key, list] of Object.entries(all)) {
+		const origin = parseNoteKey(key)
+		for (const note of list) {
+			if (noteAppliesToDate(note, origin, year, monthKey, day)) {
+				result.push({ note, originKey: key })
+			}
+		}
+	}
+	return result
+}
+
+/**
  * Get set of days in a month that have notes visible to the current user.
  */
 function getNoteDays(year, monthKey) {
-	const notes = game.settings.get('dolmenwood', 'calendarNotes')
 	const isGM = game.user.isGM
 	const days = new Set()
 	const maxDays = CONFIG.DOLMENWOOD.months[monthKey].days
 	for (let d = 1; d <= maxDays; d++) {
-		const dayNotes = notes[getNoteKey(year, monthKey, d)]
-		if (!dayNotes || dayNotes.length === 0) continue
-		if (isGM || dayNotes.some(n => !n.gmOnly)) days.add(d)
+		const items = getNotesForDay(year, monthKey, d)
+		if (items.some(({ note }) => isGM || !note.gmOnly)) days.add(d)
 	}
 	return days
 }
@@ -787,10 +844,8 @@ function getNoteDays(year, monthKey) {
  * Build the notes panel HTML for a selected day.
  */
 function buildNotesPanel(year, monthKey, day) {
-	const notes = game.settings.get('dolmenwood', 'calendarNotes')
 	const isGM = game.user.isGM
-	const key = getNoteKey(year, monthKey, day)
-	const dayNotes = (notes[key] || []).filter(n => isGM || !n.gmOnly)
+	const dayItems = getNotesForDay(year, monthKey, day).filter(({ note }) => isGM || !note.gmOnly)
 	const monthName = game.i18n.localize(`DOLMEN.Months.${monthKey}`)
 
 	// Moon info for selected day
@@ -816,27 +871,40 @@ function buildNotesPanel(year, monthKey, day) {
 	}
 
 	let notesList = ''
-	if (dayNotes.length === 0 && !holiday) {
+	if (dayItems.length === 0 && !holiday) {
 		notesList = `<div class="calendar-notes-empty">${game.i18n.localize('DOLMEN.Calendar.Notes.NoNotes')}</div>`
 	} else {
-		notesList = dayNotes.map(n => {
-			const badge = n.gmOnly
+		notesList = dayItems.map(({ note, originKey }) => {
+			const badge = note.gmOnly
 				? `<span class="calendar-note-badge gm-only">${game.i18n.localize('DOLMEN.Calendar.Notes.GmOnly')}</span>`
 				: `<span class="calendar-note-badge everyone">${game.i18n.localize('DOLMEN.Calendar.Notes.Everyone')}</span>`
-			const canDelete = isGM || !n.gmOnly
-			const del = canDelete
-				? `<a class="calendar-note-delete" data-delete-note="${n.id}" title="${game.i18n.localize('DOLMEN.Calendar.Notes.DeleteNote')}"><i class="fa-solid fa-trash"></i></a>`
+			const recurrence = note.recurrence || 'none'
+			const recurrenceIcon = recurrence !== 'none'
+				? `<i class="fa-solid fa-rotate calendar-note-recurrence" title="${game.i18n.localize(`DOLMEN.Calendar.Notes.Recurrence${recurrence.charAt(0).toUpperCase() + recurrence.slice(1)}`)}"></i>`
 				: ''
-			return `<div class="calendar-note-item">${badge}<span class="calendar-note-text">${n.text}</span>${del}</div>`
+			const canDelete = isGM || !note.gmOnly
+			const del = canDelete
+				? `<a class="calendar-note-delete" data-delete-note="${note.id}" data-origin-key="${originKey}" title="${game.i18n.localize('DOLMEN.Calendar.Notes.DeleteNote')}"><i class="fa-solid fa-trash"></i></a>`
+				: ''
+			return `<div class="calendar-note-item">${badge}${recurrenceIcon}<span class="calendar-note-text">${note.text}</span>${del}</div>`
 		}).join('')
 	}
 
 	const gmCheckbox = isGM
 		? `<label class="calendar-notes-gm-label"><input type="checkbox" class="calendar-notes-gm-check" checked> ${game.i18n.localize('DOLMEN.Calendar.Notes.GmOnly')}</label>`
 		: ''
+	const recurrenceSelect = `
+		<select class="calendar-notes-recurrence" title="${game.i18n.localize('DOLMEN.Calendar.Notes.Recurrence')}">
+			<option value="none">${game.i18n.localize('DOLMEN.Calendar.Notes.RecurrenceNone')}</option>
+			<option value="weekly">${game.i18n.localize('DOLMEN.Calendar.Notes.RecurrenceWeekly')}</option>
+			<option value="monthly">${game.i18n.localize('DOLMEN.Calendar.Notes.RecurrenceMonthly')}</option>
+			<option value="yearly">${game.i18n.localize('DOLMEN.Calendar.Notes.RecurrenceYearly')}</option>
+		</select>
+	`
 	const addForm = `
 		<div class="calendar-notes-add">
 			<input type="text" class="calendar-notes-input" placeholder="${game.i18n.localize('DOLMEN.Calendar.Notes.Placeholder')}">
+			${recurrenceSelect}
 			<button type="button" class="calendar-notes-add-btn" title="${game.i18n.localize('DOLMEN.Calendar.Notes.AddNote')}"><i class="fa-solid fa-plus"></i></button>
 			${gmCheckbox}
 		</div>
@@ -878,11 +946,13 @@ function openNotesDialog() {
 		if (!c) return
 		const input = c.querySelector('.calendar-notes-input')
 		const checkbox = c.querySelector('.calendar-notes-gm-check')
+		const recurrenceEl = c.querySelector('.calendar-notes-recurrence')
 		const text = input?.value?.trim()
 		if (!text) return
 		const key = getNoteKey(parseInt(c.dataset.year), c.dataset.month, parseInt(c.dataset.selectedDay))
 		const gmOnly = game.user.isGM ? (checkbox?.checked ?? true) : false
-		const note = { id: foundry.utils.randomID(), text, gmOnly }
+		const recurrence = recurrenceEl?.value || 'none'
+		const note = { id: foundry.utils.randomID(), text, gmOnly, recurrence }
 		if (game.user.isGM) {
 			const notes = foundry.utils.deepClone(game.settings.get('dolmenwood', 'calendarNotes'))
 			if (!notes[key]) notes[key] = []
@@ -894,19 +964,17 @@ function openNotesDialog() {
 		}
 	}
 
-	async function deleteNote(noteId) {
-		const c = document.querySelector('.calendar-notes-container')
-		if (!c) return
-		const key = getNoteKey(parseInt(c.dataset.year), c.dataset.month, parseInt(c.dataset.selectedDay))
+	async function deleteNote(noteId, originKey) {
+		if (!originKey) return
 		if (game.user.isGM) {
 			const notes = foundry.utils.deepClone(game.settings.get('dolmenwood', 'calendarNotes'))
-			if (!notes[key]) return
-			notes[key] = notes[key].filter(n => n.id !== noteId)
-			if (notes[key].length === 0) delete notes[key]
+			if (!notes[originKey]) return
+			notes[originKey] = notes[originKey].filter(n => n.id !== noteId)
+			if (notes[originKey].length === 0) delete notes[originKey]
 			await game.settings.set('dolmenwood', 'calendarNotes', notes)
 			rebuildContainer()
 		} else {
-			game.socket.emit('system.dolmenwood', { action: 'deleteCalendarNote', key, noteId })
+			game.socket.emit('system.dolmenwood', { action: 'deleteCalendarNote', key: originKey, noteId })
 		}
 	}
 
@@ -953,7 +1021,7 @@ function openNotesDialog() {
 
 		const delBtn = event.target.closest('[data-delete-note]')
 		if (delBtn && c.contains(delBtn)) {
-			deleteNote(delBtn.dataset.deleteNote)
+			deleteNote(delBtn.dataset.deleteNote, delBtn.dataset.originKey)
 			return
 		}
 
@@ -1003,12 +1071,11 @@ function openNotesDialog() {
  * Show note notifications when the day changes.
  */
 function showDayNoteNotifications(year, monthKey, day) {
-	const notes = game.settings.get('dolmenwood', 'calendarNotes')
-	const dayNotes = notes[getNoteKey(year, monthKey, day)]
-	if (!dayNotes || dayNotes.length === 0) return
+	const items = getNotesForDay(year, monthKey, day)
+	if (items.length === 0) return
 	const isGM = game.user.isGM
 	const label = game.i18n.localize('DOLMEN.Calendar.Notes.Notification')
-	for (const note of dayNotes) {
+	for (const { note } of items) {
 		if (note.gmOnly && !isGM) continue
 		ui.notifications.info(`${label}: ${note.text}`)
 	}

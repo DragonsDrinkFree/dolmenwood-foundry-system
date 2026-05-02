@@ -866,8 +866,12 @@ const CLASS_TRAITS = {
 				traitType: 'adjustment',
 				adjustmentType: 'static',
 				adjustmentTarget: 'ac',
-				adjustmentValue: (level) => level >= 13 ? 5 : level >= 9 ? 4 : level >= 5 ? 3 : 2,
-				getValue: (actor, level) => level >= 13 ? "+5" : level >= 9 ? "+4" : level >= 5 ? "+3" : "+2"
+				adjustmentProgression: [
+					{ minLevel: 1, value: 2 },
+					{ minLevel: 5, value: 3 },
+					{ minLevel: 9, value: 4 },
+					{ minLevel: 13, value: 5 }
+				]
 			},
 			{
 				id: 'herbalism',

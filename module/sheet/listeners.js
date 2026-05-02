@@ -1076,10 +1076,15 @@ export function setupRuneUsageListeners(sheet) {
 export async function addRuneRefreshNote(dateKey, runeName, actorName) {
 	const noteId = foundry.utils.randomID()
 	const text = game.i18n.format('DOLMEN.Magic.Fairy.RuneRefreshNote', { name: runeName, actor: actorName })
-	const notes = foundry.utils.deepClone(game.settings.get('dolmenwood', 'calendarNotes'))
-	if (!notes[dateKey]) notes[dateKey] = []
-	notes[dateKey].push({ id: noteId, text, gmOnly: false })
-	await game.settings.set('dolmenwood', 'calendarNotes', notes)
+	const note = { id: noteId, text, gmOnly: false }
+	if (game.user.isGM) {
+		const notes = foundry.utils.deepClone(game.settings.get('dolmenwood', 'calendarNotes'))
+		if (!notes[dateKey]) notes[dateKey] = []
+		notes[dateKey].push(note)
+		await game.settings.set('dolmenwood', 'calendarNotes', notes)
+	} else {
+		game.socket.emit('system.dolmenwood', { action: 'addCalendarNote', key: dateKey, note })
+	}
 	return noteId
 }
 
@@ -1089,11 +1094,15 @@ export async function addRuneRefreshNote(dateKey, runeName, actorName) {
  * @param {string} noteId - The note ID to remove
  */
 async function removeRuneRefreshNote(dateKey, noteId) {
-	const notes = foundry.utils.deepClone(game.settings.get('dolmenwood', 'calendarNotes'))
-	if (!notes[dateKey]) return
-	notes[dateKey] = notes[dateKey].filter(n => n.id !== noteId)
-	if (notes[dateKey].length === 0) delete notes[dateKey]
-	await game.settings.set('dolmenwood', 'calendarNotes', notes)
+	if (game.user.isGM) {
+		const notes = foundry.utils.deepClone(game.settings.get('dolmenwood', 'calendarNotes'))
+		if (!notes[dateKey]) return
+		notes[dateKey] = notes[dateKey].filter(n => n.id !== noteId)
+		if (notes[dateKey].length === 0) delete notes[dateKey]
+		await game.settings.set('dolmenwood', 'calendarNotes', notes)
+	} else {
+		game.socket.emit('system.dolmenwood', { action: 'deleteCalendarNote', key: dateKey, noteId })
+	}
 }
 
 /**

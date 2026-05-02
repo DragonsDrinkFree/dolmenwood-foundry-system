@@ -186,7 +186,12 @@
 				"Everyone": "Wszyscy",
 				"Placeholder": "Wpisz notatkę...",
 				"NoNotes": "Brak notatek na ten dzień.",
-				"Notification": "Notatka kalendarza"
+				"Notification": "Notatka kalendarza",
+				"Recurrence": "Powtarzanie",
+				"RecurrenceNone": "Jednorazowo",
+				"RecurrenceWeekly": "Co tydzień",
+				"RecurrenceMonthly": "Co miesiąc",
+				"RecurrenceYearly": "Co rok"
 			}
 		}
 	}

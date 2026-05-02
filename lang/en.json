@@ -13,7 +13,7 @@
 			"Item": "Gear",
 			"Treasure": "Treasure",
 			"Weapon": "Weapon",
-			"Armor": "Armor",
+			"Armor": "Armour",
 			"Foraged": "Foraged",
 			"Spell": "Arcane Spell",
 			"HolySpell": "Holy Spell",
@@ -113,7 +113,7 @@
 				"SaveSpell": "Save vs. Spell",
 				"MagicResistance": "Magic Resistance",
 				"HPMax": "HP Max",
-				"AC": "Armor Class",
+				"AC": "Armour Class",
 				"Attack": "Attack Bonus",
 				"AttackMelee": "Attack Bonus (Melee)",
 				"AttackMissile": "Attack Bonus (Missile)",
@@ -235,8 +235,8 @@
 			"Title": "Combat",
 			"HP": "HP",
 			"AC": "AC",
-			"ACTooltip": "Auto-calculated from equipped armor + DEX modifier + shield. Use Effects tab to modify.",
-			"Unarmored": "Unarmored",
+			"ACTooltip": "Auto-calculated from equipped armour + DEX modifier + shield. Use Effects tab to modify.",
+			"Unarmored": "Unarmoured",
 			"Adjustment": "Adjustment",
 			"Attack": "Attack",
 			"AttackShort": "Atk",
@@ -342,9 +342,9 @@
 			"Custom": "Custom...",
 			"CustomName": "Skill Name",
 			"OptionalRules": "Optional Rules",
-			"CustomizeSkills": "Customize Skills",
+			"CustomizeSkills": "Customise Skills",
 			"CustomizeSkillsHint": "Use the optional customising skills rule instead of skill table (works only for skill-based classes, e.g., Thief, Hunter, Bard).",
-			"CustomizeRequired": "Enable 'Customize Skills' in the Settings tab to edit skill targets directly, or use the Effects tab."
+			"CustomizeRequired": "Enable 'Customise Skills' in the Settings tab to edit skill targets directly, or use the Effects tab."
 		},
 		"SkillPoints": "skill points",
 		"AddSkill": "Add Skill",
@@ -552,7 +552,7 @@
 			"Load": "Max Load",
 			"LoadTitle": "Load",
 			"CurrentLoad": "Current Load",
-			"Armor": "Armor",
+			"Armor": "Armour",
 			"ArmorNone": "None",
 			"ArmorBarding": "Barding (+2 AC)",
 			"Rider": "Rider",
@@ -636,7 +636,7 @@
 			"Qualities": "Qualities",
 			"CommonDetails": "Item Details",
 			"WeaponDetails": "Weapon Details",
-			"ArmorDetails": "Armor Details",
+			"ArmorDetails": "Armour Details",
 			"ForagedDetails": "Foraged Details",
 			"SpellDetails": "Arcane Spell Details",
 			"HolySpellDetails": "Holy Spell Details",
@@ -663,7 +663,7 @@
 				"large": "Large"
 			},
 			"Quality": {
-				"armor-piercing": "Armor Piercing",
+				"armor-piercing": "Armour Piercing",
 				"brace": "Brace",
 				"charge": "Charge",
 				"melee": "Melee",
@@ -804,7 +804,7 @@
 				"StSignis": "St. Signis",
 				"TwoWeaponsPrimary": "Two Weapons: Primary",
 				"TwoWeaponsSecondary": "Two Weapons: Secondary",
-				"ArmorPiercing": "Armor Piercing"
+				"ArmorPiercing": "Armour Piercing"
 			}
 		},
 		"Roll": {
@@ -838,25 +838,25 @@
 			"Duration": "Duration",
 			"Prayer": "Prayer",
 			"CodexLink": "View in Codex",
-			"Memorize": "Memorize",
+			"Memorize": "Memorise",
 			"Forget": "Forget Spell",
-			"EmptySlot": "Memorize spell...",
-			"MemorizeSpell": "Memorize Spell",
-			"SelectSpellToMemorize": "Select a spell to memorize:",
+			"EmptySlot": "Memorise spell...",
+			"MemorizeSpell": "Memorise Spell",
+			"SelectSpellToMemorize": "Select a spell to memorise:",
 			"NoSlotsForRank": "No spell slots available for this rank.",
 			"AllSlotsFull": "All spell slots of this rank are full.",
-			"NoKnownSpellsForRank": "No known spells of this rank to memorize.",
+			"NoKnownSpellsForRank": "No known spells of this rank to memorise.",
 			"SpellRank": "Rank",
 			"Arcane": {
 				"Title": "Arcane Magic",
 				"ForceTitle": "Enable Arcane",
 				"SpellSlots": "Arcane Spell Slots",
 				"DetectMagic": "Detect Magic",
-				"MemorizedSpells": "Memorized Spells",
+				"MemorizedSpells": "Memorised Spells",
 				"KnownSpells": "Known Spells",
-				"NoSpells": "No spells memorized. Drag arcane spells here.",
+				"NoSpells": "No spells memorised. Drag arcane spells here.",
 				"NoKnownSpells": "No spells known. Drag arcane spells here to learn them.",
-				"NoSlots": "No spell slots available. Increase max spell slots to memorize spells."
+				"NoSlots": "No spell slots available. Increase max spell slots to memorise spells."
 			},
 			"Fairy": {
 				"Title": "Fairy Magic",
@@ -957,7 +957,7 @@
 			"FullDayHint": "1d3 HP",
 			"HPRestored": "{hp} HP restored",
 			"TraitsReset": "Trait uses reset",
-			"SpellsReminder": "You can memorize your spells now."
+			"SpellsReminder": "You can memorise your spells now."
 		},
 		"Damage": {
 			"ApplyDamage": "Apply Damage",
@@ -980,8 +980,8 @@
 			"NotFound": "Roll table \"{name}\" not found. Make sure the Dolmenwood Foundry VTT Content Conversion module is installed and enabled."
 		},
 		"Settings": {
-			"ColorTheme": "Color Theme",
-			"ColorThemeHint": "Choose a color theme for Dolmenwood sheets and chat cards.",
+			"ColorTheme": "Colour Theme",
+			"ColorThemeHint": "Choose a colour theme for Dolmenwood sheets and chat cards.",
 			"ThemeAuto": "Auto (Light/Dark)",
 			"ThemePlayerbook": "Dolmenwood Playerbook",
 			"ThemeDruneAltar": "Drune Altar",
@@ -1160,7 +1160,12 @@
 				"Everyone": "Everyone",
 				"Placeholder": "Enter note...",
 				"NoNotes": "No notes for this day.",
-				"Notification": "Calendar Note"
+				"Notification": "Calendar Note",
+				"Recurrence": "Recurrence",
+				"RecurrenceNone": "Once",
+				"RecurrenceWeekly": "Weekly",
+				"RecurrenceMonthly": "Monthly",
+				"RecurrenceYearly": "Yearly"
 			}
 		}
 	}

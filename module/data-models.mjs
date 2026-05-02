@@ -965,9 +965,14 @@ export class HorseDataModel extends CreatureDataModel {
 
 	/** @override */
 	prepareDerivedData() {
-		// Apply barding AC bonus
+		// Aggregates creature Effect items into this.final
+		super.prepareDerivedData()
+		// Barding +2 stacks on top of effect adjustments. Storing on this.final
+		// (instead of mutating this.ac) keeps prepareDerivedData idempotent —
+		// direct calls to actor.prepareData() skip Foundry's reset() step, so
+		// any mutation of this.ac would compound on every call.
 		if (this.barding) {
-			this.ac = (this.ac || 10) + 2
+			this.final.ac += 2
 		}
 	}
 
