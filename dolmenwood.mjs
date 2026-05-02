@@ -1,4 +1,4 @@
-/* global CONFIG, game, Hooks, foundry, Handlebars, ui, Roll */
+/* global CONFIG, game, Hooks, foundry, Handlebars, ui, Roll, Actor */
 
 import DOLMENWOOD from './module/config.js'
 import DolmenSheet from './module/dolmen-sheet.js'
@@ -785,8 +785,9 @@ Hooks.on('preCreateToken', (tokenDoc) => {
 	}})
 })
 
-// Track defeated creatures for XP distribution
+// Track defeated creatures for XP distribution.
 function recordDefeatedCreature(actor) {
+	if (!actor) return
 	const list = game.settings.get('dolmenwood', 'defeatedCreatures').slice()
 	const existing = list.find(e => e.name === actor.name)
 	if (existing) {
@@ -806,13 +807,18 @@ function recordDefeatedCreature(actor) {
 	}))
 }
 
+function actorHasDefeatedStatus(actor) {
+	const defeatedId = CONFIG.specialStatusEffects?.DEFEATED ?? 'dead'
+	return actor?.statuses?.has(defeatedId) ?? false
+}
+
 Hooks.on('preUpdateActor', (actor, changes) => {
 	if (!game.user.isGM || actor.type !== 'Creature') return
 	if (!game.settings.get('dolmenwood', 'automatedKillLog')) return
 	const newHP = changes?.system?.hp?.value
 	if (newHP === undefined || newHP > 0) return
 	if (actor.system.hp.value <= 0) return
-	if (game.combat?.combatants.some(c => c.actorId === actor.id && c.defeated)) return
+	if (actorHasDefeatedStatus(actor)) return
 	recordDefeatedCreature(actor)
 })
 
@@ -824,16 +830,21 @@ Hooks.on('preUpdateToken', (tokenDoc, changes) => {
 	const newHP = changes?.delta?.system?.hp?.value
 	if (newHP === undefined || newHP > 0) return
 	if (tokenDoc.actor.system.hp.value <= 0) return
-	if (game.combat?.combatants.some(c => c.tokenId === tokenDoc.id && c.defeated)) return
+	if (actorHasDefeatedStatus(tokenDoc.actor)) return
 	recordDefeatedCreature(tokenDoc.actor)
 })
 
-Hooks.on('preUpdateCombatant', (combatant, changes) => {
+// Catches both the Combat Tracker "Mark Defeated" path (toggleStatusEffect)
+// and the Token HUD skull-icon path. Both create an ActiveEffect with the
+// 'dead' status on the actor. Skip if HP is already 0 — the HP-path hook
+// already recorded the kill (or chose not to).
+Hooks.on('createActiveEffect', (effect) => {
 	if (!game.user.isGM) return
 	if (!game.settings.get('dolmenwood', 'automatedKillLog')) return
-	if (changes.defeated !== true || combatant.defeated) return
-	const actor = combatant.actor
-	if (!actor || actor.type !== 'Creature') return
+	const defeatedId = CONFIG.specialStatusEffects?.DEFEATED ?? 'dead'
+	if (!effect.statuses?.has(defeatedId)) return
+	const actor = effect.parent
+	if (!actor || !(actor instanceof Actor) || actor.type !== 'Creature') return
 	if (actor.system.hp.value <= 0) return
 	recordDefeatedCreature(actor)
 })
