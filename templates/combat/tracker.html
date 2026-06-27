@@ -35,7 +35,7 @@
 	{{#each groups as |group|}}
 	<li class="dolmen-group-header" style="border-color: {{group.color}}">
 		<span class="group-name"><i class="fa-solid fa-square" style="color: {{group.color}}"></i> {{group.label}}</span>
-		<span class="group-initiative">
+		<span class="group-initiative" data-group-id="{{group.groupId}}">
 			{{#if group.hasInitiative}}
 			{{#if ../isGM}}
 			<button type="button" class="initiative-roll-btn" data-action="clearGroupInitiative" data-group-id="{{group.groupId}}" data-tooltip="{{localize 'DOLMEN.Combat.ClearInitiative'}}" style="border-color: {{group.color}}">
@@ -46,7 +46,7 @@
 			{{/if}}
 			{{else}}
 				{{#if group.canRollInitiative}}
-				<button type="button" class="initiative-roll-btn" data-action="rollPlayerInitiative" data-group-id="{{group.groupId}}" data-tooltip="{{localize 'DOLMEN.Combat.RollInitiative'}}" style="border-color: {{group.color}}">
+				<button type="button" class="initiative-roll-btn" data-action="rollPlayerInitiative" data-group-id="{{group.groupId}}" data-tooltip="{{localize 'DOLMEN.Combat.RollInitiativeHint'}}" style="border-color: {{group.color}}">
 					<i class="fa-solid fa-dice-d6"></i>
 				</button>
 				{{else}}

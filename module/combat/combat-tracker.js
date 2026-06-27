@@ -8,10 +8,11 @@
 
 import { prepareTrackerGroups, DECLARATION_CONFIG, GROUP_CONFIG } from './combat-data.js'
 import { GROUPS } from './combatant.js'
-import { rollMoraleCheck, rollReaction, rollSurprise, rollEncounterDistance, rollInitiativeForGroup, allGroupsRolled } from './combat-rolls.js'
+import { rollMoraleCheck, rollReaction, rollSurprise, rollEncounterDistance, rollInitiativeForGroup, setGroupInitiative, allGroupsRolled } from './combat-rolls.js'
 import { createContextMenu } from '../sheet/context-menu.js'
 
 const { CombatTracker } = foundry.applications.sidebar.tabs
+const { DialogV2 } = foundry.applications.api
 
 /* -------------------------------------------- */
 /*  Shared Menu Helpers                         */
@@ -193,12 +194,57 @@ export default class DolmenCombatTracker extends CombatTracker {
 			}
 		}
 
+		// Right-click a group's initiative cell to enter the value manually
+		// (for players who roll in real life)
+		this.element?.querySelectorAll('.group-initiative[data-group-id]')?.forEach(el => {
+			el.addEventListener('contextmenu', e => {
+				e.preventDefault()
+				e.stopPropagation()
+				const groupId = Number(el.dataset.groupId)
+				if (!Number.isNaN(groupId)) this._promptSetInitiative(groupId)
+			})
+		})
+
 		// Re-render when actor/token names change during combat
 		if (!this._hooksRegistered) {
 			this._hooksRegistered = true
 			Hooks.on('updateActor', () => this.render())
 			Hooks.on('updateToken', () => this.render())
 		}
+	}
+
+	/**
+	 * Prompt for a manual initiative value and apply it to the whole group.
+	 * Permitted for the GM, or a player who owns a combatant in the group.
+	 * @param {number} groupId - The disposition group id
+	 */
+	async _promptSetInitiative(groupId) {
+		const combat = this.viewed
+		if (!combat) return
+		const groupCombatants = combat.combatants.filter(c => c.dispositionGroup === groupId)
+		if (!groupCombatants.length) return
+		if (!game.user.isGM && !groupCombatants.some(c => c.isOwner)) return
+
+		const current = groupCombatants[0]?.initiative ?? ''
+		const value = await DialogV2.prompt({
+			window: { title: game.i18n.localize('DOLMEN.Combat.SetInitiativeTitle') },
+			content: `
+				<div class="form-group">
+					<label>${game.i18n.localize('DOLMEN.Combat.SetInitiativeLabel')}</label>
+					<input type="number" name="initiative" value="${current}" autofocus>
+				</div>`,
+			ok: {
+				label: game.i18n.localize('DOLMEN.Save'),
+				icon: 'fa-solid fa-check',
+				callback: (event, button) => button.form.elements.initiative.value
+			},
+			rejectClose: false
+		})
+
+		if (value === null || value === undefined || value === '') return
+		const num = Number(value)
+		if (Number.isNaN(num)) return
+		await setGroupInitiative(combat, groupId, num)
 	}
 
 	/* -------------------------------------------- */

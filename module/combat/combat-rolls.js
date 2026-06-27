@@ -151,6 +151,59 @@ export async function rollInitiativeForGroup(combat, groupId) {
 	return roll.total
 }
 
+/**
+ * Manually set a group's initiative to a fixed value (for players who roll
+ * in real life). Mirrors rollInitiativeForGroup but takes a value instead of
+ * rolling, reusing the same GM/socket delegation so non-GM players can set
+ * their own group's initiative.
+ * @param {Combat} combat - The active combat encounter
+ * @param {number} groupId - The disposition group id
+ * @param {number} value - The initiative value to assign
+ * @returns {Promise<number|null>} The value set, or null if no combatants
+ */
+export async function setGroupInitiative(combat, groupId, value) {
+	const combatants = combat.combatants.filter(c => c.dispositionGroup === groupId)
+	if (!combatants.length) return null
+
+	const updates = combatants.map(c => ({ _id: c.id, initiative: value }))
+
+	// Players lack permission to update combatants they don't own,
+	// so delegate the update to the GM via socket (same path as rolling)
+	if (game.user.isGM) {
+		await combat.updateEmbeddedDocuments('Combatant', updates)
+		if (combat.round >= 1 && allGroupsRolled(combat)) {
+			await combat.update({ turn: 0 })
+		}
+	} else {
+		game.socket.emit('system.dolmenwood', {
+			action: 'setGroupInitiative',
+			combatId: combat.id,
+			updates
+		})
+	}
+
+	const config = GROUP_CONFIG[groupId]
+	const label = game.i18n.localize(config?.labelKey || 'DOLMEN.Combat.Group.GroupA')
+
+	await createChatMessage({
+		content: `
+		<div class="dolmen combat-roll">
+			<div class="roll-header">
+				<i class="fa-solid fa-pen-to-square"></i>
+				<div class="roll-info">
+					<h3>${game.i18n.localize('DOLMEN.Combat.GroupInitiative')}</h3>
+				</div>
+			</div>
+			<div class="roll-body">
+				<div class="group-row" style="border-left: 3px solid ${config?.color || '#999'};"><strong>${label}:</strong> ${value} <em>(${game.i18n.localize('DOLMEN.Combat.ManualEntry')})</em></div>
+			</div>
+		</div>`,
+		speaker: { alias: label }
+	})
+
+	return value
+}
+
 /* -------------------------------------------- */
 /*  Morale Check                                */
 /* -------------------------------------------- */
