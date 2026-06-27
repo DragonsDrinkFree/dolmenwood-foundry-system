@@ -243,7 +243,11 @@
 			"Encounter": "Encounter",
 			"GroupInitiative": "Group Initiative",
 			"RollInitiative": "Roll Initiative",
+			"RollInitiativeHint": "Roll initiative (right-click to enter manually)",
 			"ClearInitiative": "Clear Initiative",
+			"SetInitiativeTitle": "Set Initiative",
+			"SetInitiativeLabel": "Initiative value",
+			"ManualEntry": "manual",
 			"ClearAll": "Clear All",
 			"Roll": "Roll",
 			"Group": {
