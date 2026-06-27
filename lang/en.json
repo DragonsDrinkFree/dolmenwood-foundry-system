@@ -1078,6 +1078,7 @@
 			"AddTimer": "Add Timer",
 			"TimerName": "Name",
 			"TimerDuration": "Duration (turns)",
+			"TimerGMOnly": "GM only",
 			"TimerExpired": "{name} has expired!",
 			"Pause": "Pause Tracker",
 			"Resume": "Resume Tracker",

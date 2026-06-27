@@ -116,24 +116,36 @@ function addLightSource(type) {
 	renderLightPanel()
 }
 
-function addTimer(name, duration) {
+function addTimer(name, duration, gmOnly) {
 	if (!game.user.isGM) return
 	lightSources.push({
 		id: foundry.utils.randomID(),
 		type: 'timer',
 		remaining: duration,
 		paused: false,
-		name
+		name,
+		gmOnly: !!gmOnly
 	})
 	saveLightSources()
 	renderLightBars()
 	renderLightPanel()
 }
 
+/**
+ * Light sources visible to the current user. GM-only timers are hidden
+ * from players (the full list is broadcast via the world setting, so the
+ * filtering happens here at render time).
+ */
+function visibleLightSources() {
+	if (game.user.isGM) return lightSources
+	return lightSources.filter(s => !s.gmOnly)
+}
+
 async function showAddTimerDialog() {
 	if (!game.user.isGM) return
 	const nameLabel = game.i18n.localize('DOLMEN.DungeonTracker.TimerName')
 	const durationLabel = game.i18n.localize('DOLMEN.DungeonTracker.TimerDuration')
+	const gmOnlyLabel = game.i18n.localize('DOLMEN.DungeonTracker.TimerGMOnly')
 
 	const result = await DialogV2.prompt({
 		window: { title: game.i18n.localize('DOLMEN.DungeonTracker.AddTimer') },
@@ -145,6 +157,10 @@ async function showAddTimerDialog() {
 			<div class="form-group">
 				<label>${durationLabel}</label>
 				<input type="number" name="timerDuration" value="6" min="1">
+			</div>
+			<div class="form-group">
+				<label>${gmOnlyLabel}</label>
+				<input type="checkbox" name="timerGMOnly">
 			</div>`,
 		ok: {
 			label: game.i18n.localize('DOLMEN.DungeonTracker.AddTimer'),
@@ -152,14 +168,15 @@ async function showAddTimerDialog() {
 			callback: (event, button) => {
 				const name = button.form.elements.timerName.value.trim() || game.i18n.localize('DOLMEN.DungeonTracker.Timer')
 				const duration = parseInt(button.form.elements.timerDuration.value) || 6
-				return { name, duration }
+				const gmOnly = button.form.elements.timerGMOnly.checked
+				return { name, duration, gmOnly }
 			}
 		},
 		rejectClose: false
 	})
 
 	if (result) {
-		addTimer(result.name, result.duration)
+		addTimer(result.name, result.duration, result.gmOnly)
 	}
 }
 
@@ -330,6 +347,7 @@ function updatePauseButton() {
  */
 function renderLightBars() {
 	if (!widgetEl) return
+	const sources = visibleLightSources()
 	const squares = widgetEl.querySelectorAll('.dungeon-square')
 	for (const sq of squares) {
 		const oldBars = sq.querySelector('.light-bars')
@@ -341,7 +359,7 @@ function renderLightBars() {
 		const offset = turn - turnCounter // 0 = current, 1 = next, etc.
 
 		// Light source bars (torch/lantern only)
-		const barsForSquare = lightSources.filter(s =>
+		const barsForSquare = sources.filter(s =>
 			s.type !== 'timer' && offset >= 0 && offset < Math.min(s.remaining, 6)
 		)
 		if (barsForSquare.length > 0) {
@@ -358,7 +376,7 @@ function renderLightBars() {
 		}
 
 		// Timer expiry icons (max 3 per square)
-		const timersHere = lightSources.filter(s =>
+		const timersHere = sources.filter(s =>
 			s.type === 'timer' && !s.paused && offset >= 0 && offset === s.remaining - 1
 		)
 		if (timersHere.length > 0) {
@@ -386,8 +404,10 @@ function renderLightPanel() {
 
 	panel.innerHTML = ''
 
+	const sources = visibleLightSources()
+
 	// Hide panel for non-GM users when there are no light sources
-	if (!game.user.isGM && lightSources.length === 0) {
+	if (!game.user.isGM && sources.length === 0) {
 		panel.classList.add('empty')
 		return
 	}
@@ -429,15 +449,16 @@ function renderLightPanel() {
 	}
 
 	// Active light list
-	if (lightSources.length === 0) return
+	if (sources.length === 0) return
 
 	const list = document.createElement('div')
 	list.className = 'dungeon-light-list'
 
-	for (const source of lightSources) {
+	for (const source of sources) {
 		const item = document.createElement('div')
 		item.className = 'dungeon-light-item'
 		if (source.paused) item.classList.add('is-paused')
+		if (source.gmOnly) item.classList.add('is-gm-only')
 		if (source.remaining <= 2 && !source.paused) item.classList.add('is-warning')
 
 		let iconClass, label
@@ -451,9 +472,13 @@ function renderLightPanel() {
 				: 'DOLMEN.DungeonTracker.Lantern')
 		}
 
+		const gmOnlyIcon = source.gmOnly
+			? `<i class="fa-solid fa-eye-slash light-gm-only" title="${game.i18n.localize('DOLMEN.DungeonTracker.TimerGMOnly')}"></i>`
+			: ''
 		item.innerHTML = `
 			<i class="fa-solid ${iconClass} light-icon ${source.type}"></i>
 			<span class="light-label">${label}</span>
+			${gmOnlyIcon}
 			<span class="light-remaining">${source.remaining}</span>`
 
 		// GM controls: pause toggle + delete button
@@ -532,6 +557,8 @@ async function postLightExpiryMessage(source) {
 		icon = source.type === 'torch' ? 'fa-solid fa-fire-flame-curved' : 'fa-solid fa-lightbulb'
 	}
 
+	const whisper = source.gmOnly ? game.users.filter(u => u.isGM).map(u => u.id) : []
+
 	await ChatMessage.create({
 		content: `
 		<div class="dolmen encounter-roll">
@@ -547,7 +574,8 @@ async function postLightExpiryMessage(source) {
 				</div>
 			</div>
 		</div>`,
-		speaker: { alias: title }
+		speaker: { alias: title },
+		whisper
 	})
 }
 

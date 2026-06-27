@@ -460,6 +460,11 @@
 	font-variant-numeric: tabular-nums;
 }
 
+.dungeon-light-item .light-gm-only {
+	opacity: 0.5;
+	font-size: 0.625rem;
+}
+
 .dungeon-light-item .light-pause {
 	cursor: pointer;
 	opacity: 0.5;
