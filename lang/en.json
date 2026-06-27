@@ -513,6 +513,7 @@
 			"RangeMedium": "Medium",
 			"RangeLong": "Long",
 			"AttackGroup": "Group",
+			"WeaponAddedAsAttack": "Added \"{name}\" as an attack.",
 			"Other": "Other",
 			"Movement": {
 				"swim": "Swim",
