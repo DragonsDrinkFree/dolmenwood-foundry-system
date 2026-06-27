@@ -325,9 +325,9 @@
 		},
 		"SkillTargets": "Skill Targets",
 		"Skills": {
-			"Listen": "Listen",
-			"Search": "Search",
-			"Survival": "Survival",
+			"listen": "Listen",
+			"search": "Search",
+			"survival": "Survival",
 			"detectMagic": "Detect Magic",
 			"alertness": "Alertness",
 			"stalking": "Stalking",

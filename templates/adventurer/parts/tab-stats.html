@@ -253,19 +253,19 @@
 			<h2>{{localize "DOLMEN.SkillTargets"}}{{#if system.customizeSkills}} ({{skillPoints}} {{localize "DOLMEN.SkillPoints"}}){{/if}}</h2>
 			<div class="skills-grid">
 				<div class="skill">
-					<label>{{localize "DOLMEN.Skills.Listen"}}</label>
+					<label>{{localize "DOLMEN.Skills.listen"}}</label>
 					<input type="hidden" name="system.skills.listen" value="{{system.skills.listen}}">
 					<input type="number" class="adjustable skill-target" value="{{adjusted.skills.listen}}" data-base="{{system.skills.listen}}" data-adjusted="{{adjusted.skills.listen}}" data-manual-adj="{{system.adjustments.skills.listen}}" data-target="system.skills.listen" min="2" max="6" {{#unless system.customizeSkills}}readonly{{/unless}}>
 					<i class="fa fa-dice-d6 rollable skill-roll" data-skill="listen" title="{{localize 'DOLMEN.Roll.SkillCheck'}}"></i>
 				</div>
 				<div class="skill">
-					<label>{{localize "DOLMEN.Skills.Search"}}</label>
+					<label>{{localize "DOLMEN.Skills.search"}}</label>
 					<input type="hidden" name="system.skills.search" value="{{system.skills.search}}">
 					<input type="number" class="adjustable skill-target" value="{{adjusted.skills.search}}" data-base="{{system.skills.search}}" data-adjusted="{{adjusted.skills.search}}" data-manual-adj="{{system.adjustments.skills.search}}" data-target="system.skills.search" min="2" max="6" {{#unless system.customizeSkills}}readonly{{/unless}}>
 					<i class="fa fa-dice-d6 rollable skill-roll" data-skill="search" title="{{localize 'DOLMEN.Roll.SkillCheck'}}"></i>
 				</div>
 				<div class="skill">
-					<label>{{localize "DOLMEN.Skills.Survival"}}</label>
+					<label>{{localize "DOLMEN.Skills.survival"}}</label>
 					<input type="hidden" name="system.skills.survival" value="{{system.skills.survival}}">
 					<input type="number" class="adjustable skill-target" value="{{adjusted.skills.survival}}" data-base="{{system.skills.survival}}" data-adjusted="{{adjusted.skills.survival}}" data-manual-adj="{{system.adjustments.skills.survival}}" data-target="system.skills.survival" min="2" max="6" {{#unless system.customizeSkills}}readonly{{/unless}}>
 					<i class="fa fa-dice-d6 rollable skill-roll" data-skill="survival" title="{{localize 'DOLMEN.Roll.SkillCheck'}}"></i>
