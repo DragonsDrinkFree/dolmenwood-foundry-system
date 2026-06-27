@@ -1068,6 +1068,7 @@
 			"RestPause": "Pause Tracker",
 			"RestProcess": "Process Turns",
 			"EncounterSettingName": "Encounter Chance",
+			"EncounterChanceIn": "in",
 			"EncounterCheck": "Random Encounter",
 			"Turn": "Turn",
 			"EncounterYes": "Encounter!",

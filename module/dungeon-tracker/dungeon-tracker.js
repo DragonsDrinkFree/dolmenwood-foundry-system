@@ -184,6 +184,7 @@ async function showSettingsDialog() {
 	if (!game.user.isGM) return
 
 	const encounterChance = game.settings.get('dolmenwood', 'encounterChance')
+	const encounterDie = game.settings.get('dolmenwood', 'encounterDie')
 	const encounterInterval = game.settings.get('dolmenwood', 'encounterInterval')
 	const restInterval = game.settings.get('dolmenwood', 'restInterval')
 	const encounterTable = game.settings.get('dolmenwood', 'encounterTable')
@@ -199,11 +200,21 @@ async function showSettingsDialog() {
 	const autoRollLbl = game.i18n.localize('DOLMEN.DungeonTracker.AutoRoll')
 	const publicRollLbl = game.i18n.localize('DOLMEN.DungeonTracker.PublicRoll')
 	const noneLbl = game.i18n.localize('DOLMEN.DungeonTracker.EncounterTableNone')
+	const inLbl = game.i18n.localize('DOLMEN.DungeonTracker.EncounterChanceIn')
 
-	const chanceOptions = []
-	for (let i = 1; i <= 6; i++) {
-		chanceOptions.push(`<option value="${i}"${encounterChance === i ? ' selected' : ''}>${i}-in-6</option>`)
+	// Chance is "X-in-die"; the chance options depend on the chosen die.
+	const buildChanceOptions = (die, selected) => {
+		let html = ''
+		for (let i = 1; i <= die; i++) {
+			html += `<option value="${i}"${selected === i ? ' selected' : ''}>${i}</option>`
+		}
+		return html
 	}
+	const dieChoices = [4, 6, 8, 10, 12, 20]
+	const chanceOptions = buildChanceOptions(encounterDie, encounterChance)
+	const dieOptions = dieChoices
+		.map(d => `<option value="${d}"${encounterDie === d ? ' selected' : ''}>d${d}</option>`)
+		.join('')
 
 	const tableOptions = [`<option value=""${!encounterTable ? ' selected' : ''}>${noneLbl}</option>`]
 	for (const table of game.tables) {
@@ -223,6 +234,7 @@ async function showSettingsDialog() {
 		}
 		const encInterval = el.querySelector('[name="encounterInterval"]')
 		const encChance = el.querySelector('[name="encounterChance"]')
+		const encDie = el.querySelector('[name="encounterDie"]')
 		const encAuto = el.querySelector('[name="encounterAutoRoll"]')
 		const encPublic = el.querySelector('[name="encounterPublicRoll"]')
 		const tblSelect = el.querySelector('[name="encounterTable"]')
@@ -231,6 +243,7 @@ async function showSettingsDialog() {
 		const syncDisabled = () => {
 			const intervalOff = parseInt(encInterval.value) === 0
 			encChance.disabled = intervalOff
+			encDie.disabled = intervalOff
 			encAuto.disabled = intervalOff
 			encPublic.disabled = intervalOff
 			const tableOff = intervalOff || !encAuto.checked
@@ -241,6 +254,13 @@ async function showSettingsDialog() {
 		syncDisabled()
 		encInterval.addEventListener('input', syncDisabled)
 		encAuto.addEventListener('change', syncDisabled)
+		// Repopulate the chance options (1..die) when the die changes,
+		// clamping the current selection to the new maximum.
+		encDie.addEventListener('change', () => {
+			const die = parseInt(encDie.value)
+			const selected = Math.min(parseInt(encChance.value) || 1, die)
+			encChance.innerHTML = buildChanceOptions(die, selected)
+		})
 	})
 
 	const result = await DialogV2.prompt({
@@ -256,7 +276,11 @@ async function showSettingsDialog() {
 			</div>
 			<div class="form-group">
 				<label>${chanceLbl}</label>
-				<select name="encounterChance">${chanceOptions.join('')}</select>
+				<div class="encounter-chance-controls" style="display:flex;gap:0.4rem;align-items:center;flex:1">
+					<select name="encounterChance" style="flex:1">${chanceOptions}</select>
+					<span style="white-space:nowrap">${inLbl}</span>
+					<select name="encounterDie" style="flex:1">${dieOptions}</select>
+				</div>
 			</div>
 			<div style="display:flex;gap:1rem;justify-content:flex-end;margin-top:-0.25rem">
 				<label style="white-space:nowrap;font-size:0.8rem"><input type="checkbox" name="encounterAutoRoll"${encounterAutoRoll ? ' checked' : ''}> ${autoRollLbl}</label>
@@ -276,8 +300,10 @@ async function showSettingsDialog() {
 			callback: (event, button) => {
 				const rest = parseInt(button.form.elements.restInterval.value)
 				const interval = parseInt(button.form.elements.encounterInterval.value)
+				const die = parseInt(button.form.elements.encounterDie.value) || 6
 				return {
-					chance: parseInt(button.form.elements.encounterChance.value) || 1,
+					chance: Math.min(parseInt(button.form.elements.encounterChance.value) || 1, die),
+					die,
 					interval: isNaN(interval) ? 2 : interval,
 					rest: isNaN(rest) ? 6 : rest,
 					table: button.form.elements.encounterTable.value,
@@ -295,6 +321,7 @@ async function showSettingsDialog() {
 
 	if (result) {
 		await game.settings.set('dolmenwood', 'encounterChance', result.chance)
+		await game.settings.set('dolmenwood', 'encounterDie', result.die)
 		await game.settings.set('dolmenwood', 'encounterInterval', result.interval)
 		await game.settings.set('dolmenwood', 'restInterval', result.rest)
 		await game.settings.set('dolmenwood', 'encounterTable', result.table)
@@ -600,6 +627,7 @@ async function postTurnMessage(turnNum) {
 	const isRestTurn = restInterval > 0 && turnNum > 0 && turnNum % restInterval === 0
 	const isEncounterTurn = encounterInterval > 0 && turnNum > 0 && turnNum % encounterInterval === 0
 	const chance = game.settings.get('dolmenwood', 'encounterChance')
+	const die = game.settings.get('dolmenwood', 'encounterDie') || 6
 	const doEncounter = isEncounterTurn && chance > 0
 
 	if (!doEncounter && !isRestTurn) return
@@ -608,7 +636,7 @@ async function postTurnMessage(turnNum) {
 	let sound = undefined
 	const autoRoll = game.settings.get('dolmenwood', 'encounterAutoRoll')
 	if (doEncounter && autoRoll) {
-		const roll = new Roll('1d6')
+		const roll = new Roll(`1d${die}`)
 		await roll.evaluate()
 		const encountered = roll.total <= chance
 		const resultClass = encountered ? 'failure' : 'success'
@@ -619,10 +647,10 @@ async function postTurnMessage(turnNum) {
 		sound = CONFIG.sounds.dice
 		encounterHtml = `
 				<div class="roll-section ${resultClass}">
-					<div class="roll-result force-d6-icon">
+					<div class="roll-result force-d${die}-icon">
 						${anchor.outerHTML}
 					</div>
-					<span class="roll-target">${chance}-in-6</span>
+					<span class="roll-target">${chance}-in-${die}</span>
 					<span class="roll-label ${resultClass}">${resultLabel}</span>
 				</div>`
 
@@ -652,7 +680,7 @@ async function postTurnMessage(turnNum) {
 				<div class="roll-section">
 					<i class="fa-solid fa-dice" style="font-size:1.25rem"></i>
 					<span class="roll-label">${game.i18n.localize('DOLMEN.DungeonTracker.EncounterCheck')}</span>
-					<span class="roll-target">${chance}-in-6</span>
+					<span class="roll-target">${chance}-in-${die}</span>
 				</div>`
 	}
 

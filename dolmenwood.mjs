@@ -145,6 +145,13 @@ Hooks.once('init', async function () {
 		default: 1
 	})
 
+	game.settings.register('dolmenwood', 'encounterDie', {
+		scope: 'world',
+		config: false,
+		type: Number,
+		default: 6
+	})
+
 	game.settings.register('dolmenwood', 'encounterInterval', {
 		scope: 'world',
 		config: false,
