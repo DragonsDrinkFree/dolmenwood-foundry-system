@@ -1,4 +1,4 @@
-/* global game, ui, Roll, ChatMessage, CONST, CONFIG */
+/* global game, ui, Roll, ChatMessage, CONST, CONFIG, canvas */
 import { createChatMessage } from './chat-helpers.js'
 /**
  * Attack Roll Handlers
@@ -778,13 +778,105 @@ export function onMissileAttackRoll(sheet, event) {
 }
 
 /**
+ * Determine the missile range band automatically from the distance between
+ * the attacker's token and the (single) target token.
+ *
+ * Returns null when it cannot be resolved — no attacker token on the scene,
+ * not exactly one target, or the weapon defines no range bands — so the caller
+ * can fall back to the manual range menu.
+ * @param {DolmenSheet} sheet - The sheet instance
+ * @param {Item} weapon - The missile weapon
+ * @returns {{rangeMod:number, rangeName:string, outOfRange:boolean}|null}
+ */
+function computeAutoRange(sheet, weapon) {
+	if (!canvas?.ready) return null
+
+	// Exactly one target is required to measure unambiguously
+	const targets = game.user.targets
+	if (targets.size !== 1) return null
+	const targetToken = targets.first()
+
+	// Attacker token on the current scene (prefer a controlled one)
+	const tokens = sheet.actor.getActiveTokens()
+	const attackerToken = tokens.find(t => t.controlled) || tokens[0]
+	if (!attackerToken || !targetToken || attackerToken === targetToken) return null
+
+	// Weapon range bands in scene units (feet); bail if none are defined
+	const short = weapon.system.rangeShort || 0
+	const medium = weapon.system.rangeMedium || 0
+	const long = weapon.system.rangeLong || 0
+	if (short <= 0 && medium <= 0 && long <= 0) return null
+
+	let distance
+	try {
+		distance = canvas.grid.measurePath([attackerToken.center, targetToken.center]).distance
+	} catch {
+		return null
+	}
+
+	let band = 'Long'
+	let mod = -1
+	let outOfRange = false
+	if (short > 0 && distance <= short) {
+		band = 'Close'
+		mod = 1
+	} else if (medium > 0 && distance <= medium) {
+		band = 'Medium'
+		mod = 0
+	} else if (long > 0 && distance <= long) {
+		band = 'Long'
+		mod = -1
+	} else {
+		// Beyond long range — still allowed, rolled at long range with a note
+		outOfRange = true
+	}
+
+	return { rangeMod: mod, rangeName: game.i18n.localize(`DOLMEN.Attack.Range.${band}`), outOfRange }
+}
+
+/**
  * Open range selection menu for missile attacks (Close / Medium / Long).
+ *
+ * When the "Automatic Missile Range" setting is on, the range band is derived
+ * from token distance instead of prompting — picking the weapon first if more
+ * than one is equipped. Falls back to the manual menu when the distance can't
+ * be resolved (handled via the forceManual flag to avoid re-entering auto).
  * @param {DolmenSheet} sheet - The sheet instance
  * @param {Item[]} weapons - Equipped missile weapons
  * @param {object} position - Position {top, left}
  * @param {string|null} [rollType=null] - 'attack', 'damage', or null for both
+ * @param {boolean} [forceManual=false] - Skip the auto-range gate
  */
-export function openMissileRangeMenu(sheet, weapons, position, rollType = null) {
+export function openMissileRangeMenu(sheet, weapons, position, rollType = null, forceManual = false) {
+	if (!forceManual && game.settings.get('dolmenwood', 'autoMissileRange')) {
+		const resolveAuto = (weapon, proficient) => {
+			const auto = computeAutoRange(sheet, weapon)
+			if (auto) {
+				openMissileModifierPanel(sheet, weapon, position, proficient, rollType, auto.rangeMod, auto.rangeName, auto.outOfRange)
+			} else {
+				// Couldn't measure — show the manual range menu for this weapon
+				openMissileRangeMenu(sheet, [weapon], position, rollType, true)
+			}
+		}
+
+		if (weapons.length === 1) {
+			resolveAuto(weapons[0], isWeaponProficient(sheet, weapons[0]))
+		} else {
+			// Need to know which weapon's ranges to use, so pick weapon first
+			createContextMenu(sheet, {
+				html: buildWeaponMenuHtml(sheet, weapons),
+				position,
+				onItemClick: (item, menu) => {
+					const weapon = sheet.actor.items.get(item.dataset.weaponId)
+					const proficient = item.dataset.proficient !== 'false'
+					menu.remove()
+					if (weapon) setTimeout(() => resolveAuto(weapon, proficient), 0)
+				}
+			})
+		}
+		return
+	}
+
 	const ranges = [
 		{ id: 'close', mod: 1, nameKey: 'DOLMEN.Attack.Range.Close', icon: 'fa-grid-2' },
 		{ id: 'medium', mod: 0, nameKey: 'DOLMEN.Attack.Range.Medium', icon: 'fa-grid' },
@@ -892,7 +984,7 @@ export function getApplicableMissileModifiers(sheet, weapon) {
  * @param {number} [rangeMod=0] - Range modifier to attack
  * @param {string|null} [rangeName=null] - Range name for chat badge
  */
-export function openMissileModifierPanel(sheet, weapon, position, proficient = true, rollType = null, rangeMod = 0, rangeName = null) {
+export function openMissileModifierPanel(sheet, weapon, position, proficient = true, rollType = null, rangeMod = 0, rangeName = null, outOfRange = false) {
 	// Remove any existing context menu
 	document.querySelector('.dolmen-weapon-context-menu')?.remove()
 
@@ -992,7 +1084,7 @@ export function openMissileModifierPanel(sheet, weapon, position, proficient = t
 
 		panel.remove()
 		document.removeEventListener('click', closePanel)
-		executeMissileAttack(sheet, weapon, selectedModifiers, numericMod, proficient, rollType, rangeMod, rangeName)
+		executeMissileAttack(sheet, weapon, selectedModifiers, numericMod, proficient, rollType, rangeMod, rangeName, outOfRange)
 	})
 
 	// Save as macro button
@@ -1035,7 +1127,7 @@ export function openMissileModifierPanel(sheet, weapon, position, proficient = t
  * @param {number} [rangeMod=0] - Range modifier to attack
  * @param {string|null} [rangeName=null] - Range name for chat badge
  */
-async function executeMissileAttack(sheet, weapon, selectedModifiers, numericMod, proficient = true, rollType = null, rangeMod = 0, rangeName = null) {
+async function executeMissileAttack(sheet, weapon, selectedModifiers, numericMod, proficient = true, rollType = null, rangeMod = 0, rangeName = null, outOfRange = false) {
 	let modAttackBonus = 0
 	let modDamageBonus = 0
 	const modifierNames = []
@@ -1086,13 +1178,18 @@ async function executeMissileAttack(sheet, weapon, selectedModifiers, numericMod
 		damageFormula = `${damageFormula} - ${Math.abs(exhaustion)}`
 	}
 
+	const specialText = outOfRange
+		? `<i class="fas fa-triangle-exclamation"></i> ${game.i18n.localize('DOLMEN.Attack.Range.OutOfRange')}`
+		: null
+
 	await performAttackRoll(sheet, weapon, 'missile', {
 		attackOnly: rollType === 'attack',
 		damageOnly: rollType === 'damage',
 		totalAttackMod: finalAttackMod,
 		damageFormula,
 		modifierNames,
-		attackModeName: rangeName
+		attackModeName: rangeName,
+		specialText
 	})
 }
 

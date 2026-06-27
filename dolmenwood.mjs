@@ -346,6 +346,15 @@ Hooks.once('init', async function () {
 		default: true
 	})
 
+	game.settings.register('dolmenwood', 'autoMissileRange', {
+		name: 'DOLMEN.Settings.AutoMissileRange',
+		hint: 'DOLMEN.Settings.AutoMissileRangeHint',
+		scope: 'world',
+		config: true,
+		type: Boolean,
+		default: false
+	})
+
 	game.settings.register('dolmenwood', 'showWelcomeDialog', {
 		name: 'DOLMEN.Welcome.SettingName',
 		hint: 'DOLMEN.Welcome.SettingHint',
