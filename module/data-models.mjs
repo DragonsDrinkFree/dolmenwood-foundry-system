@@ -1,7 +1,7 @@
 import { CHOICE_KEYS } from './utils/choices.js'
 
 /* global foundry, game */
-const { ArrayField, BooleanField, HTMLField, NumberField, SchemaField, StringField } = foundry.data.fields
+const { ArrayField, BooleanField, HTMLField, NumberField, ObjectField, SchemaField, StringField } = foundry.data.fields
 
 /* -------------------------------------------- */
 /*  Schema Helper Functions                     */
@@ -724,6 +724,10 @@ export class AdventurerDataModel extends ActorDataModel {
 			combatTalents: new ArrayField(new StringField({
 				blank: false
 			}), { initial: [] }),
+
+			// Free-text values for traits/talents that declare customText,
+			// keyed by trait id (e.g. { slayer: "Ogres", weaponSpecialist: "Longsword" })
+			traitText: new ObjectField({ required: false, initial: {} }),
 
 			// Retainer loyalty score (2-12, default 7)
 			loyalty: new NumberField({ required: true, initial: 7, min: 1, max: 12, integer: true }),

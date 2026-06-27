@@ -7,7 +7,7 @@ import { createChatMessage } from './chat-helpers.js'
  */
 
 import { createContextMenu } from './context-menu.js'
-import { getAllActiveTraits, resolveAdjustmentValue, resolveDamageProgression } from './trait-helpers.js'
+import { getAllActiveTraits, resolveAdjustmentValue, resolveDamageProgression, traitHasCustomText, getTraitModifierInstances } from './trait-helpers.js'
 import { parseSaveLinks } from '../chat-save.js'
 import { getWeaponTypesForGroup, WEAPON_PROF_GROUPS } from '../utils/choices.js'
 import { createAttackMacro } from '../attack-macros.js'
@@ -476,12 +476,19 @@ export function getApplicableMeleeModifiers(sheet, weapon) {
 		if (target !== 'attack' && target !== 'attack.melee') continue
 		if (trait.minLevel && level < trait.minLevel) continue
 		const attackBonus = resolveAdjustmentValue(trait, level)
-		modifiers.push({
-			id: trait.id,
-			name: game.i18n.localize(trait.nameKey),
-			attackBonus,
-			damageBonus: trait.damageValue || 0
-		})
+		const baseName = game.i18n.localize(trait.nameKey)
+		// Expand customText talents taken multiple times into separate toggles
+		const instances = traitHasCustomText(trait)
+			? getTraitModifierInstances(actor, trait)
+			: [{ id: trait.id, text: '' }]
+		for (const inst of instances) {
+			modifiers.push({
+				id: inst.id,
+				name: inst.text ? `${baseName}: ${inst.text}` : baseName,
+				attackBonus,
+				damageBonus: trait.damageValue || 0
+			})
+		}
 	}
 
 	// Armor Piercing - weapon quality
@@ -954,12 +961,19 @@ export function getApplicableMissileModifiers(sheet, weapon) {
 		if (target !== 'attack' && target !== 'attack.missile') continue
 		if (trait.minLevel && level < trait.minLevel) continue
 		const attackBonus = resolveAdjustmentValue(trait, level)
-		modifiers.push({
-			id: trait.id,
-			name: game.i18n.localize(trait.nameKey),
-			attackBonus,
-			damageBonus: trait.damageValue || 0
-		})
+		const baseName = game.i18n.localize(trait.nameKey)
+		// Expand customText talents taken multiple times into separate toggles
+		const instances = traitHasCustomText(trait)
+			? getTraitModifierInstances(actor, trait)
+			: [{ id: trait.id, text: '' }]
+		for (const inst of instances) {
+			modifiers.push({
+				id: inst.id,
+				name: inst.text ? `${baseName}: ${inst.text}` : baseName,
+				attackBonus,
+				damageBonus: trait.damageValue || 0
+			})
+		}
 	}
 
 	// Armor Piercing - weapon quality

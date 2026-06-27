@@ -807,7 +807,9 @@ const CLASS_TRAITS = {
 				adjustmentValue: 1,
 				damageValue: 1,
 				parentTrait: 'combatTalents',
-				hideFromTraitTab: true
+				hideFromTraitTab: true,
+				customText: true,
+				customTextHintKey: 'DOLMEN.Traits.Talents.SlayerTextHint'
 			},
 			{
 				id: 'weaponSpecialist',
@@ -819,7 +821,9 @@ const CLASS_TRAITS = {
 				adjustmentValue: 1,
 				damageValue: 1,
 				parentTrait: 'combatTalents',
-				hideFromTraitTab: true
+				hideFromTraitTab: true,
+				customText: true,
+				customTextHintKey: 'DOLMEN.Traits.Talents.WeaponSpecialistTextHint'
 			},
 			{
 				id: 'defender',
