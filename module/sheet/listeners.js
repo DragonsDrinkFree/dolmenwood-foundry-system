@@ -437,6 +437,18 @@ const KNOWN_LANGUAGE_IDS = ['woldish', 'gaffe', 'caprice', 'sylvan', 'highElfish
  * @param {DolmenSheet} sheet - The sheet instance
  */
 export function setupLanguagesListener(sheet) {
+	// Only enable the hover tooltip when the languages line is actually
+	// truncated (overflowing) — no point showing it when it all fits.
+	// Measured on hover so layout and fonts are fully settled, avoiding the
+	// render-time timing edge cases.
+	const langValue = sheet.element.querySelector('.languages-value')
+	const langText = langValue?.querySelector('.languages-text')
+	if (langValue && langText) {
+		langValue.addEventListener('mouseenter', () => {
+			langValue.classList.toggle('has-overflow', langText.scrollWidth > langText.clientWidth)
+		})
+	}
+
 	const btn = sheet.element.querySelector('.edit-languages-btn')
 	if (!btn) return
 	btn.addEventListener('click', (e) => {

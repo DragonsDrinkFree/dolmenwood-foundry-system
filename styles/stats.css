@@ -11,6 +11,9 @@
 	display: grid;
 	grid-template-columns: 0.75fr 0.75fr 1fr 1fr;
 	gap: 0.5rem;
+	/* Size cells to content so a multi-line Languages box doesn't stretch
+	   its row-mates (Level/XP); labels stay top-aligned across the row. */
+	align-items: start;
 }
 
 .sheet.dolmen .tab-content .header-details .flexrow {
@@ -42,7 +45,7 @@
 	align-items: center;
 	gap: 0.15rem;
 	justify-content: center;
-	height: 100%;
+	min-height: 1.95rem;
 	border-radius: 0.2rem;
 	background-color: var(--dolmen-color-inner-background)
 }
@@ -103,14 +106,52 @@
 	background-color: var(--dolmen-color-inner-background);
 	border-radius: 0.2rem;
 	display: flex;
+	align-items: center;
 	place-content: center;
 	gap: 0.5rem;
 	padding: 0 0.5rem;
+	min-height: 1.95rem;
 }
 
 .sheet.dolmen .tab-content .xp-stat .proficiency-value {
 	margin-left: 0;
 	margin-right: auto;
+}
+
+/* Languages: keep to a single line with ellipsis; full list shows in a
+   hover tooltip (shared .tooltip pattern) so the box never grows the header.
+   The ellipsis lives on an inner span so the pill itself doesn't clip the
+   tooltip, letting it anchor with normal absolute positioning. */
+.sheet.dolmen .tab-content .xp-stat .languages-value {
+	flex: 1;
+	min-width: 0;
+}
+
+.sheet.dolmen .tab-content .xp-stat .languages-text {
+	display: block;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+/* Only show the languages tooltip when the line is truncated (the
+   .has-overflow class is toggled on render by setupLanguagesListener). */
+.sheet.dolmen .xp-stat .languages-value:not(.has-overflow) .languages-tooltip {
+	display: none;
+}
+
+/* Anchor the tooltip above the languages pill (override the base grid-centred
+   fixed positioning, which mis-aligns outside its original context). */
+.dolmen .tooltiptext.languages-tooltip {
+	position: absolute;
+	bottom: 100%;
+	left: 0;
+	margin: 0 0 8px 0;
+	width: max-content;
+	max-width: 250px;
+	white-space: normal;
+	align-self: auto;
+	justify-self: auto;
 }
 
 /* -------------------------------------------- */

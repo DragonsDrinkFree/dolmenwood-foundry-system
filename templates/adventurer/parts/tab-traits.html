@@ -18,6 +18,9 @@
 					<a class="trait-share-btn" data-trait-name="{{this.name}}" data-trait-desc="{{this.description}}" data-trait-value="{{this.value}}" {{#if this.hasUsageTracking}}data-trait-id="{{this.id}}" data-max-uses="{{this.maxUses}}" data-usage-frequency="{{this.usageFrequency}}"{{/if}}><i class="fa-solid fa-comment-dots"></i></a>
 				</h3>
 				<p>{{{this.description}}}</p>
+				{{#if this.customText}}
+				<input type="text" class="trait-custom-text" name="system.traitText.{{this.id}}" value="{{this.customTextValue}}" placeholder="{{this.customTextHint}}">
+				{{/if}}
 				{{#if this.hasUsageTracking}}
 				<div class="trait-usage">
 					<span class="usage-label">{{this.usageFrequency}}:</span>
@@ -54,6 +57,9 @@
 					<a class="trait-share-btn" data-trait-name="{{this.name}}" data-trait-desc="{{this.description}}" data-trait-value="{{this.value}}" {{#if this.hasUsageTracking}}data-trait-id="{{this.id}}" data-max-uses="{{this.maxUses}}" data-usage-frequency="{{this.usageFrequency}}"{{/if}}><i class="fa-solid fa-comment-dots"></i></a>
 				</h3>
 				<p>{{{this.description}}}</p>
+				{{#if this.customText}}
+				<input type="text" class="trait-custom-text" name="system.traitText.{{this.id}}" value="{{this.customTextValue}}" placeholder="{{this.customTextHint}}">
+				{{/if}}
 				{{#if this.hasUsageTracking}}
 				<div class="trait-usage">
 					<span class="usage-label">{{this.usageFrequency}}:</span>
@@ -90,6 +96,9 @@
 					<a class="trait-share-btn" data-trait-name="{{this.name}}" data-trait-desc="{{this.description}}" data-trait-value="{{this.value}}" {{#if this.hasUsageTracking}}data-trait-id="{{this.id}}" data-max-uses="{{this.maxUses}}" data-usage-frequency="{{this.usageFrequency}}"{{/if}}><i class="fa-solid fa-comment-dots"></i></a>
 				</h3>
 				<p>{{{this.description}}}</p>
+				{{#if this.customText}}
+				<input type="text" class="trait-custom-text" name="system.traitText.{{this.id}}" value="{{this.customTextValue}}" placeholder="{{this.customTextHint}}">
+				{{/if}}
 				{{#if this.hasUsageTracking}}
 				<div class="trait-usage">
 					<span class="usage-label">{{this.usageFrequency}}:</span>
@@ -122,6 +131,9 @@
 						{{selectOptions ../choices selected=this.selected}}
 					</select>
 				</div>
+				{{#if this.customText}}
+				<input type="text" class="trait-custom-text" name="system.traitText.{{this.customTextKey}}" value="{{this.customTextValue}}" placeholder="{{this.customTextHint}}">
+				{{/if}}
 				{{#if this.description}}
 				<p>{{{this.description}}}</p>
 				{{/if}}

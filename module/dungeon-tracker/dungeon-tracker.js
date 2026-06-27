@@ -116,24 +116,36 @@ function addLightSource(type) {
 	renderLightPanel()
 }
 
-function addTimer(name, duration) {
+function addTimer(name, duration, gmOnly) {
 	if (!game.user.isGM) return
 	lightSources.push({
 		id: foundry.utils.randomID(),
 		type: 'timer',
 		remaining: duration,
 		paused: false,
-		name
+		name,
+		gmOnly: !!gmOnly
 	})
 	saveLightSources()
 	renderLightBars()
 	renderLightPanel()
 }
 
+/**
+ * Light sources visible to the current user. GM-only timers are hidden
+ * from players (the full list is broadcast via the world setting, so the
+ * filtering happens here at render time).
+ */
+function visibleLightSources() {
+	if (game.user.isGM) return lightSources
+	return lightSources.filter(s => !s.gmOnly)
+}
+
 async function showAddTimerDialog() {
 	if (!game.user.isGM) return
 	const nameLabel = game.i18n.localize('DOLMEN.DungeonTracker.TimerName')
 	const durationLabel = game.i18n.localize('DOLMEN.DungeonTracker.TimerDuration')
+	const gmOnlyLabel = game.i18n.localize('DOLMEN.DungeonTracker.TimerGMOnly')
 
 	const result = await DialogV2.prompt({
 		window: { title: game.i18n.localize('DOLMEN.DungeonTracker.AddTimer') },
@@ -145,6 +157,10 @@ async function showAddTimerDialog() {
 			<div class="form-group">
 				<label>${durationLabel}</label>
 				<input type="number" name="timerDuration" value="6" min="1">
+			</div>
+			<div class="form-group">
+				<label>${gmOnlyLabel}</label>
+				<input type="checkbox" name="timerGMOnly">
 			</div>`,
 		ok: {
 			label: game.i18n.localize('DOLMEN.DungeonTracker.AddTimer'),
@@ -152,14 +168,15 @@ async function showAddTimerDialog() {
 			callback: (event, button) => {
 				const name = button.form.elements.timerName.value.trim() || game.i18n.localize('DOLMEN.DungeonTracker.Timer')
 				const duration = parseInt(button.form.elements.timerDuration.value) || 6
-				return { name, duration }
+				const gmOnly = button.form.elements.timerGMOnly.checked
+				return { name, duration, gmOnly }
 			}
 		},
 		rejectClose: false
 	})
 
 	if (result) {
-		addTimer(result.name, result.duration)
+		addTimer(result.name, result.duration, result.gmOnly)
 	}
 }
 
@@ -167,6 +184,7 @@ async function showSettingsDialog() {
 	if (!game.user.isGM) return
 
 	const encounterChance = game.settings.get('dolmenwood', 'encounterChance')
+	const encounterDie = game.settings.get('dolmenwood', 'encounterDie')
 	const encounterInterval = game.settings.get('dolmenwood', 'encounterInterval')
 	const restInterval = game.settings.get('dolmenwood', 'restInterval')
 	const encounterTable = game.settings.get('dolmenwood', 'encounterTable')
@@ -182,11 +200,21 @@ async function showSettingsDialog() {
 	const autoRollLbl = game.i18n.localize('DOLMEN.DungeonTracker.AutoRoll')
 	const publicRollLbl = game.i18n.localize('DOLMEN.DungeonTracker.PublicRoll')
 	const noneLbl = game.i18n.localize('DOLMEN.DungeonTracker.EncounterTableNone')
+	const inLbl = game.i18n.localize('DOLMEN.DungeonTracker.EncounterChanceIn')
 
-	const chanceOptions = []
-	for (let i = 1; i <= 6; i++) {
-		chanceOptions.push(`<option value="${i}"${encounterChance === i ? ' selected' : ''}>${i}-in-6</option>`)
+	// Chance is "X-in-die"; the chance options depend on the chosen die.
+	const buildChanceOptions = (die, selected) => {
+		let html = ''
+		for (let i = 1; i <= die; i++) {
+			html += `<option value="${i}"${selected === i ? ' selected' : ''}>${i}</option>`
+		}
+		return html
 	}
+	const dieChoices = [4, 6, 8, 10, 12, 20]
+	const chanceOptions = buildChanceOptions(encounterDie, encounterChance)
+	const dieOptions = dieChoices
+		.map(d => `<option value="${d}"${encounterDie === d ? ' selected' : ''}>d${d}</option>`)
+		.join('')
 
 	const tableOptions = [`<option value=""${!encounterTable ? ' selected' : ''}>${noneLbl}</option>`]
 	for (const table of game.tables) {
@@ -206,6 +234,7 @@ async function showSettingsDialog() {
 		}
 		const encInterval = el.querySelector('[name="encounterInterval"]')
 		const encChance = el.querySelector('[name="encounterChance"]')
+		const encDie = el.querySelector('[name="encounterDie"]')
 		const encAuto = el.querySelector('[name="encounterAutoRoll"]')
 		const encPublic = el.querySelector('[name="encounterPublicRoll"]')
 		const tblSelect = el.querySelector('[name="encounterTable"]')
@@ -214,6 +243,7 @@ async function showSettingsDialog() {
 		const syncDisabled = () => {
 			const intervalOff = parseInt(encInterval.value) === 0
 			encChance.disabled = intervalOff
+			encDie.disabled = intervalOff
 			encAuto.disabled = intervalOff
 			encPublic.disabled = intervalOff
 			const tableOff = intervalOff || !encAuto.checked
@@ -224,6 +254,13 @@ async function showSettingsDialog() {
 		syncDisabled()
 		encInterval.addEventListener('input', syncDisabled)
 		encAuto.addEventListener('change', syncDisabled)
+		// Repopulate the chance options (1..die) when the die changes,
+		// clamping the current selection to the new maximum.
+		encDie.addEventListener('change', () => {
+			const die = parseInt(encDie.value)
+			const selected = Math.min(parseInt(encChance.value) || 1, die)
+			encChance.innerHTML = buildChanceOptions(die, selected)
+		})
 	})
 
 	const result = await DialogV2.prompt({
@@ -239,7 +276,11 @@ async function showSettingsDialog() {
 			</div>
 			<div class="form-group">
 				<label>${chanceLbl}</label>
-				<select name="encounterChance">${chanceOptions.join('')}</select>
+				<div class="encounter-chance-controls" style="display:flex;gap:0.4rem;align-items:center;flex:1">
+					<select name="encounterChance" style="flex:1">${chanceOptions}</select>
+					<span style="white-space:nowrap">${inLbl}</span>
+					<select name="encounterDie" style="flex:1">${dieOptions}</select>
+				</div>
 			</div>
 			<div style="display:flex;gap:1rem;justify-content:flex-end;margin-top:-0.25rem">
 				<label style="white-space:nowrap;font-size:0.8rem"><input type="checkbox" name="encounterAutoRoll"${encounterAutoRoll ? ' checked' : ''}> ${autoRollLbl}</label>
@@ -259,8 +300,10 @@ async function showSettingsDialog() {
 			callback: (event, button) => {
 				const rest = parseInt(button.form.elements.restInterval.value)
 				const interval = parseInt(button.form.elements.encounterInterval.value)
+				const die = parseInt(button.form.elements.encounterDie.value) || 6
 				return {
-					chance: parseInt(button.form.elements.encounterChance.value) || 1,
+					chance: Math.min(parseInt(button.form.elements.encounterChance.value) || 1, die),
+					die,
 					interval: isNaN(interval) ? 2 : interval,
 					rest: isNaN(rest) ? 6 : rest,
 					table: button.form.elements.encounterTable.value,
@@ -278,6 +321,7 @@ async function showSettingsDialog() {
 
 	if (result) {
 		await game.settings.set('dolmenwood', 'encounterChance', result.chance)
+		await game.settings.set('dolmenwood', 'encounterDie', result.die)
 		await game.settings.set('dolmenwood', 'encounterInterval', result.interval)
 		await game.settings.set('dolmenwood', 'restInterval', result.rest)
 		await game.settings.set('dolmenwood', 'encounterTable', result.table)
@@ -330,6 +374,7 @@ function updatePauseButton() {
  */
 function renderLightBars() {
 	if (!widgetEl) return
+	const sources = visibleLightSources()
 	const squares = widgetEl.querySelectorAll('.dungeon-square')
 	for (const sq of squares) {
 		const oldBars = sq.querySelector('.light-bars')
@@ -341,7 +386,7 @@ function renderLightBars() {
 		const offset = turn - turnCounter // 0 = current, 1 = next, etc.
 
 		// Light source bars (torch/lantern only)
-		const barsForSquare = lightSources.filter(s =>
+		const barsForSquare = sources.filter(s =>
 			s.type !== 'timer' && offset >= 0 && offset < Math.min(s.remaining, 6)
 		)
 		if (barsForSquare.length > 0) {
@@ -358,7 +403,7 @@ function renderLightBars() {
 		}
 
 		// Timer expiry icons (max 3 per square)
-		const timersHere = lightSources.filter(s =>
+		const timersHere = sources.filter(s =>
 			s.type === 'timer' && !s.paused && offset >= 0 && offset === s.remaining - 1
 		)
 		if (timersHere.length > 0) {
@@ -386,8 +431,10 @@ function renderLightPanel() {
 
 	panel.innerHTML = ''
 
+	const sources = visibleLightSources()
+
 	// Hide panel for non-GM users when there are no light sources
-	if (!game.user.isGM && lightSources.length === 0) {
+	if (!game.user.isGM && sources.length === 0) {
 		panel.classList.add('empty')
 		return
 	}
@@ -429,15 +476,16 @@ function renderLightPanel() {
 	}
 
 	// Active light list
-	if (lightSources.length === 0) return
+	if (sources.length === 0) return
 
 	const list = document.createElement('div')
 	list.className = 'dungeon-light-list'
 
-	for (const source of lightSources) {
+	for (const source of sources) {
 		const item = document.createElement('div')
 		item.className = 'dungeon-light-item'
 		if (source.paused) item.classList.add('is-paused')
+		if (source.gmOnly) item.classList.add('is-gm-only')
 		if (source.remaining <= 2 && !source.paused) item.classList.add('is-warning')
 
 		let iconClass, label
@@ -451,9 +499,13 @@ function renderLightPanel() {
 				: 'DOLMEN.DungeonTracker.Lantern')
 		}
 
+		const gmOnlyIcon = source.gmOnly
+			? `<i class="fa-solid fa-eye-slash light-gm-only" title="${game.i18n.localize('DOLMEN.DungeonTracker.TimerGMOnly')}"></i>`
+			: ''
 		item.innerHTML = `
 			<i class="fa-solid ${iconClass} light-icon ${source.type}"></i>
 			<span class="light-label">${label}</span>
+			${gmOnlyIcon}
 			<span class="light-remaining">${source.remaining}</span>`
 
 		// GM controls: pause toggle + delete button
@@ -532,6 +584,8 @@ async function postLightExpiryMessage(source) {
 		icon = source.type === 'torch' ? 'fa-solid fa-fire-flame-curved' : 'fa-solid fa-lightbulb'
 	}
 
+	const whisper = source.gmOnly ? game.users.filter(u => u.isGM).map(u => u.id) : []
+
 	await ChatMessage.create({
 		content: `
 		<div class="dolmen encounter-roll">
@@ -547,7 +601,8 @@ async function postLightExpiryMessage(source) {
 				</div>
 			</div>
 		</div>`,
-		speaker: { alias: title }
+		speaker: { alias: title },
+		whisper
 	})
 }
 
@@ -572,6 +627,7 @@ async function postTurnMessage(turnNum) {
 	const isRestTurn = restInterval > 0 && turnNum > 0 && turnNum % restInterval === 0
 	const isEncounterTurn = encounterInterval > 0 && turnNum > 0 && turnNum % encounterInterval === 0
 	const chance = game.settings.get('dolmenwood', 'encounterChance')
+	const die = game.settings.get('dolmenwood', 'encounterDie') || 6
 	const doEncounter = isEncounterTurn && chance > 0
 
 	if (!doEncounter && !isRestTurn) return
@@ -580,7 +636,7 @@ async function postTurnMessage(turnNum) {
 	let sound = undefined
 	const autoRoll = game.settings.get('dolmenwood', 'encounterAutoRoll')
 	if (doEncounter && autoRoll) {
-		const roll = new Roll('1d6')
+		const roll = new Roll(`1d${die}`)
 		await roll.evaluate()
 		const encountered = roll.total <= chance
 		const resultClass = encountered ? 'failure' : 'success'
@@ -591,10 +647,10 @@ async function postTurnMessage(turnNum) {
 		sound = CONFIG.sounds.dice
 		encounterHtml = `
 				<div class="roll-section ${resultClass}">
-					<div class="roll-result force-d6-icon">
+					<div class="roll-result force-d${die}-icon">
 						${anchor.outerHTML}
 					</div>
-					<span class="roll-target">${chance}-in-6</span>
+					<span class="roll-target">${chance}-in-${die}</span>
 					<span class="roll-label ${resultClass}">${resultLabel}</span>
 				</div>`
 
@@ -624,7 +680,7 @@ async function postTurnMessage(turnNum) {
 				<div class="roll-section">
 					<i class="fa-solid fa-dice" style="font-size:1.25rem"></i>
 					<span class="roll-label">${game.i18n.localize('DOLMEN.DungeonTracker.EncounterCheck')}</span>
-					<span class="roll-target">${chance}-in-6</span>
+					<span class="roll-target">${chance}-in-${die}</span>
 				</div>`
 	}
 

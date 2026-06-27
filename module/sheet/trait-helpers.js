@@ -62,6 +62,70 @@ export function resolveAdjustmentValue(trait, level) {
 }
 
 /**
+ * Fallback table marking which traits accept a free-text value, used for
+ * actors whose embedded Class/Kindred items predate the `customText` JSON
+ * flag. Maps trait id → localisation key for the input placeholder/hint.
+ */
+const TRAIT_CUSTOM_TEXT_FALLBACKS = {
+	slayer: 'DOLMEN.Traits.Talents.SlayerTextHint',
+	weaponSpecialist: 'DOLMEN.Traits.Talents.WeaponSpecialistTextHint'
+}
+
+/**
+ * Whether a trait declares a free-text input (via `customText: true` in its
+ * definition, or the id-keyed fallback above for stale embedded items).
+ * @param {object} trait - Trait definition
+ * @returns {boolean}
+ */
+export function traitHasCustomText(trait) {
+	return trait?.customText === true || (trait?.id in TRAIT_CUSTOM_TEXT_FALLBACKS)
+}
+
+/**
+ * Localised placeholder/hint for a trait's free-text input.
+ * @param {object} trait - Trait definition
+ * @returns {string}
+ */
+export function traitCustomTextHint(trait) {
+	const key = trait?.customTextHintKey || TRAIT_CUSTOM_TEXT_FALLBACKS[trait?.id] || 'DOLMEN.Traits.CustomTextPlaceholder'
+	return game.i18n.localize(key)
+}
+
+/**
+ * The stored free-text value for a given storage key (a trait id for
+ * standalone traits, or `${field}_${index}` for a multiselect slot).
+ * @param {Actor} actor - The actor
+ * @param {string} key - Storage key
+ * @returns {string}
+ */
+export function getTraitCustomText(actor, key) {
+	return actor.system.traitText?.[key] || ''
+}
+
+/**
+ * Expand a customText trait into one attack-modifier instance per active
+ * selection. A talent taken in several multiselect slots (e.g. Weapon
+ * Specialist for Halberd and for Bow) becomes a separate toggle each, with a
+ * unique id and its own text; otherwise a single instance keyed by trait id.
+ * @param {Actor} actor - The actor
+ * @param {object} trait - Trait definition (must have id; may have parentTrait)
+ * @returns {{id: string, text: string}[]}
+ */
+export function getTraitModifierInstances(actor, trait) {
+	const tt = actor.system.traitText || {}
+	const field = trait.parentTrait
+	if (field && Array.isArray(actor.system[field])) {
+		const instances = []
+		actor.system[field].forEach((sel, i) => {
+			if (sel !== trait.id) return
+			instances.push({ id: `${trait.id}_${i}`, text: tt[`${field}_${i}_${trait.id}`] || '' })
+		})
+		if (instances.length) return instances
+	}
+	return [{ id: trait.id, text: tt[trait.id] || '' }]
+}
+
+/**
  * Check if the character is using a kindred-class (kindred as class).
  * @param {Actor} actor - The actor
  * @returns {boolean} True if using a kindred-class
@@ -361,6 +425,13 @@ function prepareTrait(actor, trait, level) {
 			: null
 	}
 
+	// Free-text input (e.g. naming the affected weapon/creature)
+	if (traitHasCustomText(trait)) {
+		prepared.customText = true
+		prepared.customTextValue = getTraitCustomText(actor, trait.id)
+		prepared.customTextHint = traitCustomTextHint(trait)
+	}
+
 	return prepared
 }
 
@@ -478,11 +549,23 @@ export function buildCustomSections(actor) {
 			for (let i = 0; i < selections.length; i++) {
 				const selectedId = selections[i]
 				const child = childTraits.find(t => t.id === selectedId)
-				slots.push({
+				const slot = {
 					index: i,
 					selected: selectedId,
 					description: child ? parseSaveLinks(game.i18n.localize(child.descKey)) : ''
-				})
+				}
+				if (child && traitHasCustomText(child)) {
+					// Key by slot AND talent id: the same talent can be taken at
+					// multiple levels with different values (Slayer vs Ogres at
+					// L2, vs Dragons at L10 — must not share), and changing a
+					// slot's talent yields a fresh key rather than stale text.
+					const key = `${fieldName}_${i}_${child.id}`
+					slot.customText = true
+					slot.customTextKey = key
+					slot.customTextValue = getTraitCustomText(actor, key)
+					slot.customTextHint = traitCustomTextHint(child)
+				}
+				slots.push(slot)
 			}
 		} else {
 			const selectedId = actor.system[fieldName] || ''

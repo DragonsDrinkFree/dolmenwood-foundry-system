@@ -2,6 +2,7 @@
 	"DOLMEN": {
 		"Traits": {
 			"Title": "Traits",
+			"CustomTextPlaceholder": "Specify…",
 			"UsesPerDay": "uses/day",
 			"OncePerDay": "1/day",
 			"ThreePerDay": "3/day",
@@ -146,8 +147,10 @@
 				"MainGaucheDesc": "With small off-hand weapon, choose each round for +1 AC bonus or +1 Attack bonus.",
 				"Slayer": "Slayer",
 				"SlayerDesc": "+1 bonus to Attack and Damage against a chosen enemy type. Can be selected multiple times.",
+				"SlayerTextHint": "Enemy type",
 				"WeaponSpecialist": "Weapon Specialist",
-				"WeaponSpecialistDesc": "+1 bonus to Attack and Damage with a chosen weapon type. Can be selected multiple times."
+				"WeaponSpecialistDesc": "+1 bonus to Attack and Damage with a chosen weapon type. Can be selected multiple times.",
+				"WeaponSpecialistTextHint": "Weapon type"
 			},
 			"Orders": {
 				"stFaxis": "Order of St Faxis",

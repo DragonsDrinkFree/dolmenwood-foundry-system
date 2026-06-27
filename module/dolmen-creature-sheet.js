@@ -364,9 +364,31 @@ class DolmenCreatureSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 			return
 		}
 
-		// Check Effect items for unsupported targets
 		if (data.type === 'Item' && data.uuid) {
 			const item = await fromUuid(data.uuid)
+
+			// Translate a dropped Weapon into a creature attack
+			if (item?.type === 'Weapon') {
+				const w = item.system
+				const attacks = foundry.utils.deepClone(this.actor.system.attacks)
+				attacks.push({
+					numAttacks: 1,
+					attackName: item.name,
+					attackBonus: w.toHitBonus || 0,
+					attackDamage: w.damage || '1d6',
+					attackEffect: '',
+					attackType: 'attack',
+					rangeShort: w.rangeShort || 0,
+					rangeMedium: w.rangeMedium || 0,
+					rangeLong: w.rangeLong || 0,
+					attackGroup: ''
+				})
+				await this.actor.update({ 'system.attacks': attacks })
+				ui.notifications.info(game.i18n.format('DOLMEN.Creature.WeaponAddedAsAttack', { name: item.name }))
+				return
+			}
+
+			// Check Effect items for unsupported targets
 			if (item?.type === 'Effect') {
 				const creatureFields = getEffectFieldsForActor('Creature')
 				const validTargets = new Set()

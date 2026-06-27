@@ -54,6 +54,40 @@ function formatHeightFormula(formula) {
 }
 
 /**
+ * Build a structural path (array of child indices) from a root element down
+ * to a descendant, so the matching element can be located in a re-rendered
+ * copy of the same subtree.
+ * @param {HTMLElement} el - The descendant element
+ * @param {HTMLElement} root - The ancestor to stop at
+ * @returns {number[]|null} Child indices from root to el, or null if not nested
+ */
+function getElementPath(el, root) {
+	const path = []
+	while (el && el !== root) {
+		const parent = el.parentElement
+		if (!parent) return null
+		path.unshift(Array.prototype.indexOf.call(parent.children, el))
+		el = parent
+	}
+	return el === root ? path : null
+}
+
+/**
+ * Resolve a structural path produced by getElementPath back to an element.
+ * @param {HTMLElement} root - The ancestor the path is relative to
+ * @param {number[]} path - Child indices from root
+ * @returns {HTMLElement|null} The element at that path, or null if absent
+ */
+function getElementAtPath(root, path) {
+	let el = root
+	for (const idx of path) {
+		el = el?.children[idx]
+		if (!el) return null
+	}
+	return el
+}
+
+/**
  * Clean up memorized spell slots before deleting a spell item.
  * @param {Actor} actor - The actor owning the item
  * @param {Item} item - The item being deleted
@@ -712,6 +746,40 @@ class DolmenSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 		}
 
 		return context
+	}
+
+	/* -------------------------------------------- */
+	/*  Scroll Position Preservation                */
+	/* -------------------------------------------- */
+
+	/**
+	 * Capture scroll positions of every scrolled descendant before a part is
+	 * replaced, keyed by structural path. Foundry's built-in `scrollable`
+	 * config only restores the part root or a single querySelector match, so
+	 * it loses scroll on the multiple independent lists in our parts (the two
+	 * inventory columns, the various spell lists, etc.).
+	 */
+	_preSyncPartState(partId, newElement, priorElement, state) {
+		super._preSyncPartState(partId, newElement, priorElement, state)
+		state.dolmenScroll = []
+		for (const el of priorElement.querySelectorAll('*')) {
+			if (el.scrollTop > 0) {
+				const path = getElementPath(el, priorElement)
+				if (path) state.dolmenScroll.push([path, el.scrollTop])
+			}
+		}
+	}
+
+	/**
+	 * Restore the scroll positions captured in _preSyncPartState onto the
+	 * matching elements of the freshly-rendered part.
+	 */
+	_syncPartState(partId, newElement, priorElement, state) {
+		super._syncPartState(partId, newElement, priorElement, state)
+		for (const [path, scrollTop] of state.dolmenScroll || []) {
+			const el = getElementAtPath(newElement, path)
+			if (el) el.scrollTop = scrollTop
+		}
 	}
 
 	_onChangeTab(tabId, group) {

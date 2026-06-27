@@ -100,6 +100,10 @@
 	border-radius: 4px;
 }
 
+.dolmen.attack-roll .roll-section.special-section {
+	grid-column: 1 / -1;
+}
+
 .dolmen.attack-roll .roll-section.special-section .roll-breakdown {
 	font-size: 0.85rem;
 	width: 100%;

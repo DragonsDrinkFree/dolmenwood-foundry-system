@@ -145,6 +145,13 @@ Hooks.once('init', async function () {
 		default: 1
 	})
 
+	game.settings.register('dolmenwood', 'encounterDie', {
+		scope: 'world',
+		config: false,
+		type: Number,
+		default: 6
+	})
+
 	game.settings.register('dolmenwood', 'encounterInterval', {
 		scope: 'world',
 		config: false,
@@ -344,6 +351,15 @@ Hooks.once('init', async function () {
 		config: true,
 		type: Boolean,
 		default: true
+	})
+
+	game.settings.register('dolmenwood', 'autoMissileRange', {
+		name: 'DOLMEN.Settings.AutoMissileRange',
+		hint: 'DOLMEN.Settings.AutoMissileRangeHint',
+		scope: 'world',
+		config: true,
+		type: Boolean,
+		default: false
 	})
 
 	game.settings.register('dolmenwood', 'showWelcomeDialog', {
