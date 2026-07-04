@@ -362,7 +362,8 @@
 	color: rgba(255, 255, 255, 0.8);
 }
 
-.dungeon-light-controls .tracker-settings-btn {
+.dungeon-light-controls .tracker-settings-btn,
+.dungeon-light-controls .tracker-rest-btn {
 	flex: 0 0 auto;
 	width: 1.75rem;
 	padding: 0.1875rem 0;
@@ -370,6 +371,10 @@
 
 .dungeon-light-controls .tracker-settings-btn .fa-gear {
 	color: rgba(255, 255, 255, 0.6);
+}
+
+.dungeon-light-controls .tracker-rest-btn .fa-snooze {
+	color: var(--dolmen-gold);
 }
 
 /* ── Tracker Controls (Pause / Reset) ── */

@@ -19,7 +19,7 @@ import { worldTimeToCalendar, dateKeyToEpochDay } from './module/calendar/calend
 import { getFaSymbol, getRuneUsage } from './module/sheet/data-context.js'
 import { registerCombatSystem } from './module/combat/combat.js'
 import { handleCombatSocket } from './module/combat/combat-rolls.js'
-import { initDungeonTracker, toggleDungeonTracker, onLightSourcesChanged, onTrackerPausedChanged, onTurnCounterChanged } from './module/dungeon-tracker/dungeon-tracker.js'
+import { initDungeonTracker, toggleDungeonTracker, onLightSourcesChanged, onTrackerPausedChanged, onTurnCounterChanged, onRestBaselineChanged } from './module/dungeon-tracker/dungeon-tracker.js'
 import { initPartyViewer, togglePartyViewer, onPartyMembersChanged } from './module/party-viewer/party-viewer.js'
 import { openCreatureImportDialog } from './module/creature-importer.js'
 import { executeMacroAttack } from './module/attack-macros.js'
@@ -421,6 +421,14 @@ Hooks.once('init', async function () {
 		type: Number,
 		default: 1,
 		onChange: onTurnCounterChanged
+	})
+
+	game.settings.register('dolmenwood', 'trackerRestBaseline', {
+		scope: 'world',
+		config: false,
+		type: Number,
+		default: 0,
+		onChange: onRestBaselineChanged
 	})
 
 	// Add scene control toolbar buttons for calendar and dungeon tracker
