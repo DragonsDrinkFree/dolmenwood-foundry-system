@@ -776,10 +776,21 @@ class DolmenSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 	 */
 	_syncPartState(partId, newElement, priorElement, state) {
 		super._syncPartState(partId, newElement, priorElement, state)
-		for (const [path, scrollTop] of state.dolmenScroll || []) {
-			const el = getElementAtPath(newElement, path)
-			if (el) el.scrollTop = scrollTop
+		const positions = state.dolmenScroll || []
+		if (!positions.length) return
+		const restore = () => {
+			for (const [path, scrollTop] of positions) {
+				const el = getElementAtPath(newElement, path)
+				if (el) el.scrollTop = scrollTop
+			}
 		}
+		// Immediate restore handles lists in the always-visible primary tab
+		// (inventory). Lists inside magic sub-tabs are display:none at this
+		// point — the active sub-tab class is applied later in _onRender — so
+		// scrollTop is clamped to 0 there. Re-apply on the next frame, once the
+		// sub-tab has been made visible, to preserve those scroll positions too.
+		restore()
+		requestAnimationFrame(restore)
 	}
 
 	_onChangeTab(tabId, group) {
