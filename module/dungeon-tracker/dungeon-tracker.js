@@ -19,8 +19,19 @@ let pendingTurns = 0
 let currentSlideMs = SLIDE_NORMAL
 let batchTotal = 0
 let turnCounter = 1 // turn number under the frame (index 1)
+let restBaseline = 0 // turn the rest interval is measured from (last rest)
 let lightSources = []
 let trackerPaused = true // overwritten by loadTrackerPaused() on init
+
+/**
+ * Whether a rest reminder falls on the given turn. Measured from restBaseline
+ * (the last rest) so resetting the rest count re-bases the interval.
+ */
+function isRestTurn(turnNum) {
+	const restInterval = game.settings.get('dolmenwood', 'restInterval')
+	return restInterval > 0 && turnNum > restBaseline
+		&& (turnNum - restBaseline) % restInterval === 0
+}
 
 /**
  * Return the icon class for a given turn number, or null.
@@ -28,9 +39,8 @@ let trackerPaused = true // overwritten by loadTrackerPaused() on init
  */
 function getSquareIcon(turnNum) {
 	if (turnNum <= 0) return null
-	const restInterval = game.settings.get('dolmenwood', 'restInterval')
 	const encounterInterval = game.settings.get('dolmenwood', 'encounterInterval')
-	if (restInterval > 0 && turnNum % restInterval === 0) return 'fa-solid fa-snooze'
+	if (isRestTurn(turnNum)) return 'fa-solid fa-snooze'
 	if (encounterInterval > 0 && turnNum % encounterInterval === 0) return 'fa-solid fa-dice'
 	return null
 }
@@ -81,6 +91,22 @@ function saveTurnCounter() {
 	game.settings.set('dolmenwood', 'trackerTurn', turnCounter)
 }
 
+function saveRestBaseline() {
+	if (!game.user.isGM) return
+	game.settings.set('dolmenwood', 'trackerRestBaseline', restBaseline)
+}
+
+/**
+ * Re-base the rest interval to the current turn (players rested early).
+ * The next rest reminder then falls restInterval turns from now.
+ */
+function resetRestTimer() {
+	if (!game.user.isGM) return
+	restBaseline = turnCounter
+	saveRestBaseline()
+	rebuildSquares()
+}
+
 /**
  * Setting onChange handler — updates local pause state and button.
  */
@@ -95,6 +121,15 @@ export function onTrackerPausedChanged(value) {
 export function onTurnCounterChanged(value) {
 	if (game.user.isGM) return
 	turnCounter = value
+	rebuildSquares()
+}
+
+/**
+ * Setting onChange handler — syncs rest baseline from GM to players.
+ */
+export function onRestBaselineChanged(value) {
+	if (game.user.isGM) return
+	restBaseline = value
 	rebuildSquares()
 }
 
@@ -460,6 +495,13 @@ function renderLightPanel() {
 		timerBtn.innerHTML = `<i class="fa-solid fa-hourglass"></i> ${game.i18n.localize('DOLMEN.DungeonTracker.Timer')}`
 		timerBtn.addEventListener('click', () => showAddTimerDialog())
 
+		const restBtn = document.createElement('button')
+		restBtn.type = 'button'
+		restBtn.className = 'tracker-rest-btn'
+		restBtn.innerHTML = '<i class="fa-solid fa-snooze"></i>'
+		restBtn.title = game.i18n.localize('DOLMEN.DungeonTracker.ResetRest')
+		restBtn.addEventListener('click', () => resetRestTimer())
+
 		const settingsBtn = document.createElement('button')
 		settingsBtn.type = 'button'
 		settingsBtn.className = 'tracker-settings-btn'
@@ -470,6 +512,7 @@ function renderLightPanel() {
 		controls.appendChild(torchBtn)
 		controls.appendChild(lanternBtn)
 		controls.appendChild(timerBtn)
+		controls.appendChild(restBtn)
 		controls.appendChild(settingsBtn)
 		panel.appendChild(controls)
 
@@ -622,15 +665,14 @@ export function onLightSourcesChanged(value) {
 async function postTurnMessage(turnNum) {
 	if (!game.user.isGM) return
 
-	const restInterval = game.settings.get('dolmenwood', 'restInterval')
 	const encounterInterval = game.settings.get('dolmenwood', 'encounterInterval')
-	const isRestTurn = restInterval > 0 && turnNum > 0 && turnNum % restInterval === 0
+	const restTurn = isRestTurn(turnNum)
 	const isEncounterTurn = encounterInterval > 0 && turnNum > 0 && turnNum % encounterInterval === 0
 	const chance = game.settings.get('dolmenwood', 'encounterChance')
 	const die = game.settings.get('dolmenwood', 'encounterDie') || 6
 	const doEncounter = isEncounterTurn && chance > 0
 
-	if (!doEncounter && !isRestTurn) return
+	if (!doEncounter && !restTurn) return
 
 	let encounterHtml = ''
 	let sound = undefined
@@ -685,7 +727,7 @@ async function postTurnMessage(turnNum) {
 	}
 
 	let restHtml = ''
-	if (isRestTurn) {
+	if (restTurn) {
 		restHtml = `
 				<div class="roll-section rest-reminder">
 					<i class="fa-solid fa-snooze"></i>
@@ -693,7 +735,7 @@ async function postTurnMessage(turnNum) {
 				</div>`
 	}
 
-	const icon = isRestTurn && !doEncounter ? 'fa-solid fa-snooze' : 'fa-solid fa-dice'
+	const icon = restTurn && !doEncounter ? 'fa-solid fa-snooze' : 'fa-solid fa-dice'
 	const title = doEncounter
 		? game.i18n.localize('DOLMEN.DungeonTracker.EncounterCheck')
 		: game.i18n.localize('DOLMEN.DungeonTracker.RestTitle')
@@ -980,10 +1022,12 @@ function rebuildSquares() {
 function resetWidget() {
 	if (!widgetEl) return
 	turnCounter = 1
+	restBaseline = 0
 	lightSources = []
 	if (game.user.isGM) {
 		saveLightSources()
 		saveTurnCounter()
+		saveRestBaseline()
 	}
 	rebuildSquares()
 }
@@ -1095,6 +1139,7 @@ async function onRollEncounterTableButton(tableName, button) {
 export function initDungeonTracker() {
 	trackerPaused = game.settings.get('dolmenwood', 'trackerPaused')
 	turnCounter = game.settings.get('dolmenwood', 'trackerTurn') || 1
+	restBaseline = game.settings.get('dolmenwood', 'trackerRestBaseline') || 0
 	const show = game.settings.get('dolmenwood', 'showDungeonTracker')
 	if (show) {
 		document.body.classList.add('dungeon-tracker-active')
@@ -1119,6 +1164,7 @@ export function initDungeonTracker() {
 		if (!document.hidden && widgetEl) {
 			if (!game.user.isGM) {
 				turnCounter = game.settings.get('dolmenwood', 'trackerTurn') || 1
+				restBaseline = game.settings.get('dolmenwood', 'trackerRestBaseline') || 0
 				loadLightSources()
 			}
 			rebuildSquares()

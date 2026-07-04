@@ -1092,6 +1092,7 @@
 			"Pause": "Pause Tracker",
 			"Resume": "Resume Tracker",
 			"Reset": "Reset Tracker",
+			"ResetRest": "Reset Rest Count",
 			"AdvanceTurn": "Next Turn",
 			"Settings": "Tracker Settings",
 			"SettingsSave": "Save",
