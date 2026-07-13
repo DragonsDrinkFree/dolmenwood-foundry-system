@@ -13,6 +13,19 @@ export class DolmenwoodCalendar extends foundry.data.CalendarData {
 		components.dayOfWeek = components.dayOfMonth < 28 ? components.dayOfMonth % 7 : 7
 		return components
 	}
+
+	/**
+	 * Timestamp formatter that displays the in-world year (yearZero + elapsed
+	 * years) instead of the raw years-since-epoch count, e.g. 1089-01-01
+	 * rather than 0000-01-01. Adding yearZero keeps this correct for any
+	 * calendar, so registering it as the global "timestamp" formatter leaves
+	 * yearZero-0 calendars (e.g. the earth calendar) unchanged.
+	 * @override
+	 */
+	static formatTimestamp(calendar, components, options) {
+		const display = { ...components, year: components.year + calendar.years.yearZero }
+		return super.formatTimestamp(calendar, display, options)
+	}
 }
 
 /**

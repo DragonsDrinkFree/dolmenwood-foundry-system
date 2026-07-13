@@ -68,6 +68,7 @@ Hooks.once('init', async function () {
 	// (game.time.calendar / game.time.components) for module interoperability
 	CONFIG.time.worldCalendarClass = DolmenwoodCalendar
 	CONFIG.time.worldCalendarConfig = buildCalendarConfig()
+	CONFIG.time.formatters.timestamp = DolmenwoodCalendar.formatTimestamp
 	game.dolmenwood = { executeMacroAttack }
 
 	game.settings.register('dolmenwood', 'colorTheme', {
