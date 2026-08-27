@@ -2,10 +2,10 @@
   "id": "dolmenwood",
   "title": "Dolmenwood",
   "description": "Dolmenwood from Necrotic Gnome",
-  "version": "1.9.6.2",
+  "version": "1.9.7.0",
   "compatibility": {
     "minimum": "13.0",
-    "verified": "13.351"
+    "verified": "14.367"
   },
   "authors": [
     {
